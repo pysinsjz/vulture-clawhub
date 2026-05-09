@@ -1,9 +1,10 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { BrowseSidebar } from "../../components/BrowseSidebar";
+import { Button } from "../../components/ui/button";
 import { SKILL_CATEGORIES } from "../../lib/categories";
 import { formatCompactStat } from "../../lib/numberFormat";
 import { parseDir, parseSort } from "./-params";
@@ -88,13 +89,6 @@ export function SkillsIndex() {
     ? [{ value: "relevance", label: "Relevance" }, ...SORT_OPTIONS]
     : SORT_OPTIONS;
 
-  const handleFilterToggle = useCallback(
-    (key: string) => {
-      if (key === "nonSuspicious") model.onToggleNonSuspicious();
-    },
-    [model.onToggleNonSuspicious],
-  );
-
   const handleSortChange = useCallback(
     (value: string) => {
       if (value === "featured") {
@@ -171,6 +165,13 @@ export function SkillsIndex() {
           Skills
           {totalSkillsText ? <span className="browse-count">{totalSkillsText}</span> : null}
         </h1>
+        <div className="browse-page-actions">
+          <Button asChild variant="primary">
+            <Link to="/publish-skill" search={{ updateSlug: undefined }}>
+              Publish
+            </Link>
+          </Button>
+        </div>
       </div>
       <div className="browse-page-search">
         <Search size={15} className="navbar-search-icon" aria-hidden="true" />
@@ -190,10 +191,6 @@ export function SkillsIndex() {
           sortOptions={[{ value: "featured", label: "Featured" }, ...sortOptionsWithRelevance]}
           activeSort={model.featuredOnly ? "featured" : model.sort}
           onSortChange={handleSortChange}
-          filters={[
-            { key: "nonSuspicious", label: "Hide suspicious", active: model.nonSuspiciousOnly },
-          ]}
-          onFilterToggle={handleFilterToggle}
         />
         <div className="browse-results">
           <div className="browse-results-toolbar">
@@ -205,21 +202,31 @@ export function SkillsIndex() {
                 </button>
               ) : null}
             </span>
-            <div className="browse-view-toggle">
-              <button
-                className={`browse-view-btn${model.view === "list" ? " is-active" : ""}`}
-                type="button"
-                onClick={model.view === "grid" ? model.onToggleView : undefined}
-              >
-                List
-              </button>
-              <button
-                className={`browse-view-btn${model.view === "grid" ? " is-active" : ""}`}
-                type="button"
-                onClick={model.view === "list" ? model.onToggleView : undefined}
-              >
-                Grid
-              </button>
+            <div className="browse-results-actions">
+              <label className="browse-toolbar-checkbox">
+                <input
+                  type="checkbox"
+                  checked={model.nonSuspiciousOnly}
+                  onChange={model.onToggleNonSuspicious}
+                />
+                <span>Hide suspicious</span>
+              </label>
+              <div className="browse-view-toggle">
+                <button
+                  className={`browse-view-btn${model.view === "list" ? " is-active" : ""}`}
+                  type="button"
+                  onClick={model.view === "grid" ? model.onToggleView : undefined}
+                >
+                  List
+                </button>
+                <button
+                  className={`browse-view-btn${model.view === "grid" ? " is-active" : ""}`}
+                  type="button"
+                  onClick={model.view === "list" ? model.onToggleView : undefined}
+                >
+                  Grid
+                </button>
+              </div>
             </div>
           </div>
           <SkillsResults
