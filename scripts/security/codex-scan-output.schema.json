@@ -1,7 +1,16 @@
 {
   "type": "object",
   "additionalProperties": false,
-  "required": ["verdict", "confidence", "summary", "dimensions", "user_guidance"],
+  "required": [
+    "verdict",
+    "confidence",
+    "summary",
+    "dimensions",
+    "scan_findings_in_context",
+    "agentic_risk_findings",
+    "risk_summary",
+    "user_guidance"
+  ],
   "properties": {
     "verdict": { "type": "string", "enum": ["benign", "suspicious", "malicious"] },
     "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
@@ -17,11 +26,51 @@
         "persistence_privilege"
       ],
       "properties": {
-        "purpose_capability": { "$ref": "#/$defs/dimension" },
-        "instruction_scope": { "$ref": "#/$defs/dimension" },
-        "install_mechanism": { "$ref": "#/$defs/dimension" },
-        "environment_proportionality": { "$ref": "#/$defs/dimension" },
-        "persistence_privilege": { "$ref": "#/$defs/dimension" }
+        "purpose_capability": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "detail"],
+          "properties": {
+            "status": { "type": "string", "enum": ["ok", "note", "concern"] },
+            "detail": { "type": "string" }
+          }
+        },
+        "instruction_scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "detail"],
+          "properties": {
+            "status": { "type": "string", "enum": ["ok", "note", "concern"] },
+            "detail": { "type": "string" }
+          }
+        },
+        "install_mechanism": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "detail"],
+          "properties": {
+            "status": { "type": "string", "enum": ["ok", "note", "concern"] },
+            "detail": { "type": "string" }
+          }
+        },
+        "environment_proportionality": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "detail"],
+          "properties": {
+            "status": { "type": "string", "enum": ["ok", "note", "concern"] },
+            "detail": { "type": "string" }
+          }
+        },
+        "persistence_privilege": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "detail"],
+          "properties": {
+            "status": { "type": "string", "enum": ["ok", "note", "concern"] },
+            "detail": { "type": "string" }
+          }
+        }
       }
     },
     "scan_findings_in_context": {
@@ -49,6 +98,7 @@
           "status",
           "severity",
           "confidence",
+          "evidence",
           "user_impact",
           "recommendation"
         ],
@@ -63,7 +113,7 @@
               "sensitive_data_protection"
             ]
           },
-          "status": { "type": "string", "enum": ["none", "note", "concern"] },
+          "status": { "type": "string", "enum": ["note", "concern"] },
           "severity": { "type": "string" },
           "confidence": { "type": "string", "enum": ["high", "medium", "low"] },
           "evidence": {
@@ -86,32 +136,38 @@
       "additionalProperties": false,
       "required": ["abnormal_behavior_control", "permission_boundary", "sensitive_data_protection"],
       "properties": {
-        "abnormal_behavior_control": { "$ref": "#/$defs/riskSummaryBucket" },
-        "permission_boundary": { "$ref": "#/$defs/riskSummaryBucket" },
-        "sensitive_data_protection": { "$ref": "#/$defs/riskSummaryBucket" }
+        "abnormal_behavior_control": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "highest_severity", "summary"],
+          "properties": {
+            "status": { "type": "string", "enum": ["none", "note", "concern"] },
+            "highest_severity": { "type": "string" },
+            "summary": { "type": "string" }
+          }
+        },
+        "permission_boundary": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "highest_severity", "summary"],
+          "properties": {
+            "status": { "type": "string", "enum": ["none", "note", "concern"] },
+            "highest_severity": { "type": "string" },
+            "summary": { "type": "string" }
+          }
+        },
+        "sensitive_data_protection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "highest_severity", "summary"],
+          "properties": {
+            "status": { "type": "string", "enum": ["none", "note", "concern"] },
+            "highest_severity": { "type": "string" },
+            "summary": { "type": "string" }
+          }
+        }
       }
     },
     "user_guidance": { "type": "string" }
-  },
-  "$defs": {
-    "dimension": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["status", "detail"],
-      "properties": {
-        "status": { "type": "string", "enum": ["ok", "note", "concern"] },
-        "detail": { "type": "string" }
-      }
-    },
-    "riskSummaryBucket": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["status", "summary"],
-      "properties": {
-        "status": { "type": "string", "enum": ["none", "note", "concern"] },
-        "highest_severity": { "type": "string" },
-        "summary": { "type": "string" }
-      }
-    }
   }
 }
