@@ -2,6 +2,7 @@ import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { expect, test } from "@playwright/test";
 import {
+  expectHealthyPage,
   expectNoFatalErrorUi,
   trackRuntimeErrors,
   waitForHydration,
@@ -91,6 +92,8 @@ type AccountDeletionFixtureState = {
   skillActive: boolean;
   skillSoftDeletedAt: number | null;
   packageExists: boolean;
+  skillPubliclyVisible: boolean;
+  packagePubliclyVisible: boolean;
   packageActive: boolean;
   packageSoftDeletedAt: number | null;
   authAccountCount: number;
@@ -216,6 +219,8 @@ test("users can permanently delete their account and personal publisher resource
         deletedAt: null,
       },
       publisherExists: false,
+      skillPubliclyVisible: false,
+      packagePubliclyVisible: false,
       skillActive: false,
       packageActive: false,
       authAccountCount: 0,
@@ -227,6 +232,8 @@ test("users can permanently delete their account and personal publisher resource
     expect(finalState.user.deactivatedAt).toEqual(expect.any(Number));
     expect(finalState.user.purgedAt).toEqual(expect.any(Number));
   }
+  await expectHealthyPage(page, errors);
+  errors.length = 0;
 
   await page.goto(`/user/${fixture.handle}`, { waitUntil: "domcontentloaded" });
   await waitForHydration(page);

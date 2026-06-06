@@ -23,6 +23,8 @@ const {
   list,
   searchInternal,
   banUserInternal,
+  autobanMalwareAuthorInternal,
+  recordMaliciousArtifactFindingInternal,
   unbanUserForBanAppealServiceInternal,
   reclassifyBanInternal,
   me,
@@ -57,7 +59,7 @@ const purgeSelfDeletedAccountRecoveryBatchInternalHandler = (
 )._handler;
 const upsertDevPersonaInternalHandler = (
   upsertDevPersonaInternal as unknown as WrappedHandler<
-    { persona: "owner" | "user" | "admin" | "officialOrgMember" },
+    { persona: "owner" | "user" | "admin" | "officialOrgMember" | "abusePublisher" },
     unknown
   >
 )._handler;
@@ -150,6 +152,7 @@ function makeDevPersonaCtx() {
   const publishers = new Map<string, Record<string, unknown>>();
   const publisherMembers: Array<Record<string, unknown>> = [];
   const officialPublishers: Array<Record<string, unknown>> = [];
+  const auditLogs: Array<Record<string, unknown>> = [];
   const inserts: Array<{ table: string; value: Record<string, unknown> }> = [];
   const patches: Array<{ id: string; value: Record<string, unknown> }> = [];
 
@@ -290,6 +293,30 @@ function makeDevPersonaCtx() {
         }),
       };
     }
+    if (table === "auditLogs") {
+      return {
+        withIndex: vi.fn((name: string, builder?: (q: unknown) => unknown) => {
+          if (name !== "by_target") throw new Error(`Unexpected auditLogs index ${name}`);
+          let targetType = "";
+          let targetId = "";
+          const q = {
+            eq: (field: string, value: string) => {
+              if (field === "targetType") targetType = value;
+              if (field === "targetId") targetId = value;
+              return q;
+            },
+          };
+          builder?.(q);
+          return {
+            collect: vi.fn(async () =>
+              auditLogs.filter(
+                (entry) => entry.targetType === targetType && entry.targetId === targetId,
+              ),
+            ),
+          };
+        }),
+      };
+    }
     if (table === "packages" || table === "skills") {
       return {
         withIndex: vi.fn((name: string) => {
@@ -310,8 +337,10 @@ function makeDevPersonaCtx() {
 
   return {
     ctx: { db: { patch, get, insert, query, normalizeId: vi.fn() } } as never,
+    auditLogs,
     inserts,
     patches,
+    users,
   };
 }
 
@@ -384,10 +413,14 @@ function makeListCtx(
 
 function makeBanCtx(options: { auditLogs?: Array<Record<string, unknown>> } = {}) {
   const patch = vi.fn();
-  const insert = vi.fn();
+  const auditLogs = options.auditLogs ?? [];
+  const insert = vi.fn(async (table: string, value: Record<string, unknown>) => {
+    if (table === "auditLogs") auditLogs.unshift(value);
+    return `${table}:inserted`;
+  });
   const get = vi.fn();
   const runMutation = vi.fn();
-  const auditLogs = options.auditLogs ?? [];
+  const runAfter = vi.fn();
   const apiTokens = [{ _id: "apiTokens:1", revokedAt: undefined }];
   const userComments = [
     {
@@ -424,8 +457,12 @@ function makeBanCtx(options: { auditLogs?: Array<Record<string, unknown>> } = {}
     },
   }));
 
-  const ctx = { db: { patch, insert, get, query, normalizeId: vi.fn() }, runMutation } as never;
-  return { ctx, patch, insert, get, runMutation };
+  const ctx = {
+    db: { patch, insert, get, query, normalizeId: vi.fn() },
+    runMutation,
+    scheduler: { runAfter },
+  } as never;
+  return { ctx, patch, insert, get, runMutation, runAfter };
 }
 
 function makeBanAppealContextCtx(options: {
@@ -1019,6 +1056,32 @@ describe("ensureHandler", () => {
 });
 
 describe("users.upsertDevPersonaInternal", () => {
+  it("rejects a dev persona sign-in when the persona is banned", async () => {
+    process.env.DEV_AUTH_ENABLED = "1";
+    process.env.CONVEX_DEPLOYMENT = "local:dev";
+    process.env.CONVEX_SITE_URL = "http://localhost:3210";
+    const { auditLogs, ctx, patches, users } = makeDevPersonaCtx();
+    users.set("users:banned", {
+      _id: "users:banned",
+      _creationTime: 1,
+      handle: "local-abuse",
+      displayName: "Local Abuse Test Publisher",
+      deletedAt: 1_700_000_000_000,
+    });
+    auditLogs.push({
+      action: "user.autoban.malware",
+      targetType: "user",
+      targetId: "users:banned",
+    });
+
+    await expect(
+      upsertDevPersonaInternalHandler(ctx, {
+        persona: "abusePublisher",
+      }),
+    ).rejects.toThrow(/account has been banned/i);
+    expect(patches).toEqual([]);
+  });
+
   it("seeds a non-platform-admin user who manages an official org", async () => {
     process.env.DEV_AUTH_ENABLED = "1";
     process.env.CONVEX_DEPLOYMENT = "local:dev";
@@ -2683,6 +2746,54 @@ describe("users.banUserInternal", () => {
     );
   });
 
+  it("schedules a public-safe ban notification email when the target has email", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    const { ctx, get, runMutation, runAfter } = makeBanCtx();
+
+    get.mockImplementation(async (id: string) => {
+      if (id === "users:actor") return { _id: "users:actor", role: "moderator" };
+      if (id === "users:target") {
+        return {
+          _id: "users:target",
+          role: "user",
+          handle: "target-user",
+          email: "target@example.com",
+        };
+      }
+      if (id === "souls:1") return { _id: "souls:1", stats: { comments: 3 } };
+      return null;
+    });
+
+    runMutation
+      .mockResolvedValueOnce({ hiddenCount: 2, scheduled: false })
+      .mockResolvedValueOnce({ deletedCount: 0, revokedTokenCount: 0, scheduled: false })
+      .mockResolvedValueOnce(undefined);
+
+    const handler = (
+      banUserInternal as unknown as {
+        _handler: (
+          ctx: unknown,
+          args: { actorUserId: string; targetUserId: string; reason?: string },
+        ) => Promise<unknown>;
+      }
+    )._handler;
+
+    await handler(ctx, {
+      actorUserId: "users:actor",
+      targetUserId: "users:target",
+      reason: "rate limit triggered by automated CLI publishing",
+    });
+
+    expect(runAfter).toHaveBeenCalledWith(0, expect.anything(), {
+      userId: "users:target",
+      bannedAt: 1_700_000_000_000,
+      to: "target@example.com",
+      handle: "target-user",
+      source: "manual",
+      reason: "rate limit triggered by automated CLI publishing",
+    });
+  });
+
   it("re-ban of already banned user still cleans lingering comments", async () => {
     vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
     const { ctx, get, patch, runMutation } = makeBanCtx();
@@ -2737,6 +2848,331 @@ describe("users.banUserInternal", () => {
   });
 });
 
+describe("users.autobanMalwareAuthorInternal", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("schedules a malicious skill notification with trigger context", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    const { ctx, get, runMutation, runAfter } = makeBanCtx();
+
+    get.mockImplementation(async (id: string) => {
+      if (id === "users:target") {
+        return {
+          _id: "users:target",
+          role: "user",
+          handle: "target-user",
+          email: "target@example.com",
+        };
+      }
+      if (id === "souls:1") return { _id: "souls:1", stats: { comments: 3 } };
+      return null;
+    });
+    runMutation
+      .mockResolvedValueOnce({ hiddenCount: 1, scheduled: false })
+      .mockResolvedValueOnce({ deletedCount: 0, revokedTokenCount: 0, scheduled: false })
+      .mockResolvedValueOnce(undefined);
+
+    const handler = (
+      autobanMalwareAuthorInternal as unknown as {
+        _handler: (
+          ctx: unknown,
+          args: {
+            ownerUserId: string;
+            sha256hash?: string;
+            slug: string;
+            trigger?: string;
+          },
+        ) => Promise<unknown>;
+      }
+    )._handler;
+
+    await handler(ctx, {
+      ownerUserId: "users:target",
+      sha256hash: "abc123",
+      slug: "gingiris-launch",
+      trigger: "malicious.llm_malicious",
+    });
+
+    expect(runAfter).toHaveBeenCalledWith(0, expect.anything(), {
+      userId: "users:target",
+      bannedAt: 1_700_000_000_000,
+      to: "target@example.com",
+      handle: "target-user",
+      source: "autoban",
+      reason: "malicious.llm_malicious",
+      trigger: "malicious.llm_malicious",
+      artifact: { kind: "skill", name: "gingiris-launch" },
+    });
+  });
+});
+
+describe("users.recordMaliciousArtifactFindingInternal", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("emails artifact-level remediation without banning on the first malicious finding", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    const { ctx, get, insert, runMutation, runAfter } = makeBanCtx();
+
+    get.mockImplementation(async (id: string) => {
+      if (id === "users:target") {
+        return {
+          _id: "users:target",
+          role: "user",
+          handle: "target-user",
+          email: "target@example.com",
+        };
+      }
+      return null;
+    });
+
+    const handler = (
+      recordMaliciousArtifactFindingInternal as unknown as {
+        _handler: (
+          ctx: unknown,
+          args: {
+            ownerUserId: string;
+            artifactKind: "skill" | "plugin";
+            artifactName: string;
+            version?: string;
+            trigger?: string;
+            sha256hash?: string;
+          },
+        ) => Promise<unknown>;
+      }
+    )._handler;
+
+    const result = await handler(ctx, {
+      ownerUserId: "users:target",
+      artifactKind: "skill",
+      artifactName: "demo-skill",
+      version: "1.0.0",
+      trigger: "malicious.llm_malicious",
+      sha256hash: "abc123",
+    });
+
+    expect(result).toMatchObject({ ok: true, escalated: false });
+    expect(insert).toHaveBeenCalledWith(
+      "auditLogs",
+      expect.objectContaining({
+        actorUserId: "users:target",
+        action: "user.malicious_artifact.finding",
+        targetType: "user",
+        targetId: "users:target",
+        metadata: expect.objectContaining({
+          artifactKind: "skill",
+          artifactName: "demo-skill",
+          version: "1.0.0",
+          trigger: "malicious.llm_malicious",
+          sha256hash: "abc123",
+        }),
+      }),
+    );
+    expect(runAfter).toHaveBeenCalledWith(0, expect.anything(), {
+      userId: "users:target",
+      findingAt: 1_700_000_000_000,
+      to: "target@example.com",
+      handle: "target-user",
+      artifact: { kind: "skill", name: "demo-skill" },
+      version: "1.0.0",
+      trigger: "malicious.llm_malicious",
+    });
+    expect(runMutation).not.toHaveBeenCalled();
+  });
+
+  it("escalates to account ban on the third malicious attempt for one artifact", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    const { ctx, get, runMutation, runAfter } = makeBanCtx({
+      auditLogs: [
+        {
+          action: "user.malicious_artifact.finding",
+          targetType: "user",
+          targetId: "users:target",
+          metadata: { artifactKind: "skill", artifactName: "demo-skill" },
+          createdAt: 1_699_999_000_000,
+        },
+        {
+          action: "user.malicious_artifact.finding",
+          targetType: "user",
+          targetId: "users:target",
+          metadata: { artifactKind: "skill", artifactName: "demo-skill" },
+          createdAt: 1_699_998_000_000,
+        },
+      ],
+    });
+
+    get.mockImplementation(async (id: string) => {
+      if (id === "users:target") {
+        return {
+          _id: "users:target",
+          role: "user",
+          handle: "target-user",
+          email: "target@example.com",
+        };
+      }
+      return null;
+    });
+    runMutation.mockResolvedValue({ ok: true, alreadyBanned: false });
+
+    const handler = (
+      recordMaliciousArtifactFindingInternal as unknown as {
+        _handler: (
+          ctx: unknown,
+          args: {
+            ownerUserId: string;
+            artifactKind: "skill" | "plugin";
+            artifactName: string;
+            version?: string;
+            trigger?: string;
+            sha256hash?: string;
+          },
+        ) => Promise<unknown>;
+      }
+    )._handler;
+
+    const result = await handler(ctx, {
+      ownerUserId: "users:target",
+      artifactKind: "skill",
+      artifactName: "demo-skill",
+      version: "1.0.2",
+      trigger: "malicious.llm_malicious",
+    });
+
+    expect(result).toMatchObject({ ok: true, escalated: true, reason: "attempt_threshold" });
+    expect(runMutation).toHaveBeenCalledWith(expect.anything(), {
+      ownerUserId: "users:target",
+      slug: "demo-skill",
+      trigger: "malicious.llm_malicious",
+      artifactKind: "skill",
+      artifactName: "demo-skill",
+    });
+    expect(runAfter).not.toHaveBeenCalled();
+  });
+
+  it("does not escalate on the second malicious attempt for one artifact", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    const { ctx, get, runMutation } = makeBanCtx({
+      auditLogs: [
+        {
+          action: "user.malicious_artifact.finding",
+          targetType: "user",
+          targetId: "users:target",
+          metadata: { artifactKind: "skill", artifactName: "demo-skill" },
+          createdAt: 1_699_999_000_000,
+        },
+      ],
+    });
+
+    get.mockImplementation(async (id: string) => {
+      if (id === "users:target") {
+        return {
+          _id: "users:target",
+          role: "user",
+          handle: "target-user",
+          email: "target@example.com",
+        };
+      }
+      return null;
+    });
+
+    const handler = (
+      recordMaliciousArtifactFindingInternal as unknown as {
+        _handler: (
+          ctx: unknown,
+          args: {
+            ownerUserId: string;
+            artifactKind: "skill" | "plugin";
+            artifactName: string;
+            version?: string;
+            trigger?: string;
+            sha256hash?: string;
+          },
+        ) => Promise<unknown>;
+      }
+    )._handler;
+
+    const result = await handler(ctx, {
+      ownerUserId: "users:target",
+      artifactKind: "skill",
+      artifactName: "demo-skill",
+      version: "1.0.1",
+      trigger: "malicious.llm_malicious",
+    });
+
+    expect(result).toMatchObject({ ok: true, escalated: false });
+    expect(runMutation).not.toHaveBeenCalled();
+  });
+
+  it("escalates to account ban on the second distinct malicious artifact", async () => {
+    vi.spyOn(Date, "now").mockReturnValue(1_700_000_000_000);
+    const { ctx, get, runMutation, runAfter } = makeBanCtx({
+      auditLogs: [
+        {
+          action: "user.malicious_artifact.finding",
+          targetType: "user",
+          targetId: "users:target",
+          metadata: { artifactKind: "skill", artifactName: "first-skill" },
+          createdAt: 1_699_999_000_000,
+        },
+      ],
+    });
+
+    get.mockImplementation(async (id: string) => {
+      if (id === "users:target") {
+        return {
+          _id: "users:target",
+          role: "user",
+          handle: "target-user",
+          email: "target@example.com",
+        };
+      }
+      return null;
+    });
+    runMutation.mockResolvedValue({ ok: true, alreadyBanned: false });
+
+    const handler = (
+      recordMaliciousArtifactFindingInternal as unknown as {
+        _handler: (
+          ctx: unknown,
+          args: {
+            ownerUserId: string;
+            artifactKind: "skill" | "plugin";
+            artifactName: string;
+            version?: string;
+            trigger?: string;
+            sha256hash?: string;
+          },
+        ) => Promise<unknown>;
+      }
+    )._handler;
+
+    const result = await handler(ctx, {
+      ownerUserId: "users:target",
+      artifactKind: "plugin",
+      artifactName: "@scope/second-plugin",
+      version: "1.0.0",
+      trigger: "malicious.llm_malicious",
+    });
+
+    expect(result).toMatchObject({
+      ok: true,
+      escalated: true,
+      reason: "distinct_artifact_threshold",
+    });
+    expect(runMutation).toHaveBeenCalledWith(expect.anything(), {
+      ownerUserId: "users:target",
+      slug: "@scope/second-plugin",
+      trigger: "malicious.llm_malicious",
+      artifactKind: "plugin",
+      artifactName: "@scope/second-plugin",
+    });
+    expect(runAfter).not.toHaveBeenCalled();
+  });
+});
+
 describe("users.unbanUserForBanAppealServiceInternal", () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -2744,7 +3180,7 @@ describe("users.unbanUserForBanAppealServiceInternal", () => {
 
   it("restores ban-hidden skills and packages for accepted appeals", async () => {
     vi.spyOn(Date, "now").mockReturnValue(1_700_000_100_000);
-    const { ctx, get, patch, insert, runMutation } = makeBanCtx({
+    const { ctx, get, patch, insert, runMutation, runAfter } = makeBanCtx({
       auditLogs: [
         {
           _id: "auditLogs:ban",
@@ -2760,6 +3196,8 @@ describe("users.unbanUserForBanAppealServiceInternal", () => {
         return {
           _id: "users:target",
           role: "user",
+          handle: "target-user",
+          email: "target@example.com",
           deletedAt: 1_700_000_000_000,
           deactivatedAt: undefined,
           banReason: "malware auto-ban",
@@ -2818,6 +3256,13 @@ describe("users.unbanUserForBanAppealServiceInternal", () => {
         }),
       }),
     );
+    expect(runAfter).toHaveBeenCalledWith(0, expect.anything(), {
+      userId: "users:target",
+      restoredAt: 1_700_000_100_000,
+      to: "target@example.com",
+      handle: "target-user",
+      restoredListings: undefined,
+    });
     expect(result).toEqual({
       ok: true,
       alreadyUnbanned: false,

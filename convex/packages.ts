@@ -3279,6 +3279,28 @@ function rebuildPackageTagsFromActiveReleases(releases: Doc<"packageReleases">[]
   return tags;
 }
 
+function packageLatestSummaryFromRelease(release: Doc<"packageReleases"> | null) {
+  return release
+    ? {
+        version: release.version,
+        createdAt: release.createdAt,
+        changelog: release.changelog,
+        compatibility: release.compatibility,
+        capabilities: release.capabilities,
+        verification: release.verification,
+        artifact: packageArtifactSummary(release),
+      }
+    : undefined;
+}
+
+function packageRuntimeIdFromRelease(release: Doc<"packageReleases"> | null) {
+  return release?.runtimeId ?? release?.capabilities?.runtimeId;
+}
+
+function packageSourceRepoFromRelease(release: Doc<"packageReleases"> | null) {
+  return release?.sourceRepo ?? release?.verification?.sourceRepo;
+}
+
 async function restorePackageDoc(
   ctx: Pick<MutationCtx, "db">,
   pkg: Doc<"packages">,
@@ -3378,7 +3400,7 @@ async function restorePackageDoc(
     compatibility: nextLatest?.compatibility,
     capabilities: nextLatest?.capabilities,
     verification: nextLatest?.verification,
-    scanStatus: nextLatest ? resolvePackageReleaseScanStatus(nextLatest) : undefined,
+    scanStatus: nextLatest ? resolvePackageReleaseScanStatus(nextLatest) : pkg.scanStatus,
     updatedAt: now,
   };
   const nextPackage: Doc<"packages"> = { ...pkg, ...packagePatch };
@@ -6533,7 +6555,9 @@ export const insertReleaseInternal = internalMutation({
             releaseId: releaseExists._id,
           };
         }
-        throw new ConvexError(`Version ${nextVersionLabel} already exists`);
+        throw new ConvexError(
+          `Version ${nextVersionLabel} already exists. Increment the version number and try again.`,
+        );
       }
     }
     const priorReleases = existing
@@ -6571,6 +6595,8 @@ export const insertReleaseInternal = internalMutation({
       normalizedBundleManifest: args.normalizedBundleManifest,
       compatibility: args.compatibility,
       capabilities: nextCapabilities,
+      runtimeId: args.runtimeId,
+      sourceRepo: args.sourceRepo,
       verification: args.verification,
       staticScan: args.staticScan,
       source: args.source,
@@ -6642,10 +6668,186 @@ function isReleaseActive(
   return Boolean(release && !release.softDeletedAt);
 }
 
-async function syncLatestPackageVerification(ctx: MutationCtx, release: Doc<"packageReleases">) {
+async function recordMaliciousPluginReleaseFinding(
+  ctx: Pick<MutationCtx, "scheduler">,
+  pkg: Doc<"packages">,
+  release: Doc<"packageReleases">,
+  trigger: string,
+) {
+  await ctx.scheduler.runAfter(0, internal.users.recordMaliciousArtifactFindingInternal, {
+    ownerUserId: release.createdBy,
+    artifactKind: "plugin",
+    artifactName: pkg.normalizedName,
+    version: release.version,
+    trigger,
+    ...(release.sha256hash ? { sha256hash: release.sha256hash } : {}),
+  });
+}
+
+async function quarantineMaliciousNonLatestPackageRelease(
+  ctx: Pick<MutationCtx, "db"> & Partial<Pick<MutationCtx, "scheduler">>,
+  pkg: Doc<"packages">,
+  release: Doc<"packageReleases">,
+  trigger: string,
+) {
+  const now = Date.now();
+  const maliciousVerification = release.verification
+    ? { ...release.verification, scanStatus: "malicious" as const }
+    : release.verification;
+  await ctx.db.patch(release._id, {
+    verification: maliciousVerification,
+    softDeletedAt: now,
+  });
+
+  const nextTags = Object.fromEntries(
+    Object.entries(pkg.tags ?? {}).filter(([, releaseId]) => releaseId !== release._id),
+  ) as Doc<"packages">["tags"];
+  if (Object.keys(nextTags).length !== Object.keys(pkg.tags ?? {}).length) {
+    const packagePatch: Partial<Doc<"packages">> = {
+      tags: nextTags,
+      updatedAt: now,
+    };
+    const nextPackage: Doc<"packages"> = { ...pkg, ...packagePatch };
+    await ctx.db.patch(pkg._id, packagePatch);
+    const owner = await getOwnerPublisher(ctx, {
+      ownerPublisherId: pkg.ownerPublisherId,
+      ownerUserId: pkg.ownerUserId,
+    });
+    await upsertPackageSearchDigest(ctx, {
+      ...extractPackageDigestFields(nextPackage),
+      ownerHandle: owner?.handle ?? "",
+      ownerKind: owner?.kind,
+    });
+  }
+
+  if (ctx.scheduler) {
+    await recordMaliciousPluginReleaseFinding(
+      ctx as Pick<MutationCtx, "scheduler">,
+      pkg,
+      release,
+      trigger,
+    );
+  }
+}
+
+async function quarantineMaliciousLatestPackageRelease(
+  ctx: Pick<MutationCtx, "db"> & Partial<Pick<MutationCtx, "scheduler">>,
+  pkg: Doc<"packages">,
+  release: Doc<"packageReleases">,
+  trigger: string,
+) {
+  const now = Date.now();
+  const maliciousVerification = release.verification
+    ? { ...release.verification, scanStatus: "malicious" as const }
+    : release.verification;
+  const quarantinedRelease = {
+    ...release,
+    verification: maliciousVerification,
+    softDeletedAt: now,
+  } as Doc<"packageReleases">;
+
+  await ctx.db.patch(release._id, {
+    verification: maliciousVerification,
+    softDeletedAt: now,
+  });
+
+  const releases = await ctx.db
+    .query("packageReleases")
+    .withIndex("by_package", (q) => q.eq("packageId", pkg._id))
+    .collect();
+  const activeNonMaliciousReleases = releases
+    .map((candidate) => (candidate._id === release._id ? quarantinedRelease : candidate))
+    .filter(
+      (candidate) =>
+        !candidate.softDeletedAt && resolvePackageReleaseScanStatus(candidate) !== "malicious",
+    );
+  const nextLatest = getPreferredRestoredPackageRelease(pkg.family, activeNonMaliciousReleases);
+  const nextTags = rebuildPackageTagsFromActiveReleases(activeNonMaliciousReleases);
+  if (nextLatest) {
+    nextTags.latest = nextLatest._id;
+    if (!(nextLatest.distTags ?? []).includes("latest")) {
+      await ctx.db.patch(nextLatest._id, {
+        distTags: [...(nextLatest.distTags ?? []), "latest"],
+      });
+    }
+  }
+
+  const restoredRuntimeId = packageRuntimeIdFromRelease(nextLatest);
+  const restoredSourceRepo = packageSourceRepoFromRelease(nextLatest);
+  const packagePatch: Partial<Doc<"packages">> = {
+    tags: nextTags,
+    latestReleaseId: nextLatest?._id,
+    latestVersionSummary: packageLatestSummaryFromRelease(nextLatest),
+    summary: nextLatest?.summary,
+    sourceRepo: restoredSourceRepo,
+    runtimeId: restoredRuntimeId,
+    capabilityTags: nextLatest?.capabilities?.capabilityTags,
+    executesCode:
+      typeof nextLatest?.capabilities?.executesCode === "boolean"
+        ? nextLatest.capabilities.executesCode
+        : undefined,
+    compatibility: nextLatest?.compatibility,
+    capabilities: nextLatest?.capabilities,
+    verification: nextLatest?.verification,
+    scanStatus: nextLatest ? resolvePackageReleaseScanStatus(nextLatest) : "malicious",
+    updatedAt: now,
+  };
+  const nextPackage: Doc<"packages"> = { ...pkg, ...packagePatch };
+  await ctx.db.patch(pkg._id, packagePatch);
+  const owner = await getOwnerPublisher(ctx, {
+    ownerPublisherId: pkg.ownerPublisherId,
+    ownerUserId: pkg.ownerUserId,
+  });
+  await upsertPackageSearchDigest(ctx, {
+    ...extractPackageDigestFields(nextPackage),
+    ownerHandle: owner?.handle ?? "",
+    ownerKind: owner?.kind,
+  });
+
+  if (ctx.scheduler) {
+    await recordMaliciousPluginReleaseFinding(
+      ctx as Pick<MutationCtx, "scheduler">,
+      pkg,
+      release,
+      trigger,
+    );
+  }
+}
+
+type SyncLatestPackageVerificationOptions = {
+  quarantineMaliciousLatest?: boolean;
+  maliciousTrigger?: string;
+};
+
+async function syncLatestPackageVerification(
+  ctx: Pick<MutationCtx, "db"> & Partial<Pick<MutationCtx, "scheduler">>,
+  release: Doc<"packageReleases">,
+  options: SyncLatestPackageVerificationOptions = {},
+) {
   const pkg = await ctx.db.get(release.packageId);
-  if (!pkg || pkg.latestReleaseId !== release._id) return;
   const scanStatus = resolvePackageReleaseScanStatus(release);
+  if (!pkg) return;
+
+  if (scanStatus === "malicious" && options.quarantineMaliciousLatest) {
+    if (pkg.latestReleaseId !== release._id) {
+      await quarantineMaliciousNonLatestPackageRelease(
+        ctx,
+        pkg,
+        release,
+        options.maliciousTrigger ?? "malicious.llm_malicious",
+      );
+      return;
+    }
+    await quarantineMaliciousLatestPackageRelease(
+      ctx,
+      pkg,
+      release,
+      options.maliciousTrigger ?? "malicious.llm_malicious",
+    );
+    return;
+  }
+
+  if (pkg.latestReleaseId !== release._id) return;
 
   const nextVerification = pkg.verification
     ? {
@@ -6762,7 +6964,11 @@ export const updateReleaseLlmAnalysisInternal = internalMutation({
       ...release,
       llmAnalysis: args.llmAnalysis,
     } as Doc<"packageReleases">;
-    await syncLatestPackageVerification(ctx, updatedRelease);
+    const llmVerdict = (args.llmAnalysis.verdict ?? args.llmAnalysis.status).trim().toLowerCase();
+    await syncLatestPackageVerification(ctx, updatedRelease, {
+      quarantineMaliciousLatest: llmVerdict === "malicious",
+      maliciousTrigger: "malicious.llm_malicious",
+    });
   },
 });
 
