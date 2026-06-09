@@ -21,7 +21,6 @@ import {
   listPackagesV1Http,
   listPluginsV1Http,
   listSkillsV1Http,
-  listSoulsV1Http,
   npmMirrorGetHttp,
   packagesDeleteRouterV1Http,
   packagesGetRouterV1Http,
@@ -30,7 +29,6 @@ import {
   createPublisherV1Http,
   publishPackageV1Http,
   publishSkillV1Http,
-  publishSoulV1Http,
   resolveSkillVersionV1Http,
   searchSkillsV1Http,
   skillScanBatchStatusV1Http,
@@ -41,9 +39,6 @@ import {
   skillsDeleteRouterV1Http,
   skillsGetRouterV1Http,
   skillsPostRouterV1Http,
-  soulsDeleteRouterV1Http,
-  soulsGetRouterV1Http,
-  soulsPostRouterV1Http,
   transfersGetRouterV1Http,
   banAppealContextV1Http,
   usersGetRouterV1Http,
@@ -275,36 +270,6 @@ http.route({
   path: ApiRoutes.users,
   method: "GET",
   handler: usersListV1Http,
-});
-
-http.route({
-  path: ApiRoutes.souls,
-  method: "GET",
-  handler: listSoulsV1Http,
-});
-
-http.route({
-  pathPrefix: `${ApiRoutes.souls}/`,
-  method: "GET",
-  handler: soulsGetRouterV1Http,
-});
-
-http.route({
-  path: ApiRoutes.souls,
-  method: "POST",
-  handler: publishSoulV1Http,
-});
-
-http.route({
-  pathPrefix: `${ApiRoutes.souls}/`,
-  method: "POST",
-  handler: soulsPostRouterV1Http,
-});
-
-http.route({
-  pathPrefix: `${ApiRoutes.souls}/`,
-  method: "DELETE",
-  handler: soulsDeleteRouterV1Http,
 });
 
 http.route({

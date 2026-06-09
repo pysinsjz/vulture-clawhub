@@ -77,11 +77,15 @@
 
 ---
 
-## Phase 3 — souls（占位，详见执行时补充）
+## Phase 3 — souls
 - ⬛ schema 表：`souls`、`soulVersions`、`soulVersionFingerprints`、`soulEmbeddings`、`soulComments`、`soulStars`
-- ⬛ convex 模块：`convex/souls.ts`、`convex/soulDownloads.ts`、`convex/soulComments.ts`、`convex/soulStars.ts`、`convex/seedSouls.ts`、`convex/lib/soulPublish.ts`、`convex/lib/soulChangelog.ts`、`convex/lib/githubSoulBackup.ts`、`convex/githubSoulBackups*.ts`、`convex/httpApiV1/soulsV1.ts`、soul OG 路由(server/og)
-- ⬛ 前端：soul 页面/路由（`src/routes/souls/**`、`SoulDetailPage.tsx`、`SoulStats.tsx` 等）
-- ⬛ docs：`docs/soul-format.md`
+- ⬛ convex 模块：`convex/souls.ts`、`convex/soulDownloads.ts`、`convex/soulComments.ts`、`convex/soulStars.ts`、`convex/seedSouls.ts`、`convex/githubSoulBackups.ts`、`convex/githubSoulBackupsNode.ts`、`convex/lib/soulPublish.ts`、`convex/lib/soulChangelog.ts`、`convex/lib/githubSoulBackup.ts`、`convex/httpApiV1/soulsV1.ts`
+- ✅ HTTP 路由：souls 的 list/get/publish/post/delete v1 路由（已从 http.ts 移除）；删除时一并去 `httpApiV1.ts` 的 `listSoulsV1Http`/`soulsGetRouterV1Http`/`publishSoulV1Http`/`soulsPostRouterV1Http`/`soulsDeleteRouterV1Http` 导出与 `__handlers` 中 soul handlers
+- ⬛ 前端：`src/routes/souls/index.tsx`、`src/routes/souls/$slug.tsx`、`src/components/SoulCard.tsx`、`src/components/SoulDetailPage.tsx`、`src/components/SoulStats.tsx`
+- ⬛ 测试：`convex/souls.test.ts`、`convex/souls.public.test.ts`、`convex/soulComments.test.ts`（及 soul 相关前端测试）
+- ⬛ docs：`docs/soul-format.md`（同步更新 `docs/README.md` 阅读顺序、`src/routes/skills/publish.tsx` 的 SOUL 发布指南外链）
+- 🟦 site-mode（SoulHub / onlycrabs.ai）：`src/lib/site.ts` 的 souls 分支与 `getSiteMode`/`detectSiteMode`、`src/lib/og.ts`/`nav-items.ts`/`publicUser.ts`/`Header.tsx`/`routes/index.tsx`/`__root.tsx` 的 souls 模式分支。**内网部署天然为 skills 模式**（不用 onlycrabs host、不设 `VITE_SITE_MODE=souls`），SoulHub 已**配置失活**，无需改码即不可达；物理删除时可把 `SiteMode` 收敛为 skills-only 并删除 souls 分支 + 重写 `src/lib/site.test.ts` 的 souls 断言
+- 🟦 `convex/schema.ts`：移除上述 6 张 soul 表定义 + soul 相关 validator
 
 ## Phase 4 — 向量搜索（占位）
 - ⬛ schema 表：`skillEmbeddings`、`embeddingSkillMap`、`soulEmbeddings`；schema vectorIndex `by_embedding`
