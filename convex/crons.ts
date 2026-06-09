@@ -57,14 +57,6 @@ crons.interval(
   {},
 );
 
-crons.interval("vt-pending-scans", { minutes: 5 }, internal.vt.pollPendingScans, {
-  batchSize: 100,
-});
-
-crons.interval("vt-cache-backfill", { minutes: 30 }, internal.vt.backfillActiveSkillsVTCache, {
-  batchSize: 100,
-});
-
 crons.interval(
   "package-scan-backfill",
   { minutes: 30 },

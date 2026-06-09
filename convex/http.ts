@@ -48,11 +48,6 @@ import {
   whoamiV1Http,
 } from "./httpApiV1";
 import { preflightHandler } from "./httpPreflight";
-import {
-  packageInspectorArtifactHttp,
-  packageInspectorClaimHttp,
-  packageInspectorResultsHttp,
-} from "./packageInspectorHttp";
 
 const http = httpRouter();
 
@@ -174,24 +169,6 @@ http.route({
   path: ApiRoutes.packages,
   method: "POST",
   handler: publishPackageV1Http,
-});
-
-http.route({
-  path: "/api/v1/package-inspector/claim",
-  method: "POST",
-  handler: packageInspectorClaimHttp,
-});
-
-http.route({
-  path: "/api/v1/package-inspector/artifact",
-  method: "GET",
-  handler: packageInspectorArtifactHttp,
-});
-
-http.route({
-  path: "/api/v1/package-inspector/results",
-  method: "POST",
-  handler: packageInspectorResultsHttp,
 });
 
 http.route({

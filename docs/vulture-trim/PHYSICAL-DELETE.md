@@ -94,7 +94,11 @@
 - 🟦 保留但编辑：`skillPublish.ts`(303)/`soulPublish.ts`(172)/`devSeed.ts`(830) 的 `generateEmbedding` 调用 + `insertVersion` 的 `embedding` 必填参数（删表时去生成与存储）
 - 注：`generateEmbedding` 对无 `OPENAI_API_KEY` 优雅返回零向量（不 throw），**内网无 OpenAI key 时发布/搜索均正常**；运行时 OpenAI 已非依赖，物理删除仅清理 dormant 代码/表。`embeddings.test.ts` 届时一并处理。
 
-## Phase 5 — 外部扫描 worker（占位）
-- ⬛ convex：`convex/securityScan.ts`(worker 协议)、`convex/vt.ts`、`convex/llmEval.ts`、`convex/emailsNode.ts`、`convex/lib/emails.ts`、`convex/lib/depRegistryScan.ts`(可选)；schema `securityScanJobs`/`skillScanRequests`/`skillCardGenerationJobs`/`vtScanLogs`/`depRegistryCache`（仅服务外部 worker 部分）
-- ✅ cron（届时）：`vt-pending-scans`、`vt-cache-backfill`
-- ⛔ 保留：`runStaticPublishScan`、`convex/packageInspectorNode.ts`（发布前兼容门禁）
+## Phase 5 — 外部扫描 worker
+- ✅ cron：`vt-pending-scans`、`vt-cache-backfill`（已从 crons.ts 移除）
+- ✅ HTTP 路由：`/api/v1/package-inspector/claim|artifact|results`（Plugin Inspector **外部 worker 协议**，已从 http.ts 移除；发布时内联 `packageInspectorNode.runPackageInspectorForPublishInternal` 不受影响）；删除时一并去 `convex/packageInspectorHttp.ts` 与其 dormant handler 导出
+- ⬛ convex：`convex/securityScan.ts` 的 Codex worker 协议（`assertWorkerToken` + claim/complete/fail，~275/1938/2050/2130）、`convex/vt.ts`(VirusTotal)、`convex/llmEval.ts`、`convex/emailsNode.ts`、`convex/lib/emails.ts`、`convex/lib/depRegistryScan.ts`(可选)；schema `securityScanJobs`/`skillScanRequests`/`skillCardGenerationJobs`/`vtScanLogs`/`depRegistryCache`（仅服务外部 worker 部分）
+- ⬛ env：`SECURITY_SCAN_WORKER_TOKEN`、`VT_API_KEY`、`OPENAI_EVAL_*`、`RESEND_*`
+- 🟦 保留但编辑：`security-verdicts`/`verify`/`scan` 端点（`skillSecurityVerdictsV1Handler` 等）读存储 verdict 字段——无 worker 时 vt/llm 字段空、staticScan 仍由发布内联填充 → 端点无需改，仅数据来源收敛为 staticScan + manualModeration；`skillScans` submit/batch 路由喂 `skillScanRequests` 队列（无 worker 时 dormant），物理删除时移除
+- ⛔ **保留**：`runStaticPublishScan`（确定性静态扫描，发布内联）、`convex/packageInspectorNode.ts`（发布前兼容门禁 breakage>0 失败，内联）
+- 注：worker 协议/vt/llm/email 模块在内网（无 worker 进程、无相关 token/key）下**运行时不可达**；移除 worker HTTP 路由后外部 worker 无法接入。
