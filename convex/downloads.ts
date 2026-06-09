@@ -7,6 +7,7 @@ import { getOptionalActiveAuthUserIdFromAction } from "./lib/access";
 import { getOptionalApiTokenUserId } from "./lib/apiTokenAuth";
 import { corsHeaders, mergeHeaders } from "./lib/httpHeaders";
 import { applyRateLimit, getClientIp } from "./lib/httpRateLimit";
+import { sha256Base64, sha256Hex } from "./lib/clawpack";
 import { getPublicSkillFileAccessBlock, isSkillVersionForSkill } from "./lib/skillFileAccess";
 import { buildDeterministicZip } from "./lib/skillZip";
 import { insertStatEvent } from "./skillStatEvents";
@@ -98,6 +99,9 @@ export async function downloadZipHandler(
     publishedAt: version.createdAt,
   });
   const zipBlob = new Blob([zipArray], { type: "application/zip" });
+  // Integrity headers over the deterministic ZIP, mirroring the package download.
+  const artifactSha256 = await sha256Hex(zipArray);
+  const artifactSha256Base64 = await sha256Base64(zipArray);
 
   try {
     const userId = await getOptionalDownloadUserId(ctx, request);
@@ -125,6 +129,9 @@ export async function downloadZipHandler(
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="${slug}-${version.version}.zip"`,
         "Cache-Control": "private, max-age=60",
+        ETag: `"sha256:${artifactSha256}"`,
+        Digest: `sha-256=${artifactSha256Base64}`,
+        "X-ClawHub-Artifact-Sha256": artifactSha256,
       },
       corsHeaders(),
     ),
