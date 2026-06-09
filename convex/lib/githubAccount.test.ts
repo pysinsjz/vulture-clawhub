@@ -18,7 +18,11 @@ vi.mock("../_generated/api", () => ({
 
 const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
-describe("requireGitHubAccountAge", () => {
+// Vulture: the GitHub account-age publish/comment gate is removed (identity is
+// delegated to the external gateway). requireGitHubAccountAge now only performs a
+// lightweight user-exists/active sanity check with no GitHub API lookup and no
+// age requirement. See docs/vulture-trim/TRIM-SPEC.md.
+describe("requireGitHubAccountAge (gate removed)", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllEnvs();
@@ -31,378 +35,54 @@ describe("requireGitHubAccountAge", () => {
     vi.unstubAllGlobals();
   });
 
-  it("uses cached githubCreatedAt when present", async () => {
-    vi.useFakeTimers();
-    const now = new Date("2026-02-02T12:00:00Z");
-    vi.setSystemTime(now);
-
-    const runQuery = vi.fn().mockResolvedValue({
-      _id: "users:1",
-      githubCreatedAt: now.getTime() - 20 * ONE_DAY_MS,
-    });
+  it("passes for an active user without any GitHub API lookup", async () => {
+    const runQuery = vi.fn().mockResolvedValue({ _id: "users:1" });
     const runMutation = vi.fn();
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     await requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never);
 
-    expect(fetchMock).not.toHaveBeenCalled();
-    expect(runMutation).not.toHaveBeenCalled();
     expect(runQuery).toHaveBeenCalledWith(internal.users.getByIdInternal, { userId: "users:1" });
     expect(runQuery).not.toHaveBeenCalledWith(
       internal.githubIdentity.getGitHubProviderAccountIdInternal,
       { userId: "users:1" },
     );
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(runMutation).not.toHaveBeenCalled();
   });
 
-  it("allows admins without GitHub account age lookup", async () => {
+  it("no longer gates very new accounts", async () => {
     const runQuery = vi.fn().mockResolvedValue({
-      _id: "users:admin",
-      role: "admin",
-      githubCreatedAt: undefined,
+      _id: "users:1",
+      githubCreatedAt: Date.now(),
     });
     const runMutation = vi.fn();
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
-    await requireGitHubAccountAge({ runQuery, runMutation } as never, "users:admin" as never);
-
+    await expect(
+      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
+    ).resolves.toBeUndefined();
     expect(fetchMock).not.toHaveBeenCalled();
-    expect(runMutation).not.toHaveBeenCalled();
-    expect(runQuery).toHaveBeenCalledWith(internal.users.getByIdInternal, {
-      userId: "users:admin",
-    });
-    expect(runQuery).not.toHaveBeenCalledWith(
-      internal.githubIdentity.getGitHubProviderAccountIdInternal,
-      { userId: "users:admin" },
-    );
+  });
+
+  it("rejects missing users", async () => {
+    const runQuery = vi.fn().mockResolvedValue(null);
+    const runMutation = vi.fn();
+
+    await expect(
+      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:missing" as never),
+    ).rejects.toThrow(/User not found/i);
   });
 
   it("rejects deactivated users", async () => {
-    const runQuery = vi.fn().mockResolvedValue({
-      _id: "users:1",
-      deactivatedAt: Date.now(),
-    });
+    const runQuery = vi.fn().mockResolvedValue({ _id: "users:1", deactivatedAt: Date.now() });
     const runMutation = vi.fn();
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
 
     await expect(
       requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
     ).rejects.toThrow(/User not found/i);
-
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("rejects accounts younger than 14 days", async () => {
-    vi.useFakeTimers();
-    const now = new Date("2026-02-02T12:00:00Z");
-    vi.setSystemTime(now);
-
-    const runQuery = vi.fn().mockResolvedValue({
-      _id: "users:1",
-      githubCreatedAt: now.getTime() - 2 * ONE_DAY_MS,
-    });
-    const runMutation = vi.fn();
-
-    await expect(
-      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
-    ).rejects.toThrow(/GitHub account must be at least 14 days old/i);
-  });
-
-  it("fetches githubCreatedAt when missing (by providerAccountId)", async () => {
-    vi.useFakeTimers();
-    const now = new Date("2026-02-02T12:00:00Z");
-    vi.setSystemTime(now);
-
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("12345");
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        created_at: "2020-01-01T00:00:00Z",
-      }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never);
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.github.com/user/12345",
-      expect.objectContaining({
-        headers: expect.objectContaining({ "User-Agent": "clawhub" }),
-      }),
-    );
-    expect(runMutation).toHaveBeenCalledWith(internal.users.setGitHubCreatedAtInternal, {
-      userId: "users:1",
-      githubCreatedAt: Date.parse("2020-01-01T00:00:00Z"),
-    });
-  });
-
-  it("rejects when providerAccountId is missing", async () => {
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce(null);
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
-    ).rejects.toThrow(/GitHub account required/i);
-
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("rejects when providerAccountId is invalid", async () => {
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("abc123");
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
-    ).rejects.toThrow(/GitHub account lookup failed/i);
-
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("throws when GitHub lookup fails", async () => {
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("12345");
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 404 });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
-    ).rejects.toThrow(/GitHub account lookup failed/i);
-  });
-
-  it("throws rate-limit error on 403", async () => {
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("12345");
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 403 });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
-    ).rejects.toThrow(/rate limit exceeded/i);
-  });
-
-  it("throws rate-limit error on 429", async () => {
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("12345");
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 429 });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
-    ).rejects.toThrow(/rate limit exceeded/i);
-  });
-
-  it("throws when GitHub returns an invalid payload", async () => {
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("12345");
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({}),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
-    ).rejects.toThrow(/GitHub account lookup failed/i);
-  });
-
-  it("includes Authorization header when GITHUB_TOKEN is set", async () => {
-    vi.useFakeTimers();
-    const now = new Date("2026-02-02T12:00:00Z");
-    vi.setSystemTime(now);
-
-    vi.stubEnv("GITHUB_TOKEN", "ghp_test123");
-
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("12345");
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        created_at: "2020-01-01T00:00:00Z",
-      }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never);
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.github.com/user/12345",
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          "User-Agent": "clawhub",
-          Authorization: "Bearer ghp_test123",
-        }),
-      }),
-    );
-  });
-
-  it("omits Authorization header when GITHUB_TOKEN is blank", async () => {
-    vi.useFakeTimers();
-    const now = new Date("2026-02-02T12:00:00Z");
-    vi.setSystemTime(now);
-
-    vi.stubEnv("GITHUB_TOKEN", "   ");
-
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("12345");
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        created_at: "2020-01-01T00:00:00Z",
-      }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never);
-
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.github.com/user/12345",
-      expect.objectContaining({
-        headers: expect.objectContaining({ "User-Agent": "clawhub" }),
-      }),
-    );
-    expect(fetchMock.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Authorization");
-  });
-
-  it("retries without Authorization when GITHUB_TOKEN is rejected", async () => {
-    vi.useFakeTimers();
-    const now = new Date("2026-02-02T12:00:00Z");
-    vi.setSystemTime(now);
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-
-    vi.stubEnv("GITHUB_TOKEN", "ghp_expired");
-
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("12345");
-    const runMutation = vi.fn();
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce({ ok: false, status: 401 })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          created_at: "2020-01-01T00:00:00Z",
-        }),
-      });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never);
-
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      "https://api.github.com/user/12345",
-      expect.objectContaining({
-        headers: expect.objectContaining({
-          "User-Agent": "clawhub",
-          Authorization: "Bearer ghp_expired",
-        }),
-      }),
-    );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "https://api.github.com/user/12345",
-      expect.objectContaining({
-        headers: { "User-Agent": "clawhub" },
-      }),
-    );
-    expect(runMutation).toHaveBeenCalledWith(internal.users.setGitHubCreatedAtInternal, {
-      userId: "users:1",
-      githubCreatedAt: Date.parse("2020-01-01T00:00:00Z"),
-    });
-    expect(warnSpy).toHaveBeenCalledWith(
-      "[githubAccount] GitHub API auth was rejected; retrying lookup without auth",
-    );
-  });
-
-  it("does not retry unauthenticated 401 responses", async () => {
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce({
-        _id: "users:1",
-        githubCreatedAt: undefined,
-      })
-      .mockResolvedValueOnce("12345");
-    const runMutation = vi.fn();
-    const fetchMock = vi.fn().mockResolvedValue({ ok: false, status: 401 });
-    vi.stubGlobal("fetch", fetchMock);
-
-    await expect(
-      requireGitHubAccountAge({ runQuery, runMutation } as never, "users:1" as never),
-    ).rejects.toThrow(/GitHub account lookup failed/i);
-
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://api.github.com/user/12345",
-      expect.objectContaining({
-        headers: expect.objectContaining({ "User-Agent": "clawhub" }),
-      }),
-    );
-    expect(fetchMock.mock.calls[0]?.[1]?.headers).not.toHaveProperty("Authorization");
   });
 });
 

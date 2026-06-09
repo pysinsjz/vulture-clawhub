@@ -6,7 +6,6 @@ import { buildGitHubApiHeaders } from "./githubAuth";
 import { GITHUB_PROFILE_SYNC_WINDOW_MS } from "./githubProfileSync";
 
 const GITHUB_API = "https://api.github.com";
-const MIN_ACCOUNT_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 
 type GitHubAccountGateCtx = Pick<ActionCtx, "runQuery" | "runMutation">;
 
@@ -53,43 +52,13 @@ export async function fetchGitHubCreatedAtByProviderAccountId(providerAccountId:
   return parsed;
 }
 
+// Vulture: identity/auth is delegated to the external gateway, so the GitHub
+// account-age publish/comment gate is removed. We retain a lightweight
+// user-exists/active sanity guard (no GitHub API lookup, no age requirement).
+// See docs/vulture-trim/TRIM-SPEC.md.
 export async function requireGitHubAccountAge(ctx: GitHubAccountGateCtx, userId: Id<"users">) {
   const user = await ctx.runQuery(internal.users.getByIdInternal, { userId });
   if (!user || user.deletedAt || user.deactivatedAt) throw new ConvexError("User not found");
-  if (user.role === "admin") return;
-
-  const now = Date.now();
-  let createdAt = user.githubCreatedAt ?? null;
-
-  if (!createdAt) {
-    const providerAccountId = await ctx.runQuery(
-      internal.githubIdentity.getGitHubProviderAccountIdInternal,
-      { userId },
-    );
-    if (!providerAccountId) {
-      // Invariant: GitHub is our only auth provider, so this should never happen.
-      throw new ConvexError("GitHub account required");
-    }
-
-    createdAt = await fetchGitHubCreatedAtByProviderAccountId(providerAccountId);
-    await ctx.runMutation(internal.users.setGitHubCreatedAtInternal, {
-      userId,
-      githubCreatedAt: createdAt,
-    });
-  }
-
-  if (!createdAt) throw new ConvexError("GitHub account lookup failed");
-
-  const ageMs = now - createdAt;
-  if (ageMs < MIN_ACCOUNT_AGE_MS) {
-    const remainingMs = MIN_ACCOUNT_AGE_MS - ageMs;
-    const remainingDays = Math.max(1, Math.ceil(remainingMs / (24 * 60 * 60 * 1000)));
-    throw new ConvexError(
-      `GitHub account must be at least 14 days old to publish skills or post comments. Try again in ${remainingDays} day${
-        remainingDays === 1 ? "" : "s"
-      }.`,
-    );
-  }
 }
 
 /**

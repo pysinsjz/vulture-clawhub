@@ -1,11 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  BLOCKED_API_TOKEN_ACCOUNT_MESSAGE,
-  INVALID_API_TOKEN_MESSAGE,
-  MISSING_API_TOKEN_MESSAGE,
-  getOptionalApiTokenUserId,
-  requireApiTokenUser,
-} from "./apiTokenAuth";
+import { getOptionalApiTokenUserId, requireApiTokenUser } from "./apiTokenAuth";
 import { hashToken } from "./tokens";
 
 describe("getOptionalApiTokenUserId", () => {
@@ -115,44 +109,55 @@ describe("getOptionalApiTokenUserId", () => {
   });
 });
 
-describe("requireApiTokenUser", () => {
-  it("explains missing tokens", async () => {
-    const ctx = { runQuery: vi.fn(), runMutation: vi.fn() };
+// Vulture: auth is delegated to the external gateway. requireApiTokenUser honours
+// a valid token when present, otherwise trusts the internal caller and resolves
+// the fixed "system" operator via internal.users.getOrCreateSystemUserInternal.
+describe("requireApiTokenUser (internal-trust)", () => {
+  it("falls back to the system operator when no token is present", async () => {
+    const systemUser = { _id: "users_system", handle: "system", role: "admin" };
+    const ctx = { runQuery: vi.fn(), runMutation: vi.fn().mockResolvedValue(systemUser) };
 
-    await expect(
-      requireApiTokenUser(ctx as never, new Request("https://example.com")),
-    ).rejects.toThrow(MISSING_API_TOKEN_MESSAGE);
+    const result = await requireApiTokenUser(ctx as never, new Request("https://example.com"));
+
+    expect(result).toEqual({ user: systemUser, userId: "users_system" });
     expect(ctx.runQuery).not.toHaveBeenCalled();
+    expect(ctx.runMutation).toHaveBeenCalledTimes(1);
   });
 
-  it("explains invalid or revoked tokens", async () => {
-    const ctx = { runQuery: vi.fn().mockResolvedValue(null), runMutation: vi.fn() };
+  it("falls back to the system operator for unknown or revoked tokens", async () => {
+    const systemUser = { _id: "users_system", handle: "system" };
+    const ctx = {
+      runQuery: vi.fn().mockResolvedValue(null),
+      runMutation: vi.fn().mockResolvedValue(systemUser),
+    };
 
-    await expect(
-      requireApiTokenUser(
-        ctx as never,
-        new Request("https://example.com", { headers: { authorization: "Bearer token-5" } }),
-      ),
-    ).rejects.toThrow(INVALID_API_TOKEN_MESSAGE);
+    const result = await requireApiTokenUser(
+      ctx as never,
+      new Request("https://example.com", { headers: { authorization: "Bearer token-5" } }),
+    );
+
+    expect(result.userId).toBe("users_system");
+    expect(ctx.runMutation).toHaveBeenCalledTimes(1);
   });
 
-  it("explains tokens whose account is not in good standing", async () => {
+  it("honours a valid API token when present", async () => {
     const ctx = {
       runQuery: vi
         .fn()
         .mockImplementation(async (_fn, args: { tokenHash?: string; tokenId?: string }) => {
-          if (args.tokenHash) return { _id: "apiTokens_4", revokedAt: undefined };
-          if (args.tokenId) return { _id: "users_blocked", deletedAt: Date.now() };
+          if (args.tokenHash) return { _id: "apiTokens_x", revokedAt: undefined };
+          if (args.tokenId) return { _id: "users_real", deletedAt: undefined };
           return null;
         }),
       runMutation: vi.fn(),
     };
 
-    await expect(
-      requireApiTokenUser(
-        ctx as never,
-        new Request("https://example.com", { headers: { authorization: "Bearer token-6" } }),
-      ),
-    ).rejects.toThrow(BLOCKED_API_TOKEN_ACCOUNT_MESSAGE);
+    const result = await requireApiTokenUser(
+      ctx as never,
+      new Request("https://example.com", { headers: { authorization: "Bearer token-good" } }),
+    );
+
+    expect(result.userId).toBe("users_real");
+    expect(ctx.runMutation).not.toHaveBeenCalled();
   });
 });

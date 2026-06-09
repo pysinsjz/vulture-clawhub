@@ -1,11 +1,8 @@
 import { ApiRoutes, LegacyApiRoutes } from "clawhub-schema";
 import { httpRouter } from "convex/server";
-import { auth } from "./auth";
 import { downloadZip } from "./downloads";
 import {
   cliPublishHttp,
-  cliDeviceCodeHttp,
-  cliDeviceTokenHttp,
   cliSkillDeleteHttp,
   cliSkillUndeleteHttp,
   cliTelemetryInstallHttp,
@@ -25,7 +22,6 @@ import {
   listPluginsV1Http,
   listSkillsV1Http,
   listSoulsV1Http,
-  mintPublishTokenV1Http,
   npmMirrorGetHttp,
   packagesDeleteRouterV1Http,
   packagesGetRouterV1Http,
@@ -66,8 +62,6 @@ import {
 } from "./packageInspectorHttp";
 
 const http = httpRouter();
-
-auth.addHttpRoutes(http);
 
 http.route({
   path: ApiRoutes.download,
@@ -190,12 +184,6 @@ http.route({
 });
 
 http.route({
-  path: ApiRoutes.publishTokenMint,
-  method: "POST",
-  handler: mintPublishTokenV1Http,
-});
-
-http.route({
   path: "/api/v1/package-inspector/claim",
   method: "POST",
   handler: packageInspectorClaimHttp,
@@ -271,18 +259,6 @@ http.route({
   path: ApiRoutes.whoami,
   method: "GET",
   handler: whoamiV1Http,
-});
-
-http.route({
-  path: "/api/cli/device/code",
-  method: "POST",
-  handler: cliDeviceCodeHttp,
-});
-
-http.route({
-  path: "/api/cli/device/token",
-  method: "POST",
-  handler: cliDeviceTokenHttp,
 });
 
 http.route({

@@ -412,6 +412,47 @@ export const getByIdInternal = internalQuery({
   handler: async (ctx, args) => ctx.db.get(args.userId),
 });
 
+// Vulture internal-registry identity. Auth is delegated to the external gateway,
+// so HTTP API callers are trusted as a single fixed operator account. This
+// resolve-or-create the "system" admin user (with a personal publisher) used to
+// own/attribute publish + maintenance operations. See docs/vulture-trim/TRIM-SPEC.md.
+const SYSTEM_USER_HANDLE = "system";
+
+export const getOrCreateSystemUserInternal = internalMutation({
+  args: {},
+  handler: async (ctx): Promise<Doc<"users">> => {
+    const now = Date.now();
+    const existing = await getUserByHandleOrPersonalPublisher(ctx, SYSTEM_USER_HANDLE);
+    const patch = {
+      handle: SYSTEM_USER_HANDLE,
+      displayName: "System",
+      name: SYSTEM_USER_HANDLE,
+      role: "admin" as const,
+      deletedAt: undefined,
+      deactivatedAt: undefined,
+      purgedAt: undefined,
+      banReason: undefined,
+      updatedAt: now,
+    };
+    const userId =
+      existing?._id ??
+      (await ctx.db.insert("users", {
+        ...patch,
+        createdAt: now,
+      }));
+    if (existing) {
+      await ctx.db.patch(existing._id, patch);
+    }
+    const user = await ctx.db.get(userId);
+    if (!user) throw new Error("System user was not created");
+    await ensurePersonalPublisherForUser(ctx, user, {
+      actorUserId: user._id,
+      source: "system.bootstrap",
+    });
+    return (await ctx.db.get(userId)) ?? user;
+  },
+});
+
 export const upsertDevPersonaInternal = internalMutation({
   args: {
     persona: v.union(
