@@ -67,9 +67,9 @@ describe("registry resolution", () => {
 
     const registry = await getRegistry(makeOpts(), { cache: true });
 
-    expect(registry).toBe("https://clawhub.ai");
+    expect(registry).toBe(DEFAULT_REGISTRY);
     expect(writeGlobalConfig).toHaveBeenCalledWith({
-      registry: "https://clawhub.ai",
+      registry: DEFAULT_REGISTRY,
       token: "tkn",
     });
   });

@@ -62,10 +62,12 @@ import {
   resolveSourceInput,
 } from "./github.js";
 
-const DOT_DIR = ".clawhub";
-const LEGACY_DOT_DIR = ".clawdhub";
-const DOT_IGNORE = ".clawhubignore";
-const LEGACY_DOT_IGNORE = ".clawdhubignore";
+// Vulture branding: write to `.vulture`, read-only fallback to legacy `.clawhub`
+// and `.clawdhub`. See docs/vulture-trim/TRIM-SPEC.md.
+const DOT_DIR = ".vulture";
+const LEGACY_DOT_DIRS = [".clawhub", ".clawdhub"];
+const DOT_IGNORE = ".vultureignore";
+const LEGACY_DOT_IGNORES = [".clawhubignore", ".clawdhubignore"];
 const PACKAGE_PUBLISH_RETRY_COUNT = 5;
 
 type PackageInspectOptions = {
@@ -2313,9 +2315,11 @@ async function listPackageFiles(root: string) {
   const files: PackageFile[] = [];
   const absRoot = resolve(root);
   const ig = ignore();
-  ig.add([".git/", "node_modules/", `${DOT_DIR}/`, `${LEGACY_DOT_DIR}/`]);
+  ig.add([".git/", "node_modules/", `${DOT_DIR}/`, ...LEGACY_DOT_DIRS.map((d) => `${d}/`)]);
   await addIgnoreFile(ig, join(absRoot, DOT_IGNORE));
-  await addIgnoreFile(ig, join(absRoot, LEGACY_DOT_IGNORE));
+  for (const legacyIgnore of LEGACY_DOT_IGNORES) {
+    await addIgnoreFile(ig, join(absRoot, legacyIgnore));
+  }
   await walk(absRoot, async (absPath) => {
     const relPath = normalizePath(relative(absRoot, absPath));
     if (!relPath || ig.ignores(relPath)) return;

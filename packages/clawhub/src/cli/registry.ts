@@ -2,8 +2,11 @@ import { readGlobalConfig, writeGlobalConfig } from "../config.js";
 import { discoverRegistryFromSite } from "../discovery.js";
 import type { GlobalOpts } from "./types.js";
 
-export const DEFAULT_SITE = "https://clawhub.ai";
-export const DEFAULT_REGISTRY = "https://clawhub.ai";
+// Vulture: internal registry has no fixed public URL. Operators point the CLI at
+// their gateway via VULTURE_REGISTRY / VULTURE_SITE (or --registry / --site).
+const DEFAULT_VULTURE_REGISTRY = "https://registry.vulture.local";
+export const DEFAULT_SITE = process.env.VULTURE_SITE?.trim() || DEFAULT_VULTURE_REGISTRY;
+export const DEFAULT_REGISTRY = process.env.VULTURE_REGISTRY?.trim() || DEFAULT_VULTURE_REGISTRY;
 const LEGACY_REGISTRY_HOSTS = new Set([
   "auth.clawdhub.com",
   "auth.clawhub.com",

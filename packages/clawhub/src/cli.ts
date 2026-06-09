@@ -177,14 +177,12 @@ async function resolveWorkdir(explicit?: string) {
 }
 
 async function hasClawhubMarker(workdir: string) {
-  const lockfile = join(workdir, ".clawhub", "lock.json");
-  if (await pathExists(lockfile)) return true;
-  const markerDir = join(workdir, ".clawhub");
-  if (await pathExists(markerDir)) return true;
-  const legacyLockfile = join(workdir, ".clawdhub", "lock.json");
-  if (await pathExists(legacyLockfile)) return true;
-  const legacyMarkerDir = join(workdir, ".clawdhub");
-  return pathExists(legacyMarkerDir);
+  // Vulture marker `.vulture` plus read-only legacy `.clawhub`/`.clawdhub` fallback.
+  for (const dir of [".vulture", ".clawhub", ".clawdhub"]) {
+    if (await pathExists(join(workdir, dir, "lock.json"))) return true;
+    if (await pathExists(join(workdir, dir))) return true;
+  }
+  return false;
 }
 
 async function pathExists(path: string) {

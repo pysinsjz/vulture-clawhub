@@ -11,10 +11,12 @@ import {
   TEXT_FILE_EXTENSION_SET,
 } from "./schema/index.js";
 
-const DOT_DIR = ".clawhub";
-const LEGACY_DOT_DIR = ".clawdhub";
-const DOT_IGNORE = ".clawhubignore";
-const LEGACY_DOT_IGNORE = ".clawdhubignore";
+// Vulture branding: write to `.vulture`, read-only fallback to legacy `.clawhub`
+// and `.clawdhub`. See docs/vulture-trim/TRIM-SPEC.md.
+const DOT_DIR = ".vulture";
+const LEGACY_DOT_DIRS = [".clawhub", ".clawdhub"];
+const DOT_IGNORE = ".vultureignore";
+const LEGACY_DOT_IGNORES = [".clawhubignore", ".clawdhubignore"];
 const TEXT_SAMPLE_BYTES = 4096;
 
 export type SkillOrigin = {
@@ -73,10 +75,12 @@ export async function listTextFiles(root: string) {
   const files: Array<{ relPath: string; bytes: Uint8Array; contentType?: string }> = [];
   const absRoot = resolve(root);
   const ig = ignore();
-  ig.add([".git/", "node_modules/", `${DOT_DIR}/`, `${LEGACY_DOT_DIR}/`]);
+  ig.add([".git/", "node_modules/", `${DOT_DIR}/`, ...LEGACY_DOT_DIRS.map((d) => `${d}/`)]);
   await addIgnoreFile(ig, join(absRoot, ".gitignore"));
   await addIgnoreFile(ig, join(absRoot, DOT_IGNORE));
-  await addIgnoreFile(ig, join(absRoot, LEGACY_DOT_IGNORE));
+  for (const legacyIgnore of LEGACY_DOT_IGNORES) {
+    await addIgnoreFile(ig, join(absRoot, legacyIgnore));
+  }
 
   await walk(absRoot, async (absPath) => {
     const relPath = normalizePath(relative(absRoot, absPath));
@@ -135,7 +139,10 @@ export function hashSkillZip(zipBytes: Uint8Array) {
 }
 
 export async function readLockfile(workdir: string): Promise<Lockfile> {
-  const paths = [join(workdir, DOT_DIR, "lock.json"), join(workdir, LEGACY_DOT_DIR, "lock.json")];
+  const paths = [
+    join(workdir, DOT_DIR, "lock.json"),
+    ...LEGACY_DOT_DIRS.map((d) => join(workdir, d, "lock.json")),
+  ];
   for (const path of paths) {
     try {
       const raw = await readFile(path, "utf8");
@@ -157,7 +164,7 @@ export async function writeLockfile(workdir: string, lock: Lockfile) {
 export async function readSkillOrigin(skillFolder: string): Promise<SkillOrigin | null> {
   const paths = [
     join(skillFolder, DOT_DIR, "origin.json"),
-    join(skillFolder, LEGACY_DOT_DIR, "origin.json"),
+    ...LEGACY_DOT_DIRS.map((d) => join(skillFolder, d, "origin.json")),
   ];
   for (const path of paths) {
     try {
@@ -307,7 +314,7 @@ async function hasSkillMetadata(skillDir: string) {
   const candidates = [
     join(skillDir, "SKILL.md"),
     join(skillDir, DOT_DIR, "origin.json"),
-    join(skillDir, LEGACY_DOT_DIR, "origin.json"),
+    ...LEGACY_DOT_DIRS.map((d) => join(skillDir, d, "origin.json")),
   ];
   for (const path of candidates) {
     try {

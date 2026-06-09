@@ -97,7 +97,10 @@ export async function reportInstalledSkillsTelemetryIfEnabled(params: {
 }
 
 function isTelemetryDisabled() {
-  const raw = process.env.CLAWHUB_DISABLE_TELEMETRY ?? process.env.CLAWDHUB_DISABLE_TELEMETRY;
+  const raw =
+    process.env.VULTURE_DISABLE_TELEMETRY ??
+    process.env.CLAWHUB_DISABLE_TELEMETRY ??
+    process.env.CLAWDHUB_DISABLE_TELEMETRY;
   if (!raw) return false;
   return ["1", "true", "yes", "on"].includes(raw.trim().toLowerCase());
 }
