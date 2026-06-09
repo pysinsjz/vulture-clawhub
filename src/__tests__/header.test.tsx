@@ -439,27 +439,6 @@ describe("Header", () => {
     expect(labels.slice(3, 5)).toEqual(["Publishers", "Docs"]);
   });
 
-  it("links starred skills from the signed-in avatar menu", () => {
-    siteModeMock.mockReturnValue("skills");
-    authStatusMock.mockReturnValue({
-      isAuthenticated: true,
-      isLoading: false,
-      me: {
-        displayName: "Patrick",
-        email: "patrick@example.com",
-        handle: "patrick",
-        image: null,
-        name: "Patrick",
-      },
-    });
-
-    render(<Header />);
-
-    expect(screen.getByText("Stars").closest("a")?.getAttribute("href")).toBe("/stars");
-    expect(screen.getAllByText("Dashboard").length).toBeGreaterThan(0);
-    expect(screen.getByText("Settings")).toBeTruthy();
-  });
-
   it("routes soul-mode header searches to the souls browse page", () => {
     siteModeMock.mockReturnValue("souls");
     navigateMock.mockReset();

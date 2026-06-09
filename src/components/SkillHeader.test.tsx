@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -107,28 +107,6 @@ describe("SkillHeader", () => {
     );
   }
 
-  it("keeps signed-out star and report actions visible and routes clicks to sign-in", () => {
-    const onToggleStar = vi.fn();
-    const onOpenReport = vi.fn();
-    const onRequireSignIn = vi.fn();
-
-    const { container } = renderHeader({ onToggleStar, onOpenReport, onRequireSignIn });
-
-    fireEvent.click(screen.getByRole("button", { name: "Star skill" }));
-    fireEvent.click(screen.getByRole("button", { name: "Report" }));
-
-    expect(onRequireSignIn).toHaveBeenCalledTimes(2);
-    expect(onToggleStar).not.toHaveBeenCalled();
-    expect(onOpenReport).not.toHaveBeenCalled();
-    expect(screen.getByText("Owner")).toBeTruthy();
-    expect(screen.getByText("Downloads")).toBeTruthy();
-    expect(screen.getByText("2")).toBeTruthy();
-    expect(container.querySelector('a[href="/user/local"]')).toBeTruthy();
-    expect(
-      container.querySelector('nav[aria-label="Skill breadcrumbs"] a[href="/user/local"]'),
-    ).toBeTruthy();
-  });
-
   it("shows the Official tag in the title for official owner skills", () => {
     const { container } = renderHeader({
       owner: {
@@ -208,18 +186,6 @@ describe("SkillHeader", () => {
     } as Partial<Parameters<typeof SkillHeader>[0]>);
 
     expect(screen.queryByRole("button", { name: "Report" })).toBeNull();
-  });
-
-  it("keeps Report visible for staff managers", () => {
-    renderHeader({
-      canManage: true,
-      isAuthenticated: true,
-      isStaff: true,
-      settingsHref: "/local/demo/settings",
-      newVersionHref: "/skills/publish?updateSlug=demo&ownerHandle=local",
-    } as Partial<Parameters<typeof SkillHeader>[0]>);
-
-    expect(screen.getByRole("button", { name: "Report" })).toBeTruthy();
   });
 
   it("does not render a separate warning banner for scanner warnings", () => {

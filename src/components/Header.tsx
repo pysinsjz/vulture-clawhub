@@ -9,7 +9,6 @@ import {
   Moon,
   Search,
   Settings,
-  Star,
   Sun,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -472,12 +471,6 @@ export default function Header() {
                     <Link to="/dashboard" className="flex items-center gap-2">
                       <LayoutDashboard size={14} aria-hidden="true" />
                       Dashboard
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link to="/stars" className="flex items-center gap-2">
-                      <Star size={14} aria-hidden="true" />
-                      Stars
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
