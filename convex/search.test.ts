@@ -1,6 +1,6 @@
 /* @vitest-environment node */
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { tokenize } from "./lib/searchText";
 import {
   __test,
@@ -55,6 +55,13 @@ const hydrateResultsHandler = (
     ) => Promise<Array<{ skill: { slug: string; _id: string }; ownerHandle: string | null }>>;
   }
 )._handler;
+
+// Skill search no longer calls generateEmbedding (vector recall removed). Reset
+// the mock before every test so stale once-values from skill tests do not leak
+// into the soul search tests (separate describe block) that still exercise it.
+beforeEach(() => {
+  generateEmbeddingMock.mockReset();
+});
 
 describe("search helpers", () => {
   it("returns fallback results when vector candidates are empty", async () => {
@@ -444,143 +451,6 @@ describe("search helpers", () => {
     expect(ctx.db.query).toHaveBeenCalledWith("skillSearchDigest");
   });
 
-  it("dedupes overlap and enforces rank + limit across vector and fallback", async () => {
-    generateEmbeddingMock.mockResolvedValueOnce([0, 1, 2]);
-    const vectorEntries = [
-      {
-        embeddingId: "skillEmbeddings:a",
-        skill: makePublicSkill({
-          id: "skills:a",
-          slug: "foo-a",
-          displayName: "Foo Alpha",
-          downloads: 10,
-        }),
-        version: null,
-        ownerHandle: "one",
-        owner: null,
-      },
-      {
-        embeddingId: "skillEmbeddings:b",
-        skill: makePublicSkill({
-          id: "skills:b",
-          slug: "foo-b",
-          displayName: "Foo Beta",
-          downloads: 2,
-        }),
-        version: null,
-        ownerHandle: "two",
-        owner: null,
-      },
-    ];
-    const fallbackEntries = [
-      {
-        skill: makePublicSkill({
-          id: "skills:a",
-          slug: "foo-a",
-          displayName: "Foo Alpha",
-          downloads: 10,
-        }),
-        version: null,
-        ownerHandle: "one",
-        owner: null,
-      },
-      {
-        skill: makePublicSkill({
-          id: "skills:c",
-          slug: "foo-c",
-          displayName: "Foo Classic",
-          downloads: 1,
-        }),
-        version: null,
-        ownerHandle: "three",
-        owner: null,
-      },
-    ];
-
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce(null) // getExactSkillSlugMatch
-      .mockResolvedValueOnce([]) // directPrefixSkillMatches
-      .mockResolvedValueOnce(vectorEntries) // hydrateResults
-      .mockResolvedValueOnce(fallbackEntries); // lexicalFallbackSkills
-
-    const result = await searchSkillsHandler(
-      {
-        vectorSearch: vi.fn().mockResolvedValue([
-          { _id: "skillEmbeddings:a", _score: 0.4 },
-          { _id: "skillEmbeddings:b", _score: 0.9 },
-        ]),
-        runQuery,
-      },
-      { query: "foo", limit: 2 },
-    );
-
-    expect(result).toHaveLength(2);
-    expect(result[0].skill.slug).toBe("foo-b");
-    expect(new Set(result.map((entry: { skill: { _id: string } }) => entry.skill._id)).size).toBe(
-      2,
-    );
-  });
-
-  it("uses a stable recall pool before slicing first-page search results (#1756)", async () => {
-    generateEmbeddingMock.mockResolvedValueOnce([0, 1, 2]);
-
-    const vectorEntries = Array.from({ length: 25 }, (_, index) => ({
-      embeddingId: `skillEmbeddings:${index}`,
-      skill: makePublicSkill({
-        id: `skills:${index}`,
-        slug: `image-vector-${index}`,
-        displayName: `Image Vector ${index}`,
-        downloads: 10,
-      }),
-      version: null,
-      ownerHandle: "owner",
-      owner: null,
-    }));
-    const fallbackEntries = [
-      {
-        skill: makePublicSkill({
-          id: "skills:fallback",
-          slug: "antigravity-image-generator",
-          displayName: "Antigravity Image Generator",
-          downloads: 1_000_000_000,
-          installsAllTime: 1_000,
-          stars: 100,
-        }),
-        version: null,
-        ownerHandle: "owner",
-        owner: null,
-      },
-    ];
-
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce(null) // getExactSkillSlugMatch
-      .mockResolvedValueOnce([]) // directPrefixSkillMatches
-      .mockResolvedValueOnce(vectorEntries) // hydrateResults
-      .mockResolvedValueOnce(fallbackEntries); // lexicalFallbackSkills
-
-    const result = await searchSkillsHandler(
-      {
-        vectorSearch: vi.fn().mockResolvedValue(
-          vectorEntries.map((entry, index) => ({
-            _id: entry.embeddingId,
-            _score: 0.05 - index * 0.001,
-          })),
-        ),
-        runQuery,
-      },
-      { query: "image", limit: 25 },
-    );
-
-    expect(runQuery).toHaveBeenCalledTimes(4);
-    expect(runQuery.mock.calls.at(-1)?.[1]).toEqual(
-      expect.objectContaining({ query: "image", limit: 200 }),
-    );
-    expect(result).toHaveLength(25);
-    expect(result.some((entry) => entry.skill.slug === "antigravity-image-generator")).toBe(true);
-  });
-
   it("orders lexical name matches above summary-only matches before popularity", async () => {
     generateEmbeddingMock.mockResolvedValueOnce([0, 1, 2]);
     const exactName = {
@@ -660,59 +530,6 @@ describe("search helpers", () => {
     );
 
     expect(result).toEqual([]);
-  });
-
-  it("always includes an exact slug match even when vector exact matches already fill the limit", async () => {
-    generateEmbeddingMock.mockResolvedValueOnce([0, 1, 2]);
-
-    const vectorEntries = Array.from({ length: 10 }, (_, index) => ({
-      embeddingId: `skillEmbeddings:${index}`,
-      skill: makePublicSkill({
-        id: `skills:${index}`,
-        slug: `downloader-${index}`,
-        displayName: `Skill Downloader ${index}`,
-        downloads: 100 - index,
-      }),
-      version: null,
-      ownerHandle: "owner",
-      owner: null,
-    }));
-
-    const exactSlugEntry = {
-      skill: makePublicSkill({
-        id: "skills:exact",
-        slug: "skill-downloader",
-        displayName: "Skill Downloader",
-        downloads: 1,
-      }),
-      version: null,
-      ownerHandle: "yyang100",
-      owner: null,
-    };
-
-    const runQuery = vi
-      .fn()
-      .mockResolvedValueOnce(exactSlugEntry)
-      .mockResolvedValueOnce([])
-      .mockResolvedValueOnce(vectorEntries)
-      .mockResolvedValueOnce([]);
-
-    const result = await searchSkillsHandler(
-      {
-        vectorSearch: vi.fn().mockResolvedValue(
-          vectorEntries.map((entry, index) => ({
-            _id: entry.embeddingId,
-            _score: 0.9 - index * 0.01,
-          })),
-        ),
-        runQuery,
-      },
-      { query: "skill-downloader", limit: 10 },
-    );
-
-    expect(result).toHaveLength(10);
-    expect(result[0].skill.slug).toBe("skill-downloader");
-    expect(runQuery).toHaveBeenCalledTimes(4);
   });
 
   it("omits exact slug injection when nonSuspiciousOnly excludes it", async () => {
@@ -1393,54 +1210,6 @@ describe("search helpers", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].skill.slug).toBe("fallback-skill");
-  });
-
-  it("hydrates a bounded vector window for ordinary load-more searches", async () => {
-    generateEmbeddingMock.mockResolvedValueOnce([0, 1, 2]);
-
-    const batch = Array.from({ length: 128 }, (_, i) => ({
-      _id: `skillEmbeddings:e${i}`,
-      _score: 0.5 - i * 0.001,
-    }));
-
-    const vectorSearchMock = vi.fn(
-      async (_table: unknown, _index: unknown, opts: { limit: number }) =>
-        batch.slice(0, opts.limit),
-    );
-
-    const hydrateCalls: string[][] = [];
-    const runQuery = vi.fn(
-      async (_ref: unknown, args: { embeddingIds?: string[]; query?: string; slug?: string }) => {
-        if (args.slug) {
-          return null; // getExactSkillSlugMatch
-        }
-        if (args.embeddingIds) {
-          hydrateCalls.push(args.embeddingIds);
-          return args.embeddingIds.map((embeddingId: string) => ({
-            embeddingId,
-            skill: makePublicSkill({
-              id: `skills:${embeddingId.split(":")[1]}`,
-              slug: `skill-${embeddingId.split(":")[1]}`,
-              displayName: `Skill ${embeddingId.split(":")[1]}`,
-            }),
-            version: null,
-            ownerHandle: "owner",
-            owner: null,
-          }));
-        }
-        return []; // lexicalFallbackSkills
-      },
-    );
-
-    await searchSkillsHandler(
-      { vectorSearch: vectorSearchMock, runQuery },
-      { query: "test", limit: 50 },
-    );
-
-    expect(vectorSearchMock).toHaveBeenCalledTimes(2);
-    expect(hydrateCalls).toHaveLength(2);
-    expect(hydrateCalls[0]).toHaveLength(100);
-    expect(hydrateCalls[1]).toHaveLength(28);
   });
 
   it("merges fallback matches without duplicate skill ids", () => {

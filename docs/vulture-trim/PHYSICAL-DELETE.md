@@ -87,9 +87,12 @@
 - 🟦 site-mode（SoulHub / onlycrabs.ai）：`src/lib/site.ts` 的 souls 分支与 `getSiteMode`/`detectSiteMode`、`src/lib/og.ts`/`nav-items.ts`/`publicUser.ts`/`Header.tsx`/`routes/index.tsx`/`__root.tsx` 的 souls 模式分支。**内网部署天然为 skills 模式**（不用 onlycrabs host、不设 `VITE_SITE_MODE=souls`），SoulHub 已**配置失活**，无需改码即不可达；物理删除时可把 `SiteMode` 收敛为 skills-only 并删除 souls 分支 + 重写 `src/lib/site.test.ts` 的 souls 断言
 - 🟦 `convex/schema.ts`：移除上述 6 张 soul 表定义 + soul 相关 validator
 
-## Phase 4 — 向量搜索（占位）
-- ⬛ schema 表：`skillEmbeddings`、`embeddingSkillMap`、`soulEmbeddings`；schema vectorIndex `by_embedding`
-- ⬛ convex：`convex/lib/embeddings.ts`、`convex/search.ts` 向量分支、OpenAI embeddings 生成/索引
+## Phase 4 — 向量搜索
+- ✅ search 路径：`convex/search.ts` 的 `searchSkills` 已移除向量分支（`generateEmbedding` + `ctx.vectorSearch("skillEmbeddings")` + `hydrateResults`），改为纯关键字/前缀（skillSearchDigest 的 exact slug + 前缀索引 + `search_by_display_name`/`search_by_slug` 全文索引 + 词法兜底）；响应结构 `{results:[...]}` 不变。`search.test.ts` 删 4 个向量专属用例 + 加顶层 mock 重置。
+- ⬛ schema 表：`skillEmbeddings`、`embeddingSkillMap`、`soulEmbeddings`；schema `vectorIndex by_embedding`
+- ⬛ convex：`convex/lib/embeddings.ts`（`generateEmbedding`/`EMBEDDING_*`——schema 引用 `EMBEDDING_DIMENSIONS`，删表后一并去）；`convex/search.ts` 的 dormant `searchSouls`/`hydrateResults`/`hydrateSoulResults`/`lexicalFallbackSouls`
+- 🟦 保留但编辑：`skillPublish.ts`(303)/`soulPublish.ts`(172)/`devSeed.ts`(830) 的 `generateEmbedding` 调用 + `insertVersion` 的 `embedding` 必填参数（删表时去生成与存储）
+- 注：`generateEmbedding` 对无 `OPENAI_API_KEY` 优雅返回零向量（不 throw），**内网无 OpenAI key 时发布/搜索均正常**；运行时 OpenAI 已非依赖，物理删除仅清理 dormant 代码/表。`embeddings.test.ts` 届时一并处理。
 
 ## Phase 5 — 外部扫描 worker（占位）
 - ⬛ convex：`convex/securityScan.ts`(worker 协议)、`convex/vt.ts`、`convex/llmEval.ts`、`convex/emailsNode.ts`、`convex/lib/emails.ts`、`convex/lib/depRegistryScan.ts`(可选)；schema `securityScanJobs`/`skillScanRequests`/`skillCardGenerationJobs`/`vtScanLogs`/`depRegistryCache`（仅服务外部 worker 部分）

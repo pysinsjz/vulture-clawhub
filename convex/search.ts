@@ -268,85 +268,19 @@ export const searchSkills: ReturnType<typeof action> = action({
       nonSuspiciousOnly: args.nonSuspiciousOnly,
       capabilityTag: args.capabilityTag,
     })) as SkillSearchEntry[];
-    let vector: number[] | null;
-    try {
-      vector = await generateEmbedding(query);
-    } catch (error) {
-      console.warn("Search embedding generation failed, falling back to lexical search", error);
-      vector = null;
-    }
+    // Vulture: vector/semantic recall removed. Search is now purely keyword/prefix
+    // over skillSearchDigest (exact slug + prefix indexes + full-text search_by_*
+    // indexes) plus the lexical fallback scan. Response shape is unchanged.
+    // See docs/vulture-trim/TRIM-SPEC.md and PHYSICAL-DELETE.md.
     const limit = args.limit ?? 10;
     // Keep ordinary first-page and load-more requests ranking the same recall pool
     // before slicing, so expanding the display limit does not reshuffle the prefix.
     const recallLimit = Math.max(limit, MIN_STABLE_SEARCH_RECALL_LIMIT);
-    // Keep the vector pool bounded; exact slug, prefix, and lexical fallback cover
-    // literal recall without hydrating hundreds of semantic candidates per search.
-    const maxCandidate = Math.min(
-      Math.max(limit * 4, MIN_VECTOR_SEARCH_CANDIDATES),
-      MAX_VECTOR_SEARCH_CANDIDATES,
-    );
-    let candidateLimit = Math.min(Math.max(limit * 2, MIN_VECTOR_SEARCH_CANDIDATES), maxCandidate);
-    let hydrated: SkillSearchEntry[] = [];
-    const seenEmbeddingIds = new Set<Id<"skillEmbeddings">>();
-    let scoreById = new Map<Id<"skillEmbeddings">, number>();
-    let exactMatches: SkillSearchEntry[] = [];
-
-    if (vector) {
-      while (candidateLimit <= maxCandidate) {
-        const results = await ctx.vectorSearch("skillEmbeddings", "by_embedding", {
-          vector,
-          limit: candidateLimit,
-          filter: (q) => q.or(q.eq("visibility", "latest"), q.eq("visibility", "latest-approved")),
-        });
-
-        // Only hydrate embedding IDs we haven't seen yet (incremental).
-        // Track all attempted IDs, not just successful hydrations, to avoid
-        // re-hydrating filtered-out entries (soft-deleted, suspicious) each loop.
-        const newEmbeddingIds = results.map((r) => r._id).filter((id) => !seenEmbeddingIds.has(id));
-        for (const id of newEmbeddingIds) seenEmbeddingIds.add(id);
-
-        if (newEmbeddingIds.length > 0) {
-          const newEntries = (await ctx.runQuery(internal.search.hydrateResults, {
-            embeddingIds: newEmbeddingIds,
-            nonSuspiciousOnly: args.nonSuspiciousOnly,
-          })) as SkillSearchEntry[];
-          hydrated = [...hydrated, ...newEntries];
-        }
-
-        for (const result of results) {
-          scoreById.set(result._id, result._score);
-        }
-
-        // Skills already have badges from their docs (via toPublicSkill).
-        // No need for a separate badge table lookup.
-        const filtered = hydrated.filter(
-          (entry) =>
-            (!args.highlightedOnly || isSkillHighlighted(entry.skill)) &&
-            matchesCapabilityTag(entry.skill, args.capabilityTag),
-        );
-
-        exactMatches = filtered.filter((entry) =>
-          matchesExactTokens(queryTokens, [
-            entry.skill.displayName,
-            entry.skill.slug,
-            entry.skill.summary,
-          ]),
-        );
-
-        if (exactMatches.length >= recallLimit || results.length < candidateLimit) {
-          break;
-        }
-
-        const nextLimit = getNextCandidateLimit(candidateLimit, maxCandidate);
-        if (!nextLimit) break;
-        candidateLimit = nextLimit;
-      }
-    }
 
     const directMatches = exactSlugMatch
       ? mergeUniqueBySkillId([exactSlugMatch], directPrefixMatches)
       : directPrefixMatches;
-    const primaryMatches = mergeUniqueBySkillId(directMatches, exactMatches);
+    const primaryMatches = directMatches;
 
     const fallbackMatches =
       primaryMatches.length >= recallLimit
@@ -367,7 +301,7 @@ export const searchSkills: ReturnType<typeof action> = action({
 
     const rankedMatches = mergedMatches
       .map((entry): SearchResult | null => {
-        const vectorScore = entry.embeddingId ? (scoreById.get(entry.embeddingId) ?? 0) : 0;
+        const vectorScore = 0;
         const match = classifySkillMatch(query, queryTokens, entry.skill);
         if (!match) return null;
         return {
