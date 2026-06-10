@@ -1,5 +1,4 @@
-import { Link } from "@tanstack/react-router";
-import { Ban, Copy, ExternalLink, RefreshCcw, Search } from "lucide-react";
+import { Ban, Copy, RefreshCcw, Search } from "lucide-react";
 import type { Id } from "../../../convex/_generated/dataModel";
 import { Badge, type BadgeProps } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -298,14 +297,7 @@ export function AbusePage({
                     value={selectedItem.nomination.ownerUserId ?? "No linked user"}
                   />
                   {selectedPublisher ? (
-                    <Link
-                      className="pa-profile-link"
-                      to="/p/$handle"
-                      params={{ handle: selectedPublisher.handle }}
-                    >
-                      <ExternalLink size={12} />
-                      Profile
-                    </Link>
+                    <span className="pa-profile-link">@{selectedPublisher.handle}</span>
                   ) : null}
                 </div>
               </SheetHeader>

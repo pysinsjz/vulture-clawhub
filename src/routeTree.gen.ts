@@ -10,27 +10,20 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as UploadRouteImport } from './routes/upload'
-import { Route as StarsRouteImport } from './routes/stars'
-import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as PublishSkillRouteImport } from './routes/publish-skill'
 import { Route as PublishPluginRouteImport } from './routes/publish-plugin'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as ImportRouteImport } from './routes/import'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as AuditsRouteImport } from './routes/audits'
 import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AccountBannedRouteImport } from './routes/account-banned'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as UsersIndexRouteImport } from './routes/users/index'
 import { Route as SoulsIndexRouteImport } from './routes/souls/index'
 import { Route as SkillsIndexRouteImport } from './routes/skills/index'
 import { Route as PublishersIndexRouteImport } from './routes/publishers/index'
 import { Route as PluginsIndexRouteImport } from './routes/plugins/index'
 import { Route as PackagesIndexRouteImport } from './routes/packages/index'
-import { Route as UserHandleRouteImport } from './routes/user/$handle'
-import { Route as UHandleRouteImport } from './routes/u/$handle'
 import { Route as SoulsSlugRouteImport } from './routes/souls/$slug'
 import { Route as SkillsPublishRouteImport } from './routes/skills/publish'
 import { Route as PluginsPublishRouteImport } from './routes/plugins/publish'
@@ -38,11 +31,6 @@ import { Route as PluginsNewRouteImport } from './routes/plugins/new'
 import { Route as PluginsNameRouteImport } from './routes/plugins/$name'
 import { Route as PackagesNewRouteImport } from './routes/packages/new'
 import { Route as PackagesNameRouteImport } from './routes/packages/$name'
-import { Route as PHandleRouteImport } from './routes/p/$handle'
-import { Route as OrgsHandleRouteImport } from './routes/orgs/$handle'
-import { Route as DocsAuthRouteImport } from './routes/docs/auth'
-import { Route as CliDeviceRouteImport } from './routes/cli/device'
-import { Route as CliAuthRouteImport } from './routes/cli/auth'
 import { Route as OwnerSlugRouteImport } from './routes/$owner/$slug'
 import { Route as PluginsScopeNameRouteImport } from './routes/plugins/$scope/$name'
 import { Route as PluginsNameSecurityAuditRouteImport } from './routes/plugins/$name/security-audit'
@@ -57,16 +45,6 @@ import { Route as PluginsScopeNameSecurityScannerRouteImport } from './routes/pl
 const UploadRoute = UploadRouteImport.update({
   id: '/upload',
   path: '/upload',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const StarsRoute = StarsRouteImport.update({
-  id: '/stars',
-  path: '/stars',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SearchRoute = SearchRouteImport.update({
@@ -94,11 +72,6 @@ const ImportRoute = ImportRouteImport.update({
   path: '/import',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AuditsRoute = AuditsRouteImport.update({
   id: '/audits',
   path: '/audits',
@@ -109,11 +82,6 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AccountBannedRoute = AccountBannedRouteImport.update({
-  id: '/account-banned',
-  path: '/account-banned',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SlugRoute = SlugRouteImport.update({
   id: '/$slug',
   path: '/$slug',
@@ -122,11 +90,6 @@ const SlugRoute = SlugRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UsersIndexRoute = UsersIndexRouteImport.update({
-  id: '/users/',
-  path: '/users/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SoulsIndexRoute = SoulsIndexRouteImport.update({
@@ -152,16 +115,6 @@ const PluginsIndexRoute = PluginsIndexRouteImport.update({
 const PackagesIndexRoute = PackagesIndexRouteImport.update({
   id: '/packages/',
   path: '/packages/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UserHandleRoute = UserHandleRouteImport.update({
-  id: '/user/$handle',
-  path: '/user/$handle',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UHandleRoute = UHandleRouteImport.update({
-  id: '/u/$handle',
-  path: '/u/$handle',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SoulsSlugRoute = SoulsSlugRouteImport.update({
@@ -197,31 +150,6 @@ const PackagesNewRoute = PackagesNewRouteImport.update({
 const PackagesNameRoute = PackagesNameRouteImport.update({
   id: '/packages/$name',
   path: '/packages/$name',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PHandleRoute = PHandleRouteImport.update({
-  id: '/p/$handle',
-  path: '/p/$handle',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrgsHandleRoute = OrgsHandleRouteImport.update({
-  id: '/orgs/$handle',
-  path: '/orgs/$handle',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsAuthRoute = DocsAuthRouteImport.update({
-  id: '/docs/auth',
-  path: '/docs/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CliDeviceRoute = CliDeviceRouteImport.update({
-  id: '/cli/device',
-  path: '/cli/device',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CliAuthRoute = CliAuthRouteImport.update({
-  id: '/cli/auth',
-  path: '/cli/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OwnerSlugRoute = OwnerSlugRouteImport.update({
@@ -283,24 +211,15 @@ const PluginsScopeNameSecurityScannerRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
-  '/account-banned': typeof AccountBannedRoute
   '/admin': typeof AdminRoute
   '/audits': typeof AuditsRoute
-  '/dashboard': typeof DashboardRoute
   '/import': typeof ImportRoute
   '/management': typeof ManagementRoute
   '/publish-plugin': typeof PublishPluginRoute
   '/publish-skill': typeof PublishSkillRoute
   '/search': typeof SearchRoute
-  '/settings': typeof SettingsRoute
-  '/stars': typeof StarsRoute
   '/upload': typeof UploadRoute
   '/$owner/$slug': typeof OwnerSlugRouteWithChildren
-  '/cli/auth': typeof CliAuthRoute
-  '/cli/device': typeof CliDeviceRoute
-  '/docs/auth': typeof DocsAuthRoute
-  '/orgs/$handle': typeof OrgsHandleRoute
-  '/p/$handle': typeof PHandleRoute
   '/packages/$name': typeof PackagesNameRoute
   '/packages/new': typeof PackagesNewRoute
   '/plugins/$name': typeof PluginsNameRouteWithChildren
@@ -308,14 +227,11 @@ export interface FileRoutesByFullPath {
   '/plugins/publish': typeof PluginsPublishRoute
   '/skills/publish': typeof SkillsPublishRoute
   '/souls/$slug': typeof SoulsSlugRoute
-  '/u/$handle': typeof UHandleRoute
-  '/user/$handle': typeof UserHandleRoute
   '/packages/': typeof PackagesIndexRoute
   '/plugins/': typeof PluginsIndexRoute
   '/publishers/': typeof PublishersIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/souls/': typeof SoulsIndexRoute
-  '/users/': typeof UsersIndexRoute
   '/$owner/$slug/security-audit': typeof OwnerSlugSecurityAuditRoute
   '/$owner/$slug/settings': typeof OwnerSlugSettingsRoute
   '/packages/$scope/$name': typeof PackagesScopeNameRoute
@@ -329,24 +245,15 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
-  '/account-banned': typeof AccountBannedRoute
   '/admin': typeof AdminRoute
   '/audits': typeof AuditsRoute
-  '/dashboard': typeof DashboardRoute
   '/import': typeof ImportRoute
   '/management': typeof ManagementRoute
   '/publish-plugin': typeof PublishPluginRoute
   '/publish-skill': typeof PublishSkillRoute
   '/search': typeof SearchRoute
-  '/settings': typeof SettingsRoute
-  '/stars': typeof StarsRoute
   '/upload': typeof UploadRoute
   '/$owner/$slug': typeof OwnerSlugRouteWithChildren
-  '/cli/auth': typeof CliAuthRoute
-  '/cli/device': typeof CliDeviceRoute
-  '/docs/auth': typeof DocsAuthRoute
-  '/orgs/$handle': typeof OrgsHandleRoute
-  '/p/$handle': typeof PHandleRoute
   '/packages/$name': typeof PackagesNameRoute
   '/packages/new': typeof PackagesNewRoute
   '/plugins/$name': typeof PluginsNameRouteWithChildren
@@ -354,14 +261,11 @@ export interface FileRoutesByTo {
   '/plugins/publish': typeof PluginsPublishRoute
   '/skills/publish': typeof SkillsPublishRoute
   '/souls/$slug': typeof SoulsSlugRoute
-  '/u/$handle': typeof UHandleRoute
-  '/user/$handle': typeof UserHandleRoute
   '/packages': typeof PackagesIndexRoute
   '/plugins': typeof PluginsIndexRoute
   '/publishers': typeof PublishersIndexRoute
   '/skills': typeof SkillsIndexRoute
   '/souls': typeof SoulsIndexRoute
-  '/users': typeof UsersIndexRoute
   '/$owner/$slug/security-audit': typeof OwnerSlugSecurityAuditRoute
   '/$owner/$slug/settings': typeof OwnerSlugSettingsRoute
   '/packages/$scope/$name': typeof PackagesScopeNameRoute
@@ -376,24 +280,15 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
-  '/account-banned': typeof AccountBannedRoute
   '/admin': typeof AdminRoute
   '/audits': typeof AuditsRoute
-  '/dashboard': typeof DashboardRoute
   '/import': typeof ImportRoute
   '/management': typeof ManagementRoute
   '/publish-plugin': typeof PublishPluginRoute
   '/publish-skill': typeof PublishSkillRoute
   '/search': typeof SearchRoute
-  '/settings': typeof SettingsRoute
-  '/stars': typeof StarsRoute
   '/upload': typeof UploadRoute
   '/$owner/$slug': typeof OwnerSlugRouteWithChildren
-  '/cli/auth': typeof CliAuthRoute
-  '/cli/device': typeof CliDeviceRoute
-  '/docs/auth': typeof DocsAuthRoute
-  '/orgs/$handle': typeof OrgsHandleRoute
-  '/p/$handle': typeof PHandleRoute
   '/packages/$name': typeof PackagesNameRoute
   '/packages/new': typeof PackagesNewRoute
   '/plugins/$name': typeof PluginsNameRouteWithChildren
@@ -401,14 +296,11 @@ export interface FileRoutesById {
   '/plugins/publish': typeof PluginsPublishRoute
   '/skills/publish': typeof SkillsPublishRoute
   '/souls/$slug': typeof SoulsSlugRoute
-  '/u/$handle': typeof UHandleRoute
-  '/user/$handle': typeof UserHandleRoute
   '/packages/': typeof PackagesIndexRoute
   '/plugins/': typeof PluginsIndexRoute
   '/publishers/': typeof PublishersIndexRoute
   '/skills/': typeof SkillsIndexRoute
   '/souls/': typeof SoulsIndexRoute
-  '/users/': typeof UsersIndexRoute
   '/$owner/$slug/security-audit': typeof OwnerSlugSecurityAuditRoute
   '/$owner/$slug/settings': typeof OwnerSlugSettingsRoute
   '/packages/$scope/$name': typeof PackagesScopeNameRoute
@@ -424,24 +316,15 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$slug'
-    | '/account-banned'
     | '/admin'
     | '/audits'
-    | '/dashboard'
     | '/import'
     | '/management'
     | '/publish-plugin'
     | '/publish-skill'
     | '/search'
-    | '/settings'
-    | '/stars'
     | '/upload'
     | '/$owner/$slug'
-    | '/cli/auth'
-    | '/cli/device'
-    | '/docs/auth'
-    | '/orgs/$handle'
-    | '/p/$handle'
     | '/packages/$name'
     | '/packages/new'
     | '/plugins/$name'
@@ -449,14 +332,11 @@ export interface FileRouteTypes {
     | '/plugins/publish'
     | '/skills/publish'
     | '/souls/$slug'
-    | '/u/$handle'
-    | '/user/$handle'
     | '/packages/'
     | '/plugins/'
     | '/publishers/'
     | '/skills/'
     | '/souls/'
-    | '/users/'
     | '/$owner/$slug/security-audit'
     | '/$owner/$slug/settings'
     | '/packages/$scope/$name'
@@ -470,24 +350,15 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$slug'
-    | '/account-banned'
     | '/admin'
     | '/audits'
-    | '/dashboard'
     | '/import'
     | '/management'
     | '/publish-plugin'
     | '/publish-skill'
     | '/search'
-    | '/settings'
-    | '/stars'
     | '/upload'
     | '/$owner/$slug'
-    | '/cli/auth'
-    | '/cli/device'
-    | '/docs/auth'
-    | '/orgs/$handle'
-    | '/p/$handle'
     | '/packages/$name'
     | '/packages/new'
     | '/plugins/$name'
@@ -495,14 +366,11 @@ export interface FileRouteTypes {
     | '/plugins/publish'
     | '/skills/publish'
     | '/souls/$slug'
-    | '/u/$handle'
-    | '/user/$handle'
     | '/packages'
     | '/plugins'
     | '/publishers'
     | '/skills'
     | '/souls'
-    | '/users'
     | '/$owner/$slug/security-audit'
     | '/$owner/$slug/settings'
     | '/packages/$scope/$name'
@@ -516,24 +384,15 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$slug'
-    | '/account-banned'
     | '/admin'
     | '/audits'
-    | '/dashboard'
     | '/import'
     | '/management'
     | '/publish-plugin'
     | '/publish-skill'
     | '/search'
-    | '/settings'
-    | '/stars'
     | '/upload'
     | '/$owner/$slug'
-    | '/cli/auth'
-    | '/cli/device'
-    | '/docs/auth'
-    | '/orgs/$handle'
-    | '/p/$handle'
     | '/packages/$name'
     | '/packages/new'
     | '/plugins/$name'
@@ -541,14 +400,11 @@ export interface FileRouteTypes {
     | '/plugins/publish'
     | '/skills/publish'
     | '/souls/$slug'
-    | '/u/$handle'
-    | '/user/$handle'
     | '/packages/'
     | '/plugins/'
     | '/publishers/'
     | '/skills/'
     | '/souls/'
-    | '/users/'
     | '/$owner/$slug/security-audit'
     | '/$owner/$slug/settings'
     | '/packages/$scope/$name'
@@ -563,24 +419,15 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRoute
-  AccountBannedRoute: typeof AccountBannedRoute
   AdminRoute: typeof AdminRoute
   AuditsRoute: typeof AuditsRoute
-  DashboardRoute: typeof DashboardRoute
   ImportRoute: typeof ImportRoute
   ManagementRoute: typeof ManagementRoute
   PublishPluginRoute: typeof PublishPluginRoute
   PublishSkillRoute: typeof PublishSkillRoute
   SearchRoute: typeof SearchRoute
-  SettingsRoute: typeof SettingsRoute
-  StarsRoute: typeof StarsRoute
   UploadRoute: typeof UploadRoute
   OwnerSlugRoute: typeof OwnerSlugRouteWithChildren
-  CliAuthRoute: typeof CliAuthRoute
-  CliDeviceRoute: typeof CliDeviceRoute
-  DocsAuthRoute: typeof DocsAuthRoute
-  OrgsHandleRoute: typeof OrgsHandleRoute
-  PHandleRoute: typeof PHandleRoute
   PackagesNameRoute: typeof PackagesNameRoute
   PackagesNewRoute: typeof PackagesNewRoute
   PluginsNameRoute: typeof PluginsNameRouteWithChildren
@@ -588,14 +435,11 @@ export interface RootRouteChildren {
   PluginsPublishRoute: typeof PluginsPublishRoute
   SkillsPublishRoute: typeof SkillsPublishRoute
   SoulsSlugRoute: typeof SoulsSlugRoute
-  UHandleRoute: typeof UHandleRoute
-  UserHandleRoute: typeof UserHandleRoute
   PackagesIndexRoute: typeof PackagesIndexRoute
   PluginsIndexRoute: typeof PluginsIndexRoute
   PublishersIndexRoute: typeof PublishersIndexRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
   SoulsIndexRoute: typeof SoulsIndexRoute
-  UsersIndexRoute: typeof UsersIndexRoute
   PackagesScopeNameRoute: typeof PackagesScopeNameRoute
   PluginsScopeNameRoute: typeof PluginsScopeNameRouteWithChildren
 }
@@ -607,20 +451,6 @@ declare module '@tanstack/react-router' {
       path: '/upload'
       fullPath: '/upload'
       preLoaderRoute: typeof UploadRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/stars': {
-      id: '/stars'
-      path: '/stars'
-      fullPath: '/stars'
-      preLoaderRoute: typeof StarsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/search': {
@@ -658,13 +488,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ImportRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/audits': {
       id: '/audits'
       path: '/audits'
@@ -679,13 +502,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/account-banned': {
-      id: '/account-banned'
-      path: '/account-banned'
-      fullPath: '/account-banned'
-      preLoaderRoute: typeof AccountBannedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/$slug': {
       id: '/$slug'
       path: '/$slug'
@@ -698,13 +514,6 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/users/': {
-      id: '/users/'
-      path: '/users'
-      fullPath: '/users/'
-      preLoaderRoute: typeof UsersIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/souls/': {
@@ -740,20 +549,6 @@ declare module '@tanstack/react-router' {
       path: '/packages'
       fullPath: '/packages/'
       preLoaderRoute: typeof PackagesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/user/$handle': {
-      id: '/user/$handle'
-      path: '/user/$handle'
-      fullPath: '/user/$handle'
-      preLoaderRoute: typeof UserHandleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/u/$handle': {
-      id: '/u/$handle'
-      path: '/u/$handle'
-      fullPath: '/u/$handle'
-      preLoaderRoute: typeof UHandleRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/souls/$slug': {
@@ -803,41 +598,6 @@ declare module '@tanstack/react-router' {
       path: '/packages/$name'
       fullPath: '/packages/$name'
       preLoaderRoute: typeof PackagesNameRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/p/$handle': {
-      id: '/p/$handle'
-      path: '/p/$handle'
-      fullPath: '/p/$handle'
-      preLoaderRoute: typeof PHandleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/orgs/$handle': {
-      id: '/orgs/$handle'
-      path: '/orgs/$handle'
-      fullPath: '/orgs/$handle'
-      preLoaderRoute: typeof OrgsHandleRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs/auth': {
-      id: '/docs/auth'
-      path: '/docs/auth'
-      fullPath: '/docs/auth'
-      preLoaderRoute: typeof DocsAuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cli/device': {
-      id: '/cli/device'
-      path: '/cli/device'
-      fullPath: '/cli/device'
-      preLoaderRoute: typeof CliDeviceRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cli/auth': {
-      id: '/cli/auth'
-      path: '/cli/auth'
-      fullPath: '/cli/auth'
-      preLoaderRoute: typeof CliAuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/$owner/$slug': {
@@ -959,24 +719,15 @@ const PluginsScopeNameRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRoute,
-  AccountBannedRoute: AccountBannedRoute,
   AdminRoute: AdminRoute,
   AuditsRoute: AuditsRoute,
-  DashboardRoute: DashboardRoute,
   ImportRoute: ImportRoute,
   ManagementRoute: ManagementRoute,
   PublishPluginRoute: PublishPluginRoute,
   PublishSkillRoute: PublishSkillRoute,
   SearchRoute: SearchRoute,
-  SettingsRoute: SettingsRoute,
-  StarsRoute: StarsRoute,
   UploadRoute: UploadRoute,
   OwnerSlugRoute: OwnerSlugRouteWithChildren,
-  CliAuthRoute: CliAuthRoute,
-  CliDeviceRoute: CliDeviceRoute,
-  DocsAuthRoute: DocsAuthRoute,
-  OrgsHandleRoute: OrgsHandleRoute,
-  PHandleRoute: PHandleRoute,
   PackagesNameRoute: PackagesNameRoute,
   PackagesNewRoute: PackagesNewRoute,
   PluginsNameRoute: PluginsNameRouteWithChildren,
@@ -984,14 +735,11 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsPublishRoute: PluginsPublishRoute,
   SkillsPublishRoute: SkillsPublishRoute,
   SoulsSlugRoute: SoulsSlugRoute,
-  UHandleRoute: UHandleRoute,
-  UserHandleRoute: UserHandleRoute,
   PackagesIndexRoute: PackagesIndexRoute,
   PluginsIndexRoute: PluginsIndexRoute,
   PublishersIndexRoute: PublishersIndexRoute,
   SkillsIndexRoute: SkillsIndexRoute,
   SoulsIndexRoute: SoulsIndexRoute,
-  UsersIndexRoute: UsersIndexRoute,
   PackagesScopeNameRoute: PackagesScopeNameRoute,
   PluginsScopeNameRoute: PluginsScopeNameRouteWithChildren,
 }

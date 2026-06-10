@@ -1,4 +1,3 @@
-import { Link } from "@tanstack/react-router";
 import { Download } from "lucide-react";
 import { formatCompactStat } from "../lib/numberFormat";
 import type { PublicPublisherListItem, PublicPublisherPublishedItem } from "../lib/publicUser";
@@ -35,9 +34,7 @@ export function PublisherListItem({ publisher, variant = "list" }: PublisherList
   const featuredItems = publisher.publishedItems.slice(0, 3);
 
   return (
-    <Link
-      to="/user/$handle"
-      params={{ handle }}
+    <div
       className={`publisher-card publisher-card-${variant}`}
       aria-label={`Publisher: ${publisher.displayName}`}
     >
@@ -86,6 +83,6 @@ export function PublisherListItem({ publisher, variant = "list" }: PublisherList
           downloads
         </span>
       </div>
-    </Link>
+    </div>
   );
 }
