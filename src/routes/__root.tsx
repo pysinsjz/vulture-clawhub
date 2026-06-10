@@ -9,17 +9,16 @@ import { ErrorBoundary } from "../components/ErrorBoundary";
 import { Footer } from "../components/Footer";
 import { GenericNotFoundPage } from "../components/GenericNotFoundPage";
 import Header from "../components/Header";
-import { getSiteDescription, getSiteMode, getSiteName, getSiteUrlForMode } from "../lib/site";
+import { getSiteDescription, getSiteName, getSiteUrl } from "../lib/site";
 import appCss from "../styles.css?url";
 
 const OG_IMAGE_VERSION = "20260420-12";
 
 export const Route = createRootRoute({
   head: () => {
-    const mode = getSiteMode();
-    const siteName = getSiteName(mode);
-    const siteDescription = getSiteDescription(mode);
-    const siteUrl = getSiteUrlForMode(mode);
+    const siteName = getSiteName();
+    const siteDescription = getSiteDescription();
+    const siteUrl = getSiteUrl();
     const ogImage = `${siteUrl}/og.png?v=${OG_IMAGE_VERSION}`;
 
     return {

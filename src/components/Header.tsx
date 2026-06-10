@@ -7,7 +7,7 @@ import { gravatarUrl } from "../lib/gravatar";
 import { NAV_ICONS } from "../lib/marketplaceIcons";
 import { filterNavItems, PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS } from "../lib/nav-items";
 import { isModerator } from "../lib/roles";
-import { getClawHubSiteUrl, getSiteMode, getSiteName } from "../lib/site";
+import { getSiteName } from "../lib/site";
 import { applyTheme, useThemeMode } from "../lib/theme";
 import { clearAuthError, setAuthError } from "../lib/useAuthError";
 import { useAuthStatus } from "../lib/useAuthStatus";
@@ -58,10 +58,7 @@ export default function Header() {
   const { isAuthenticated, isLoading, me } = useAuthStatus();
   const { signIn, signOut } = useAuthActions();
   const { theme, mode, setMode } = useThemeMode();
-  const siteMode = getSiteMode();
-  const siteName = useMemo(() => getSiteName(siteMode), [siteMode]);
-  const isSoulMode = siteMode === "souls";
-  const clawHubUrl = getClawHubSiteUrl();
+  const siteName = getSiteName();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -73,8 +70,8 @@ export default function Header() {
   const hasResolvedUser = Boolean(me);
   const isAuthResolving = isLoading || (isAuthenticated && me === undefined);
   const navCtx = useMemo(
-    () => ({ isSoulMode, isAuthenticated: hasResolvedUser, isStaff }),
-    [hasResolvedUser, isSoulMode, isStaff],
+    () => ({ isAuthenticated: hasResolvedUser, isStaff }),
+    [hasResolvedUser, isStaff],
   );
   const primaryItems = useMemo(() => filterNavItems(PRIMARY_NAV_ITEMS, navCtx), [navCtx]);
   const secondaryItems = useMemo(() => filterNavItems(SECONDARY_NAV_ITEMS, navCtx), [navCtx]);
@@ -87,7 +84,7 @@ export default function Header() {
   const searchWrapRef = useRef<HTMLDivElement | null>(null);
   const ThemeModeIcon = getThemeModeIcon(mode);
   const trimmedNavSearchQuery = navSearchQuery.trim();
-  const showTypeahead = !isSoulMode && typeaheadOpen && trimmedNavSearchQuery.length > 0;
+  const showTypeahead = typeaheadOpen && trimmedNavSearchQuery.length > 0;
   const {
     skillResults,
     pluginResults,
@@ -162,16 +159,8 @@ export default function Header() {
     const q = navSearchQuery.trim();
     if (!q) return;
     void navigate({
-      to: isSoulMode ? "/souls" : "/search",
-      search: isSoulMode
-        ? {
-            q,
-            sort: undefined,
-            dir: undefined,
-            view: undefined,
-            focus: undefined,
-          }
-        : { q, type: undefined },
+      to: "/search",
+      search: { q, type: undefined },
     });
     setNavSearchQuery("");
     setTypeaheadOpen(false);
@@ -211,7 +200,6 @@ export default function Header() {
   };
 
   const handleSearchKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (isSoulMode) return;
     if (event.key === "Escape") {
       setTypeaheadOpen(false);
       return;
@@ -280,13 +268,6 @@ export default function Header() {
                       Home
                     </Link>
                   </SheetClose>
-                  {isSoulMode ? (
-                    <SheetClose asChild>
-                      <a href={clawHubUrl} className="mobile-nav-link">
-                        ClawHub
-                      </a>
-                    </SheetClose>
-                  ) : null}
                   {primaryItems.map((item) => (
                     <SheetClose key={item.to + item.label} asChild>
                       <Link
@@ -357,7 +338,7 @@ export default function Header() {
                 className="navbar-search-input"
                 type="search"
                 role="combobox"
-                placeholder={isSoulMode ? "Search souls..." : "Search skills and plugins"}
+                placeholder="Search skills and plugins"
                 value={navSearchQuery}
                 onChange={(e) => {
                   setNavSearchQuery(e.target.value);
@@ -490,7 +471,7 @@ export default function Header() {
             <input
               className="navbar-search-input"
               type="text"
-              placeholder={isSoulMode ? "Search souls..." : "Search skills and plugins"}
+              placeholder="Search skills and plugins"
               value={navSearchQuery}
               onChange={(e) => setNavSearchQuery(e.target.value)}
               autoFocus
@@ -500,11 +481,6 @@ export default function Header() {
 
         <nav className="navbar-tabs" aria-label="Content types">
           <div className="navbar-tabs-primary">
-            {isSoulMode ? (
-              <a href={clawHubUrl} className="navbar-tab">
-                ClawHub
-              </a>
-            ) : null}
             {primaryItems.map((item) => {
               const Icon = item.icon ? NAV_ICONS[item.icon] : null;
               const isActiveByPrefix = item.activePathPrefixes?.some((prefix) =>

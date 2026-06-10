@@ -19,12 +19,10 @@ import { Route as AuditsRouteImport } from './routes/audits'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SoulsIndexRouteImport } from './routes/souls/index'
 import { Route as SkillsIndexRouteImport } from './routes/skills/index'
 import { Route as PublishersIndexRouteImport } from './routes/publishers/index'
 import { Route as PluginsIndexRouteImport } from './routes/plugins/index'
 import { Route as PackagesIndexRouteImport } from './routes/packages/index'
-import { Route as SoulsSlugRouteImport } from './routes/souls/$slug'
 import { Route as SkillsPublishRouteImport } from './routes/skills/publish'
 import { Route as PluginsPublishRouteImport } from './routes/plugins/publish'
 import { Route as PluginsNewRouteImport } from './routes/plugins/new'
@@ -92,11 +90,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SoulsIndexRoute = SoulsIndexRouteImport.update({
-  id: '/souls/',
-  path: '/souls/',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const SkillsIndexRoute = SkillsIndexRouteImport.update({
   id: '/skills/',
   path: '/skills/',
@@ -115,11 +108,6 @@ const PluginsIndexRoute = PluginsIndexRouteImport.update({
 const PackagesIndexRoute = PackagesIndexRouteImport.update({
   id: '/packages/',
   path: '/packages/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SoulsSlugRoute = SoulsSlugRouteImport.update({
-  id: '/souls/$slug',
-  path: '/souls/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SkillsPublishRoute = SkillsPublishRouteImport.update({
@@ -226,12 +214,10 @@ export interface FileRoutesByFullPath {
   '/plugins/new': typeof PluginsNewRoute
   '/plugins/publish': typeof PluginsPublishRoute
   '/skills/publish': typeof SkillsPublishRoute
-  '/souls/$slug': typeof SoulsSlugRoute
   '/packages/': typeof PackagesIndexRoute
   '/plugins/': typeof PluginsIndexRoute
   '/publishers/': typeof PublishersIndexRoute
   '/skills/': typeof SkillsIndexRoute
-  '/souls/': typeof SoulsIndexRoute
   '/$owner/$slug/security-audit': typeof OwnerSlugSecurityAuditRoute
   '/$owner/$slug/settings': typeof OwnerSlugSettingsRoute
   '/packages/$scope/$name': typeof PackagesScopeNameRoute
@@ -260,12 +246,10 @@ export interface FileRoutesByTo {
   '/plugins/new': typeof PluginsNewRoute
   '/plugins/publish': typeof PluginsPublishRoute
   '/skills/publish': typeof SkillsPublishRoute
-  '/souls/$slug': typeof SoulsSlugRoute
   '/packages': typeof PackagesIndexRoute
   '/plugins': typeof PluginsIndexRoute
   '/publishers': typeof PublishersIndexRoute
   '/skills': typeof SkillsIndexRoute
-  '/souls': typeof SoulsIndexRoute
   '/$owner/$slug/security-audit': typeof OwnerSlugSecurityAuditRoute
   '/$owner/$slug/settings': typeof OwnerSlugSettingsRoute
   '/packages/$scope/$name': typeof PackagesScopeNameRoute
@@ -295,12 +279,10 @@ export interface FileRoutesById {
   '/plugins/new': typeof PluginsNewRoute
   '/plugins/publish': typeof PluginsPublishRoute
   '/skills/publish': typeof SkillsPublishRoute
-  '/souls/$slug': typeof SoulsSlugRoute
   '/packages/': typeof PackagesIndexRoute
   '/plugins/': typeof PluginsIndexRoute
   '/publishers/': typeof PublishersIndexRoute
   '/skills/': typeof SkillsIndexRoute
-  '/souls/': typeof SoulsIndexRoute
   '/$owner/$slug/security-audit': typeof OwnerSlugSecurityAuditRoute
   '/$owner/$slug/settings': typeof OwnerSlugSettingsRoute
   '/packages/$scope/$name': typeof PackagesScopeNameRoute
@@ -331,12 +313,10 @@ export interface FileRouteTypes {
     | '/plugins/new'
     | '/plugins/publish'
     | '/skills/publish'
-    | '/souls/$slug'
     | '/packages/'
     | '/plugins/'
     | '/publishers/'
     | '/skills/'
-    | '/souls/'
     | '/$owner/$slug/security-audit'
     | '/$owner/$slug/settings'
     | '/packages/$scope/$name'
@@ -365,12 +345,10 @@ export interface FileRouteTypes {
     | '/plugins/new'
     | '/plugins/publish'
     | '/skills/publish'
-    | '/souls/$slug'
     | '/packages'
     | '/plugins'
     | '/publishers'
     | '/skills'
-    | '/souls'
     | '/$owner/$slug/security-audit'
     | '/$owner/$slug/settings'
     | '/packages/$scope/$name'
@@ -399,12 +377,10 @@ export interface FileRouteTypes {
     | '/plugins/new'
     | '/plugins/publish'
     | '/skills/publish'
-    | '/souls/$slug'
     | '/packages/'
     | '/plugins/'
     | '/publishers/'
     | '/skills/'
-    | '/souls/'
     | '/$owner/$slug/security-audit'
     | '/$owner/$slug/settings'
     | '/packages/$scope/$name'
@@ -434,12 +410,10 @@ export interface RootRouteChildren {
   PluginsNewRoute: typeof PluginsNewRoute
   PluginsPublishRoute: typeof PluginsPublishRoute
   SkillsPublishRoute: typeof SkillsPublishRoute
-  SoulsSlugRoute: typeof SoulsSlugRoute
   PackagesIndexRoute: typeof PackagesIndexRoute
   PluginsIndexRoute: typeof PluginsIndexRoute
   PublishersIndexRoute: typeof PublishersIndexRoute
   SkillsIndexRoute: typeof SkillsIndexRoute
-  SoulsIndexRoute: typeof SoulsIndexRoute
   PackagesScopeNameRoute: typeof PackagesScopeNameRoute
   PluginsScopeNameRoute: typeof PluginsScopeNameRouteWithChildren
 }
@@ -516,13 +490,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/souls/': {
-      id: '/souls/'
-      path: '/souls'
-      fullPath: '/souls/'
-      preLoaderRoute: typeof SoulsIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/skills/': {
       id: '/skills/'
       path: '/skills'
@@ -549,13 +516,6 @@ declare module '@tanstack/react-router' {
       path: '/packages'
       fullPath: '/packages/'
       preLoaderRoute: typeof PackagesIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/souls/$slug': {
-      id: '/souls/$slug'
-      path: '/souls/$slug'
-      fullPath: '/souls/$slug'
-      preLoaderRoute: typeof SoulsSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/skills/publish': {
@@ -734,12 +694,10 @@ const rootRouteChildren: RootRouteChildren = {
   PluginsNewRoute: PluginsNewRoute,
   PluginsPublishRoute: PluginsPublishRoute,
   SkillsPublishRoute: SkillsPublishRoute,
-  SoulsSlugRoute: SoulsSlugRoute,
   PackagesIndexRoute: PackagesIndexRoute,
   PluginsIndexRoute: PluginsIndexRoute,
   PublishersIndexRoute: PublishersIndexRoute,
   SkillsIndexRoute: SkillsIndexRoute,
-  SoulsIndexRoute: SoulsIndexRoute,
   PackagesScopeNameRoute: PackagesScopeNameRoute,
   PluginsScopeNameRoute: PluginsScopeNameRouteWithChildren,
 }

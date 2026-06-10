@@ -1,6 +1,6 @@
 import type { ClawdisSkillMetadata, SkillInstallSpec } from "clawhub-schema";
 import type { Id } from "../../convex/_generated/dataModel";
-import { getClawHubSiteUrl } from "../lib/site";
+import { getSiteUrl } from "../lib/site";
 
 export type SkillPromptMode = "install-only" | "install-and-setup";
 type SkillPackageManager = "npm" | "pnpm" | "bun";
@@ -191,7 +191,7 @@ export function buildSkillPageUrl(
   if (!owner) return null;
 
   const path = `/${encodeURIComponent(owner)}/${encodeURIComponent(slug)}`;
-  return new URL(path, getClawHubSiteUrl()).toString();
+  return new URL(path, getSiteUrl()).toString();
 }
 
 export function formatOpenClawInstallCommand(slug: string) {

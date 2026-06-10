@@ -42,9 +42,8 @@ vi.mock("../components/PublisherListItem", () => ({
 }));
 
 vi.mock("../lib/site", () => ({
-  getSiteMode: () => "skills",
-  getSiteName: () => "ClawHub",
-  getSiteUrlForMode: () => "https://clawhub.ai",
+  getSiteName: () => "VultureHub",
+  getSiteUrl: () => "https://registry.vulture.local",
 }));
 
 async function loadRoute() {
@@ -135,7 +134,13 @@ describe("publishers route", () => {
     const route = await loadRoute();
     const head = route.__config.head?.();
 
-    expect(head?.links).toContainEqual({ rel: "canonical", href: "https://clawhub.ai/publishers" });
-    expect(head?.meta).toContainEqual({ property: "og:title", content: "Publishers · ClawHub" });
+    expect(head?.links).toContainEqual({
+      rel: "canonical",
+      href: "https://registry.vulture.local/publishers",
+    });
+    expect(head?.meta).toContainEqual({
+      property: "og:title",
+      content: "Publishers · VultureHub",
+    });
   });
 });

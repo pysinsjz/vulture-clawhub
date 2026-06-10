@@ -64,7 +64,6 @@ describe("restored UI design contract", () => {
   const footer = () => read("src/components/Footer.tsx");
   const home = () => read("src/routes/index.tsx");
   const navItems = () => read("src/lib/nav-items.ts");
-  const settings = () => read("src/routes/settings.tsx");
   const styles = () => read("src/styles.css");
   const theme = () => read("src/lib/theme.ts");
 
@@ -86,7 +85,6 @@ describe("restored UI design contract", () => {
 
     expect(navSource).toContain("export const SECONDARY_NAV_ITEMS");
     expect(navSource).toContain('label: "Publishers"');
-    expect(navSource).toContain('label: "Docs"');
     expect(navSource).not.toContain('label: "About"');
     expect(navSource).not.toContain('label: "Stars"');
     expect(navSource).not.toContain('label: "Management"');
@@ -124,8 +122,7 @@ describe("restored UI design contract", () => {
       'data-source={carouselUsesHighlighted ? "highlighted" : "popular"}',
     );
     expect(homeSource).toContain("Featured skills");
-    expect(homeSource).toContain("const categoryCount = FEATURE_SOULS ? 4 : 3");
-    expect(homeSource).toContain("data-layout={categoryLayout}");
+    expect(homeSource).toContain('data-layout="1-3"');
     expect(homeSource).toContain("Trending Now");
     expect(homeSource).toContain('className="home-v2-trending-grid"');
 
@@ -160,14 +157,12 @@ describe("restored UI design contract", () => {
 
     expect(navSource).toContain('title: "Browse"');
     expect(navSource).toContain('title: "Publish"');
-    expect(navSource).toContain('title: "Community"');
-    expect(navSource).toContain('title: "Platform"');
     expect(navSource).toContain('label: "Publish Skill"');
     expect(navSource).toContain('label: "Publish Plugin"');
-    expect(navSource).toContain('label: "GitHub"');
-    expect(navSource).toContain('label: "OpenClaw"');
-    expect(navSource).toContain('label: "Deployed on Vercel"');
-    expect(navSource).toContain('label: "Powered by Convex"');
+    // Public-marketplace footer sections (Community / Platform) and their
+    // external links are intentionally absent in the trimmed intranet footer.
+    expect(navSource).not.toContain('title: "Community"');
+    expect(navSource).not.toContain('title: "Platform"');
 
     expect(footerSource).toContain('className="footer-col-toggle"');
     expect(footerSource).toContain("const ariaExpanded = isMobile ? isOpen : true");
@@ -185,11 +180,10 @@ describe("restored UI design contract", () => {
   it("prevents reintroducing tweakcn overlays, custom visual preferences, or density controls", () => {
     expect(existsSync(join(root, "src/lib/customTheme.ts"))).toBe(false);
     expect(existsSync(join(root, "src/lib/preferences.ts"))).toBe(false);
-
-    const settingsSource = settings();
-    expect(settingsSource).not.toMatch(/tweakcn|custom theme|overlay/i);
-    expect(settingsSource).not.toMatch(/density|relaxed|high contrast|code font size/i);
-    expect(settingsSource).not.toMatch(/default view|experimental features/i);
+    // The /settings route was removed when the public marketplace was trimmed
+    // (Vulture intranet has no per-user settings surface). The legacy custom
+    // theme/preference removal contract still applies via theme.ts below.
+    expect(existsSync(join(root, "src/routes/settings.tsx"))).toBe(false);
 
     const themeSource = theme();
     expect(themeSource).toContain("cleanupLegacyVisualSettings");

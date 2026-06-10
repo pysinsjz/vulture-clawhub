@@ -2,9 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   formatCompactStat,
   formatSkillStatsTriplet,
-  formatSoulStatsTriplet,
   type SkillStatsTriplet,
-  type SoulStatsTriplet,
 } from "./numberFormat";
 
 describe("formatCompactStat", () => {
@@ -56,13 +54,4 @@ describe("stats triplet formatters", () => {
     });
   });
 
-  it("formats soul triplet consistently", () => {
-    const stats: SoulStatsTriplet = { stars: 3_540, downloads: 78_010, versions: 4 };
-
-    expect(formatSoulStatsTriplet(stats)).toEqual({
-      stars: "3.5k",
-      downloads: "78k",
-      versions: 4,
-    });
-  });
 });

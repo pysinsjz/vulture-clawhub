@@ -4,7 +4,6 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const siteModeMock = vi.fn(() => "skills");
 const navigateMock = vi.fn();
 const { convexQueryMock, fetchFeaturedPluginsMock } = vi.hoisted(() => ({
   convexQueryMock: vi.fn(),
@@ -47,21 +46,8 @@ vi.mock("../lib/featuredCatalog", () => ({
   fetchFeaturedPlugins: fetchFeaturedPluginsMock,
 }));
 
-vi.mock("../lib/site", () => ({
-  getSiteMode: () => siteModeMock(),
-}));
-
-vi.mock("../components/SoulCard", () => ({
-  SoulCard: () => <div />,
-}));
-
-vi.mock("../components/SoulStats", () => ({
-  SoulStatsTripletLine: () => <div />,
-}));
-
 describe("home route", () => {
   beforeEach(() => {
-    siteModeMock.mockReturnValue("skills");
     convexQueryMock.mockResolvedValue([]);
     fetchFeaturedPluginsMock.mockResolvedValue([]);
     navigateMock.mockReset();

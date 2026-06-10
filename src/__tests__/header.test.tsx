@@ -12,7 +12,6 @@ type HeaderAuthStatus = {
   me: Record<string, unknown> | null;
 };
 
-const siteModeMock = vi.fn(() => "souls");
 const navigateMock = vi.fn();
 const { signInMock, useUnifiedSearchMock } = vi.hoisted(() => ({
   signInMock: vi.fn(),
@@ -122,9 +121,7 @@ vi.mock("../lib/roles", () => ({
 }));
 
 vi.mock("../lib/site", () => ({
-  getClawHubSiteUrl: () => "https://clawhub.ai",
-  getSiteMode: () => siteModeMock(),
-  getSiteName: () => "OnlyCrabs",
+  getSiteName: () => "VultureHub",
 }));
 
 vi.mock("../lib/gravatar", () => ({
@@ -200,22 +197,12 @@ describe("Header", () => {
       isLoading: false,
       me: null,
     });
-    siteModeMock.mockReturnValue("souls");
     useUnifiedSearchMock.mockReturnValue(defaultUnifiedSearchResult);
     signInMock.mockReset();
     signInMock.mockResolvedValue({ signingIn: true });
   });
 
-  it("hides Packages navigation in soul mode on mobile and desktop", () => {
-    siteModeMock.mockReturnValue("souls");
-
-    render(<Header />);
-
-    expect(screen.queryByText("Packages")).toBeNull();
-  });
-
   it("renders restored desktop nav rows and segmented theme controls", () => {
-    siteModeMock.mockReturnValue("skills");
     setModeMock.mockClear();
 
     render(<Header />);
@@ -231,7 +218,6 @@ describe("Header", () => {
     expect(screen.getAllByText("Skills")).toHaveLength(1);
     expect(screen.getAllByText("Plugins")).toHaveLength(1);
     expect(screen.getAllByText("Publishers")).toHaveLength(1);
-    expect(screen.getAllByText("Docs")).toHaveLength(1);
     expect(screen.queryByText("About")).toBeNull();
     expect(screen.queryByText("Dashboard")).toBeNull();
     expect(screen.queryByText("Manage")).toBeNull();
@@ -246,52 +232,42 @@ describe("Header", () => {
     expect(screen.getAllByText("Skills")).toHaveLength(2);
     expect(screen.getAllByText("Plugins")).toHaveLength(2);
     expect(screen.getAllByText("Publishers")).toHaveLength(2);
-    expect(screen.getAllByText("Docs")).toHaveLength(2);
     expect(screen.queryByText("About")).toBeNull();
   });
 
-  it("renders the GitHub sign-in button with desktop and compact labels", () => {
-    siteModeMock.mockReturnValue("skills");
-
+  it("renders the intranet sign-in button with desktop and compact labels", () => {
     render(<Header />);
 
-    const signInButton = screen.getByRole("button", { name: "Sign in with GitHub" });
+    const signInButton = screen.getByRole("button", { name: "Sign in" });
     expect(signInButton.className).toContain("github-sign-in-button");
     const fullCopy = signInButton.querySelector(".sign-in-full-copy");
-    expect(fullCopy?.textContent).toBe("Sign in with GitHub");
-    expect(fullCopy?.childNodes).toHaveLength(1);
-    expect(signInButton.querySelector(".sign-in-with")).toBeNull();
-    expect(signInButton.querySelector(".sign-in-compact-copy")?.textContent).toBe("GitHub");
+    expect(fullCopy?.textContent).toBe("Sign in");
+    expect(signInButton.querySelector(".sign-in-compact-copy")?.textContent).toBe("Sign in");
   });
 
-  it("shows an auth error when the GitHub sign-in request does not start", async () => {
+  it("shows an auth error when the dev-persona sign-in request does not start", async () => {
     const { setAuthError } = await import("../lib/useAuthError");
-    siteModeMock.mockReturnValue("skills");
     signInMock.mockResolvedValue({ signingIn: false });
 
     render(<Header />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign in with GitHub" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(signInMock).toHaveBeenCalledWith("github", { redirectTo: "/" });
+    expect(signInMock).toHaveBeenCalledWith("dev-persona", { persona: "admin" });
     await waitFor(() => {
       expect(setAuthError).toHaveBeenCalledWith("Sign in failed. Please try again.");
     });
   });
 
-  it("does not show an auth error when GitHub sign-in starts a redirect", async () => {
+  it("does not show an auth error when sign-in resolves with a session", async () => {
     const { setAuthError } = await import("../lib/useAuthError");
-    siteModeMock.mockReturnValue("skills");
-    signInMock.mockResolvedValue({
-      signingIn: false,
-      redirect: new URL("https://github.com/login/oauth/authorize"),
-    });
+    signInMock.mockResolvedValue({ signingIn: true });
 
     render(<Header />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign in with GitHub" }));
+    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(signInMock).toHaveBeenCalledWith("github", { redirectTo: "/" });
+    expect(signInMock).toHaveBeenCalledWith("dev-persona", { persona: "admin" });
     await Promise.resolve();
     expect(setAuthError).not.toHaveBeenCalled();
   });
@@ -324,7 +300,6 @@ describe("Header", () => {
   });
 
   it("shows grouped skills and plugins typeahead without users", () => {
-    siteModeMock.mockReturnValue("skills");
     navigateMock.mockReset();
 
     render(<Header />);
@@ -358,7 +333,6 @@ describe("Header", () => {
   });
 
   it("falls back to typed skill search when a typeahead skill has no owner handle", () => {
-    siteModeMock.mockReturnValue("skills");
     navigateMock.mockReset();
     useUnifiedSearchMock.mockReturnValue({
       ...defaultUnifiedSearchResult,
@@ -396,7 +370,6 @@ describe("Header", () => {
   });
 
   it("shows a single no-results state without section footers", () => {
-    siteModeMock.mockReturnValue("skills");
     useUnifiedSearchMock.mockReturnValue({
       results: [],
       skillResults: [],
@@ -423,7 +396,6 @@ describe("Header", () => {
   });
 
   it("shows Home above Skills in the mobile menu", () => {
-    siteModeMock.mockReturnValue("skills");
 
     render(<Header />);
 
@@ -436,29 +408,7 @@ describe("Header", () => {
       .filter((label): label is string => Boolean(label));
 
     expect(labels.slice(0, 2)).toEqual(["Home", "Skills"]);
-    expect(labels.slice(3, 5)).toEqual(["Publishers", "Docs"]);
+    expect(labels[3]).toBe("Publishers");
   });
 
-  it("routes soul-mode header searches to the souls browse page", () => {
-    siteModeMock.mockReturnValue("souls");
-    navigateMock.mockReset();
-
-    render(<Header />);
-
-    fireEvent.change(screen.getByPlaceholderText("Search souls..."), {
-      target: { value: "angler" },
-    });
-    fireEvent.submit(screen.getByRole("search", { name: "Site search" }));
-
-    expect(navigateMock).toHaveBeenCalledWith({
-      to: "/souls",
-      search: {
-        q: "angler",
-        sort: undefined,
-        dir: undefined,
-        view: undefined,
-        focus: undefined,
-      },
-    });
-  });
 });
