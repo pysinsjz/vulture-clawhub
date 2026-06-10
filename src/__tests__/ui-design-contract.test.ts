@@ -108,23 +108,32 @@ describe("restored UI design contract", () => {
     expect(compact).not.toContain(".navbar-search {\n    display: none;");
   });
 
-  it("requires the restored home hero, carousel, category grid, and Trending Now sections", () => {
+  it("requires the trimmed Vulture intranet home: hero+search, category grid, Latest skills/plugins", () => {
     const homeSource = home();
     const css = styles();
 
-    expect(homeSource).toContain("BUILT BY THE COMMUNITY.");
-    expect(homeSource).toContain("Tools built by thousands, ready in one search.");
-    expect(homeSource).toContain("api.skills.listHighlightedPublic");
+    // Intranet home renders the site name from getSiteName() and serves as a
+    // search/latest entry point. Public-marketplace marketing copy and the
+    // slot-machine/confetti easter egg are intentionally absent.
+    expect(homeSource).toContain("getSiteName()");
+    expect(homeSource).toContain("Internal registry");
     expect(homeSource).toContain("api.skills.listPublicPageV4");
-    expect(homeSource).toContain("const [popular, setPopular]");
-    expect(homeSource).toContain('className="home-v2-carousel-section"');
-    expect(homeSource).toContain(
-      'data-source={carouselUsesHighlighted ? "highlighted" : "popular"}',
-    );
-    expect(homeSource).toContain("Featured skills");
+    expect(homeSource).toContain("fetchFeaturedPlugins");
+    expect(homeSource).toContain("Latest skills");
+    expect(homeSource).toContain("Latest plugins");
     expect(homeSource).toContain('data-layout="1-3"');
-    expect(homeSource).toContain("Trending Now");
     expect(homeSource).toContain('className="home-v2-trending-grid"');
+
+    // Reject reintroduction of public-marketplace marketing chrome.
+    expect(homeSource).not.toContain("BUILT BY THE COMMUNITY");
+    expect(homeSource).not.toContain("Tools built by thousands");
+    expect(homeSource).not.toContain("Trending Now");
+    expect(homeSource).not.toContain("Featured skills");
+    expect(homeSource).not.toContain("home-v2-carousel-section");
+    expect(homeSource).not.toContain("home-v2-proof-bar");
+    expect(homeSource).not.toContain("SLOT_WORDS");
+    expect(homeSource).not.toContain("fireConfetti");
+    expect(homeSource).not.toContain("listHighlightedPublic");
 
     const searchShell = cssRule(css, ".home-v2-search-bar");
     expect(searchShell).toContain("border: 1px solid var(--hv2-border-strong)");
