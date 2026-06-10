@@ -1,9 +1,4 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import {
-  PLATFORM_SKILL_LICENSE,
-  PLATFORM_SKILL_LICENSE_NAME,
-  PLATFORM_SKILL_LICENSE_SUMMARY,
-} from "clawhub-schema/licenseConstants";
 import { normalizeTextContentType } from "clawhub-schema/textFiles";
 import { useAction, useMutation, useQuery } from "convex/react";
 import {
@@ -54,7 +49,7 @@ import {
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SKILL_PUBLISHING_GUIDE_URL = "https://docs.openclaw.ai/clawhub/skill-format";
 
-type SkillPublishField = "slug" | "displayName" | "version" | "tags" | "license";
+type SkillPublishField = "slug" | "displayName" | "version" | "tags";
 
 export const Route = createFileRoute("/skills/publish")({
   validateSearch: (search) => ({
@@ -99,14 +94,12 @@ export function Upload() {
     displayName: false,
     version: false,
     tags: false,
-    license: false,
   });
   const [metadataPrefillNote, setMetadataPrefillNote] = useState<string | null>(null);
   // Selected lucide icon name (e.g. `Plug`) or null when "no icon".
   const [iconName, setIconName] = useState<string | null>(null);
   const [version, setVersion] = useState("1.0.0");
   const [tags, setTags] = useState("latest");
-  const [acceptedLicenseTerms, setAcceptedLicenseTerms] = useState(false);
   const [changelog, setChangelog] = useState("");
   const [changelogStatus, setChangelogStatus] = useState<"idle" | "loading" | "ready" | "error">(
     "idle",
@@ -405,9 +398,6 @@ export function Upload() {
     if (parsedTags.length === 0) {
       issues.push("At least one tag is required.");
     }
-    if (!acceptedLicenseTerms) {
-      issues.push("Accept the MIT-0 license terms to publish this skill.");
-    }
     if (files.length === 0) {
       issues.push("Add at least one file.");
     }
@@ -445,7 +435,6 @@ export function Upload() {
     trimmedName,
     trimmedVersion,
     parsedTags.length,
-    acceptedLicenseTerms,
     files,
     unsupportedFileEntries,
     hasRequiredFile,
@@ -610,12 +599,6 @@ export function Upload() {
       toast.error(effectiveSlugCollision.message);
       return;
     }
-    if (!acceptedLicenseTerms) {
-      const msg = "Accept the MIT-0 license terms to publish this skill.";
-      setError(msg);
-      toast.error(msg);
-      return;
-    }
     setError(null);
     if (oversizedFiles.length > 0) {
       const msg = `Each file must be 10MB or smaller: ${oversizedFileNames.join(", ")}`;
@@ -695,7 +678,9 @@ export function Upload() {
         ...(iconPayload !== undefined ? { icon: iconPayload } : {}),
         version: trimmedVersion,
         changelog: trimmedChangelog,
-        acceptLicenseTerms: acceptedLicenseTerms,
+        // Intranet skills are always MIT-0; the License acceptance UI was
+        // removed, so accept implicitly to satisfy the backend's required gate.
+        acceptLicenseTerms: true,
         tags: parsedTags,
         files: uploaded,
       });
@@ -1127,41 +1112,6 @@ export function Upload() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardContent className="gap-4">
-              <div>
-                <CardTitle>License</CardTitle>
-                <p className="text-sm text-[color:var(--ink-soft)]">
-                  {PLATFORM_SKILL_LICENSE} · {PLATFORM_SKILL_LICENSE_NAME}
-                </p>
-              </div>
-              <div className="flex flex-col gap-1 text-sm text-[color:var(--ink-soft)]">
-                <p>
-                  All skills published on ClawHub are licensed under {PLATFORM_SKILL_LICENSE}.{" "}
-                  {PLATFORM_SKILL_LICENSE_SUMMARY}
-                </p>
-                <p>
-                  ClawHub does not support paid skills, per-skill pricing, or paywalled releases.
-                </p>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="flex cursor-pointer items-start gap-3 rounded-[var(--radius-sm)] border border-[color:var(--line)] bg-[color:var(--surface-muted)] p-3 text-sm">
-                  <input
-                    type="checkbox"
-                    className="mt-0.5 h-4 w-4 accent-[color:var(--accent)]"
-                    checked={acceptedLicenseTerms}
-                    onChange={(event) => {
-                      setAcceptedLicenseTerms(event.target.checked);
-                    }}
-                  />
-                  <span>
-                    I have the rights to publish this skill under {PLATFORM_SKILL_LICENSE}.
-                  </span>
-                </label>
-              </div>
-            </CardContent>
-          </Card>
-
           {showChangelogField ? (
             <Card>
               <CardContent>
@@ -1264,9 +1214,6 @@ function missingPublishLabel(issue: string, requiredFileLabel: string) {
   if (issue === "Slug is required.") return ["slug"];
   if (issue === "Display name is required.") return ["display name"];
   if (issue === "At least one tag is required.") return ["tags"];
-  if (issue === "Accept the MIT-0 license terms to publish this skill.") {
-    return ["MIT-0 acceptance"];
-  }
   if (issue === "Add at least one file.") return ["files"];
   if (issue === `${requiredFileLabel} is required.`) return [requiredFileLabel];
   return [];

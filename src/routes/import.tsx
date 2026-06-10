@@ -255,7 +255,6 @@ export function ImportGitHub() {
                     displayName: undefined,
                     family: undefined,
                     nextVersion: undefined,
-                    sourceRepo: undefined,
                   }}
                   className="underline"
                 >

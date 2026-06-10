@@ -10,7 +10,6 @@ export const Route = createFileRoute("/packages/new")({
         displayName: undefined,
         family: undefined,
         nextVersion: undefined,
-        sourceRepo: undefined,
       },
     });
   },
