@@ -73,13 +73,7 @@ describe("SkillHeader", () => {
       ownerHandle: "local",
       latestVersion: null,
       modInfo: null,
-      canManage: false,
-      isAuthenticated: false,
       isStaff: false,
-      isStarred: false,
-      onToggleStar: vi.fn(),
-      onOpenReport: vi.fn(),
-      onRequireSignIn: vi.fn(),
       forkOf: null,
       forkOfLabel: "fork of",
       forkOfHref: null,
@@ -121,8 +115,6 @@ describe("SkillHeader", () => {
 
   it("shows a New version action for managers above Settings", () => {
     renderHeader({
-      canManage: true,
-      isAuthenticated: true,
       settingsHref: "/local/demo/settings",
       newVersionHref: "/skills/publish?updateSlug=demo&ownerHandle=local",
     } as Partial<Parameters<typeof SkillHeader>[0]>);
@@ -140,8 +132,6 @@ describe("SkillHeader", () => {
 
   it("does not show a New version action without a manager href", () => {
     renderHeader({
-      canManage: false,
-      isAuthenticated: true,
       settingsHref: null,
       newVersionHref: null,
     });
@@ -177,15 +167,14 @@ describe("SkillHeader", () => {
     expect(repoLink.getAttribute("href")).toBe("https://github.com/NVIDIA/skills");
   });
 
-  it("hides Report for non-staff managers", () => {
+  it("does not render marketplace Report/Star actions", () => {
     renderHeader({
-      canManage: true,
-      isAuthenticated: true,
       settingsHref: "/local/demo/settings",
       newVersionHref: "/skills/publish?updateSlug=demo&ownerHandle=local",
     } as Partial<Parameters<typeof SkillHeader>[0]>);
 
     expect(screen.queryByRole("button", { name: "Report" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /star/i })).toBeNull();
   });
 
   it("does not render a separate warning banner for scanner warnings", () => {

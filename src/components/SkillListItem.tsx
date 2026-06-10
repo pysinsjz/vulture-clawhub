@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowDownToLine, Star } from "lucide-react";
+import { ArrowDownToLine } from "lucide-react";
 import { getSkillBadges } from "../lib/badges";
 import { formatCompactStat } from "../lib/numberFormat";
 import type { PublicPublisher, PublicSkill } from "../lib/publicUser";
@@ -49,9 +49,6 @@ export function SkillListItem({ skill, ownerHandle, owner, apiKeyRequired }: Ski
         {skill.summary ? <p className="skill-list-item-summary">{skill.summary}</p> : null}
         <div className="skill-list-item-meta">
           <span className="skill-list-item-meta-item">Updated {timeAgo(skill.updatedAt)}</span>
-          <span className="skill-list-item-meta-item">
-            <Star size={14} aria-hidden="true" /> {formatCompactStat(skill.stats.stars)}
-          </span>
           <span className="skill-list-item-meta-item">
             <ArrowDownToLine size={14} aria-hidden="true" />{" "}
             {formatCompactStat(skill.stats.downloads)}

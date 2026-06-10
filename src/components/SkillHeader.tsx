@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import type { ClawdisSkillMetadata } from "clawhub-schema";
 import { PLATFORM_SKILL_LICENSE } from "clawhub-schema/licenseConstants";
-import { Download, Flag, Settings, ShieldCheck, Star, Upload } from "lucide-react";
+import { Download, Settings, ShieldCheck, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { getSkillBadges } from "../lib/badges";
@@ -19,14 +19,7 @@ import { buildSkillHref } from "./skillDetailUtils";
 import { SkillCommandLineCard } from "./SkillInstallSurface";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { UserBadge } from "./UserBadge";
-
-// Vulture: public-marketplace interactions are disabled for the internal registry.
-// Star/report UI is gated off (mirrors SHOW_SKILL_COMMENTS in SkillDetailPage).
-// See docs/vulture-trim/TRIM-SPEC.md and PHYSICAL-DELETE.md.
-const SHOW_SKILL_STARS = false;
-const SHOW_SKILL_REPORTING = false;
 
 type SkillModerationInfo = {
   isPendingScan: boolean;
@@ -90,13 +83,7 @@ type SkillHeaderProps = {
   ownerHandle: string | null;
   latestVersion: SkillHeaderLatestVersion;
   modInfo: SkillModerationInfo | null;
-  canManage: boolean;
-  isAuthenticated: boolean;
   isStaff: boolean;
-  isStarred: boolean | undefined;
-  onToggleStar: () => void;
-  onOpenReport: () => void;
-  onRequireSignIn: () => void;
   forkOf: SkillFork | null;
   forkOfLabel: string;
   forkOfHref: string | null;
@@ -128,13 +115,7 @@ export function SkillHeader({
   ownerHandle,
   latestVersion,
   modInfo,
-  canManage,
-  isAuthenticated,
   isStaff,
-  isStarred,
-  onToggleStar,
-  onOpenReport,
-  onRequireSignIn,
   forkOf,
   forkOfLabel,
   forkOfHref,
@@ -164,13 +145,8 @@ export function SkillHeader({
       ? `${convexSiteUrl}/api/v1/download?slug=${encodeURIComponent(skill.slug)}`
       : null;
   const hasTitleActions = isStaff;
-  const showReportAction = !canManage || isStaff;
   const hasSidebarActions =
-    Boolean(downloadHref) ||
-    showReportAction ||
-    Boolean(newVersionHref) ||
-    Boolean(settingsHref) ||
-    hasTitleActions;
+    Boolean(downloadHref) || Boolean(newVersionHref) || Boolean(settingsHref) || hasTitleActions;
   const badges = getSkillBadges(skill);
   const isOfficial = badges.includes("Official") || owner?.official === true;
   const titleBadges = badges.filter((badge) => badge !== "Official");
@@ -223,29 +199,6 @@ export function SkillHeader({
             />
             {hasSidebarActions ? (
               <div className="skill-sidebar-actions">
-                {SHOW_SKILL_STARS ? (
-                  <SignedInActionTooltip
-                    isAuthenticated={isAuthenticated}
-                    message="You must be signed in to star a skill"
-                  >
-                    <Button
-                      variant="outline"
-                      type="button"
-                      className="skill-sidebar-action-button"
-                      onClick={isAuthenticated ? onToggleStar : onRequireSignIn}
-                      aria-pressed={Boolean(isAuthenticated && isStarred)}
-                      aria-label={isStarred ? "Unstar skill" : "Star skill"}
-                    >
-                      <Star
-                        size={14}
-                        aria-hidden="true"
-                        fill={isAuthenticated && isStarred ? "currentColor" : "none"}
-                      />
-                      {isAuthenticated && isStarred ? "Unstar" : "Star"}
-                      <span className="skill-action-count">{formattedStats.stars}</span>
-                    </Button>
-                  </SignedInActionTooltip>
-                ) : null}
                 {downloadHref ? (
                   <Button asChild variant="outline" className="skill-sidebar-action-button">
                     <a href={downloadHref}>
@@ -253,22 +206,6 @@ export function SkillHeader({
                       Download
                     </a>
                   </Button>
-                ) : null}
-                {SHOW_SKILL_REPORTING && showReportAction ? (
-                  <SignedInActionTooltip
-                    isAuthenticated={isAuthenticated}
-                    message="You must be signed in to report a skill"
-                  >
-                    <Button
-                      variant="outline"
-                      type="button"
-                      className="skill-sidebar-action-button"
-                      onClick={isAuthenticated ? onOpenReport : onRequireSignIn}
-                    >
-                      <Flag size={14} aria-hidden="true" />
-                      Report
-                    </Button>
-                  </SignedInActionTooltip>
                 ) : null}
                 {newVersionHref ? (
                   <Button asChild variant="outline" className="skill-sidebar-action-button">
@@ -438,27 +375,6 @@ export function SkillHeader({
         ) : null}
       </DetailHero>
     </>
-  );
-}
-
-function SignedInActionTooltip({
-  children,
-  isAuthenticated,
-  message,
-}: {
-  children: ReactNode;
-  isAuthenticated: boolean;
-  message: string;
-}) {
-  if (isAuthenticated) return children;
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="top" align="center">
-        {message}
-      </TooltipContent>
-    </Tooltip>
   );
 }
 

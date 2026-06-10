@@ -1,5 +1,4 @@
-import { useAuthActions } from "@convex-dev/auth/react";
-import { useNavigate, useRouter } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import type { ClawdisSkillMetadata } from "clawhub-schema";
 import { useAction, useMutation, useQuery } from "convex/react";
 import { ArrowLeft, TriangleAlert, Upload } from "lucide-react";
@@ -7,21 +6,17 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import { getUserFacingAuthError } from "../lib/authErrorMessage";
 import { getSkillCategoryForSkill } from "../lib/categories";
 import { getUserFacingConvexError } from "../lib/convexError";
-import { canManageSkill, isModerator } from "../lib/roles";
+import { isModerator } from "../lib/roles";
 import { skillCardLoadKey } from "../lib/skillCards";
 import type { SkillBySlugResult, SkillPageInitialData } from "../lib/skillPage";
 import { resolveGitHubSkillReadmeHref } from "../lib/skillReadmeLinks";
-import { clearAuthError, setAuthError } from "../lib/useAuthError";
 import { useAuthStatus } from "../lib/useAuthStatus";
-import { ClientOnly } from "./ClientOnly";
 import { DetailBody, DetailPageShell } from "./DetailPageShell";
 import { DetailSecuritySummary } from "./DetailSecuritySummary";
 import { GenericNotFoundPage } from "./GenericNotFoundPage";
 import { SkillDetailSkeleton } from "./skeletons/SkillDetailSkeleton";
-import { SkillCommentsPanel } from "./SkillCommentsPanel";
 import { SkillDetailTabs, type DetailTab } from "./SkillDetailTabs";
 import {
   buildSkillHref,
@@ -34,7 +29,6 @@ import { SkillHeader } from "./SkillHeader";
 import { buildSkillInstallTabs } from "./SkillInstallCard";
 import { SkillOwnershipPanel } from "./SkillOwnershipPanel";
 import { SkillRelatedSection, type RelatedSkillEntry } from "./SkillRelatedSection";
-import { SkillReportDialog } from "./SkillReportDialog";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -57,8 +51,6 @@ type GitHubBackedSkillFields = {
   githubScanStatus?: string | null;
 };
 
-const SHOW_SKILL_COMMENTS = false;
-
 function tabFromHash(hash: string): DetailTab {
   const normalized = hash.replace(/^#/, "").toLowerCase();
   if (normalized === "files") return "files";
@@ -76,33 +68,6 @@ function tabFromHash(hash: string): DetailTab {
   return "readme";
 }
 
-function formatReportError(error: unknown) {
-  if (error && typeof error === "object" && "data" in error) {
-    const data = (error as { data?: unknown }).data;
-    if (typeof data === "string" && data.trim()) return data.trim();
-    if (
-      data &&
-      typeof data === "object" &&
-      "message" in data &&
-      typeof (data as { message?: unknown }).message === "string"
-    ) {
-      const message = (data as { message?: string }).message?.trim();
-      if (message) return message;
-    }
-  }
-
-  if (error instanceof Error) {
-    const cleaned = error.message
-      .replace(/\[CONVEX[^\]]*\]\s*/g, "")
-      .replace(/\[Request ID:[^\]]*\]\s*/g, "")
-      .replace(/^Server Error Called by client\s*/i, "")
-      .replace(/^ConvexError:\s*/i, "")
-      .trim();
-    if (cleaned && cleaned !== "Server Error") return cleaned;
-  }
-
-  return "Unable to submit report. Please try again.";
-}
 
 function buildStaffVisibilityAlert({
   artifactKind,
@@ -175,9 +140,7 @@ export function SkillDetailPage({
   mode = "detail",
 }: SkillDetailPageProps) {
   const navigate = useNavigate();
-  const router = useRouter();
-  const { isAuthenticated, me } = useAuthStatus();
-  const { signIn } = useAuthActions();
+  const { me } = useAuthStatus();
   const initialResult = initialData?.result ?? undefined;
 
   const isStaff = isModerator(me);
@@ -189,8 +152,6 @@ export function SkillDetailPage({
     | undefined;
   const result = isStaff ? staffResult : publicResult === undefined ? initialResult : publicResult;
 
-  const toggleStar = useMutation(api.stars.toggle);
-  const reportSkill = useMutation(api.skills.report);
   const updateSummary = useMutation(api.skills.updateSummary);
   const getReadme = useAction(api.skills.getReadme);
   const getSkillCard = useAction(api.skills.getSkillCard);
@@ -208,17 +169,6 @@ export function SkillDetailPage({
   const [loadedSkillCardKey, setLoadedSkillCardKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<DetailTab>("readme");
   const [shouldPrefetchCompare, setShouldPrefetchCompare] = useState(false);
-  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
-  const [reportReason, setReportReason] = useState("");
-  const [reportError, setReportError] = useState<string | null>(null);
-  const [isSubmittingReport, setIsSubmittingReport] = useState(false);
-  const [optimisticStar, setOptimisticStar] = useState<{
-    skillId: Id<"skills">;
-    starred: boolean;
-    baselineStarred: boolean;
-    baselineStars: number;
-    delta: number;
-  } | null>(null);
 
   const isLoadingSkill = isStaff ? staffResult === undefined : result === undefined;
   const skill = result?.skill;
@@ -252,33 +202,8 @@ export function SkillDetailPage({
     shouldLoadDiffVersions && skill ? { skillId: skill._id, limit: 200 } : "skip",
   ) as Doc<"skillVersions">[] | undefined;
 
-  const isStarred = useQuery(
-    api.stars.isStarred,
-    isAuthenticated && skill ? { skillId: skill._id } : "skip",
-  );
-  const activeOptimisticStar =
-    optimisticStar && skill && optimisticStar.skillId === skill._id ? optimisticStar : null;
-  const effectiveIsStarred = activeOptimisticStar?.starred ?? isStarred;
-  const displayedSkill = useMemo(() => {
-    if (!skill || !activeOptimisticStar) return skill;
-    const currentStars = skill.stats.stars ?? 0;
-    if (currentStars !== activeOptimisticStar.baselineStars) return skill;
-    return {
-      ...skill,
-      stats: {
-        ...skill.stats,
-        stars: Math.max(0, currentStars + activeOptimisticStar.delta),
-      },
-    };
-  }, [activeOptimisticStar, skill]);
+  const displayedSkill = skill;
 
-  const myPublisherIds = useMemo(
-    () =>
-      new Set(
-        (Array.isArray(myPublishers) ? myPublishers : []).map((entry) => entry.publisher._id),
-      ),
-    [myPublishers],
-  );
   const myManagePublisherIds = useMemo(
     () =>
       new Set(
@@ -288,9 +213,6 @@ export function SkillDetailPage({
       ),
     [myPublishers],
   );
-  const canManage =
-    canManageSkill(me, skill) ||
-    Boolean(skill?.ownerPublisherId && myPublisherIds.has(skill.ownerPublisherId));
   const canAccessSettings =
     Boolean(me && skill && me._id === skill.ownerUserId) ||
     isStaff ||
@@ -583,27 +505,6 @@ export function SkillDetailPage({
     skillCardError,
   ]);
 
-  useEffect(() => {
-    if (!skill || !activeOptimisticStar) return;
-    if (skill.stats.stars !== activeOptimisticStar.baselineStars) {
-      setOptimisticStar(null);
-    }
-  }, [activeOptimisticStar, skill]);
-
-  const closeReportDialog = () => {
-    setIsReportDialogOpen(false);
-    setReportReason("");
-    setReportError(null);
-    setIsSubmittingReport(false);
-  };
-
-  const openReportDialog = () => {
-    setReportReason("");
-    setReportError(null);
-    setIsSubmittingReport(false);
-    setIsReportDialogOpen(true);
-  };
-
   const submitSummary = async (value: string) => {
     if (!skill) return;
     const nextSummary = value.trim();
@@ -622,68 +523,6 @@ export function SkillDetailPage({
     }
   };
 
-  const submitReport = async () => {
-    if (!skill) return;
-
-    const trimmedReason = reportReason.trim();
-    if (!trimmedReason) {
-      setReportError("Report reason required.");
-      return;
-    }
-
-    setIsSubmittingReport(true);
-    setReportError(null);
-    try {
-      const submission = await reportSkill({ skillId: skill._id, reason: trimmedReason });
-      closeReportDialog();
-      if (submission.reported) {
-        window.alert("Thanks — your report has been submitted.");
-      } else {
-        window.alert("You have already reported this skill.");
-      }
-    } catch (error) {
-      console.error("Failed to report skill", error);
-      setReportError(formatReportError(error));
-      setIsSubmittingReport(false);
-    }
-  };
-
-  const handleToggleStar = async () => {
-    if (!skill) return;
-    const activeStar = activeOptimisticStar;
-    const baselineStarred = activeStar?.baselineStarred ?? Boolean(effectiveIsStarred);
-    const previousIsStarred = Boolean(effectiveIsStarred);
-    const baselineStars = activeStar?.baselineStars ?? skill.stats.stars ?? 0;
-
-    try {
-      const starResult = (await toggleStar({ skillId: skill._id })) as { starred: boolean };
-      setOptimisticStar({
-        skillId: skill._id,
-        starred: starResult.starred,
-        baselineStarred,
-        baselineStars,
-        delta:
-          starResult.starred === previousIsStarred
-            ? (activeStar?.delta ?? 0)
-            : starResult.starred === baselineStarred
-              ? 0
-              : starResult.starred
-                ? 1
-                : -1,
-      });
-      void router.invalidate();
-    } catch (error) {
-      console.error("Failed to toggle star", error);
-      toast.error(getUserFacingConvexError(error, "Unable to update star. Please try again."));
-    }
-  };
-
-  const requireSignIn = () => {
-    clearAuthError();
-    void signIn("dev-persona", { persona: "admin" }).catch((error) => {
-      setAuthError(getUserFacingAuthError(error, "Sign in failed. Please try again."));
-    });
-  };
 
   if (isLoadingSkill || wantsCanonicalRedirect) {
     return (
@@ -785,13 +624,7 @@ export function SkillDetailPage({
           ownerHandle={ownerHandle}
           latestVersion={latestVersion}
           modInfo={modInfo}
-          canManage={canManage}
-          isAuthenticated={isAuthenticated}
           isStaff={isStaff}
-          isStarred={effectiveIsStarred}
-          onToggleStar={() => void handleToggleStar()}
-          onOpenReport={openReportDialog}
-          onRequireSignIn={requireSignIn}
           forkOf={forkOf}
           forkOfLabel={forkOfLabel}
           forkOfHref={forkOfHref}
@@ -851,23 +684,6 @@ export function SkillDetailPage({
             readmeHrefResolver={readmeHrefResolver}
           />
 
-          {SHOW_SKILL_COMMENTS ? (
-            <ClientOnly
-              fallback={
-                <Card>
-                  <h2 className="section-title text-[1.2rem] m-0">Comments</h2>
-                  <p className="section-subtitle mt-3 mb-0">Loading comments...</p>
-                </Card>
-              }
-            >
-              <SkillCommentsPanel
-                skillId={skill._id}
-                isAuthenticated={isAuthenticated}
-                me={me ?? null}
-              />
-            </ClientOnly>
-          ) : null}
-
           <SkillRelatedSection
             category={relatedCategory}
             relatedSkills={relatedSkillsResult?.items ?? []}
@@ -875,16 +691,6 @@ export function SkillDetailPage({
           />
         </SkillHeader>
       </DetailPageShell>
-
-      <SkillReportDialog
-        isOpen={isAuthenticated && isReportDialogOpen}
-        isSubmitting={isSubmittingReport}
-        reportReason={reportReason}
-        reportError={reportError}
-        onReasonChange={setReportReason}
-        onCancel={closeReportDialog}
-        onSubmit={() => void submitReport()}
-      />
     </main>
   );
 }

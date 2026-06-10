@@ -10,26 +10,13 @@ export type ManagementUserListResult = FunctionReturnType<typeof api.users.list>
 export type SkillBySlugResult = FunctionReturnType<typeof api.skills.getBySlugForStaff>;
 export type PluginByNameResult = FunctionReturnType<typeof api.packages.getByNameForStaff>;
 export type RecentVersionEntry = FunctionReturnType<typeof api.skills.listRecentVersions>[number];
-export type ReportedSkillEntry = FunctionReturnType<typeof api.skills.listReportedSkills>[number];
 export type DuplicateCandidateEntry = FunctionReturnType<
   typeof api.skills.listDuplicateCandidates
 >[number];
 export type ManagementUserSummary = NonNullable<NonNullable<SkillBySlugResult>["overrideReviewer"]>;
 
-export type PublisherAbuseReviewDashboard = FunctionReturnType<
-  typeof api.publisherAbuse.listReviewDashboard
->;
-export type PublisherAbuseReviewDetail = FunctionReturnType<
-  typeof api.publisherAbuse.getReviewNominationDetail
->;
-export type PublisherAbuseReviewItem = PublisherAbuseReviewDashboard["pendingItems"][number];
-export type PublisherAbuseReviewScore = NonNullable<PublisherAbuseReviewItem["latestScore"]>;
-export type PublisherAbuseTab = "potential_ban_candidate" | "review" | "all_pending" | "resolved";
-
 export type ManagementView =
   | "overview"
-  | "abuse"
-  | "reports"
   | "users"
   | "publishers"
   | "skills"
@@ -68,21 +55,6 @@ export function formatShortTimestamp(value: number) {
 export function formatWholeNumber(value: number | null | undefined) {
   if (typeof value !== "number" || !Number.isFinite(value)) return "—";
   return new Intl.NumberFormat().format(Math.round(value));
-}
-
-export function formatRatio(value: number | null | undefined) {
-  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
-  return new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: value < 1 ? 2 : 1,
-    minimumFractionDigits: value < 1 ? 2 : 0,
-  }).format(value);
-}
-
-export function formatScore(value: number) {
-  return new Intl.NumberFormat(undefined, {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-  }).format(value);
 }
 
 export function formatMutationError(error: unknown) {
