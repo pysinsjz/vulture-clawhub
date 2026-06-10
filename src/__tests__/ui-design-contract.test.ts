@@ -79,12 +79,12 @@ describe("restored UI design contract", () => {
     expect(headerSource).toContain('className="github-sign-in-button"');
     expect(headerSource).toContain('className="sign-in-full-copy"');
     expect(headerSource).toContain('className="sign-in-compact-copy"');
-    expect(headerSource).toContain("Search skills and plugins");
+    expect(headerSource).toContain("搜索 Skill 和 Plugin");
     expect(headerSource).toContain('className="navbar-tabs-primary"');
     expect(headerSource).toContain('className="navbar-tabs-secondary"');
 
     expect(navSource).toContain("export const SECONDARY_NAV_ITEMS");
-    expect(navSource).toContain('label: "Publishers"');
+    expect(navSource).toContain('label: "发布者"');
     expect(navSource).not.toContain('label: "About"');
     expect(navSource).not.toContain('label: "Stars"');
     expect(navSource).not.toContain('label: "Management"');
@@ -164,10 +164,10 @@ describe("restored UI design contract", () => {
     const navSource = navItems();
     const css = styles();
 
-    expect(navSource).toContain('title: "Browse"');
-    expect(navSource).toContain('title: "Publish"');
-    expect(navSource).toContain('label: "Publish Skill"');
-    expect(navSource).toContain('label: "Publish Plugin"');
+    expect(navSource).toContain('title: "浏览"');
+    expect(navSource).toContain('title: "发布"');
+    expect(navSource).toContain('label: "发布 Skill"');
+    expect(navSource).toContain('label: "发布 Plugin"');
     // Public-marketplace footer sections (Community / Platform) and their
     // external links are intentionally absent in the trimmed intranet footer.
     expect(navSource).not.toContain('title: "Community"');

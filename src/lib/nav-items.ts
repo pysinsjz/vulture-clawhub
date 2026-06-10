@@ -82,7 +82,7 @@ export const PRIMARY_NAV_ITEMS: NavItem[] = [
 
 export const SECONDARY_NAV_ITEMS: NavItem[] = [
   {
-    label: "Publishers",
+    label: "发布者",
     to: "/publishers",
     search: PUBLISHERS_SEARCH,
     authRequired: false,
@@ -95,6 +95,8 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
 // ---------------------------------------------------------------------------
 
 interface FooterNavSection {
+  /** Stable English slug used for DOM ids; decoupled from the translated title. */
+  slug: string;
   title: string;
   items: FooterNavItem[];
 }
@@ -111,25 +113,27 @@ type FooterNavItem =
 
 export const FOOTER_NAV_SECTIONS: FooterNavSection[] = [
   {
-    title: "Browse",
+    slug: "browse",
+    title: "浏览",
     items: [
       { kind: "link", label: "Skills", to: "/skills", search: SKILLS_SEARCH },
       { kind: "link", label: "Plugins", to: "/plugins" },
-      { kind: "link", label: "Audits", to: "/audits", search: { type: undefined } },
+      { kind: "link", label: "审计", to: "/audits", search: { type: undefined } },
     ],
   },
   {
-    title: "Publish",
+    slug: "publish",
+    title: "发布",
     items: [
       {
         kind: "link",
-        label: "Publish Skill",
+        label: "发布 Skill",
         to: "/skills/publish",
         search: { updateSlug: undefined },
       },
       {
         kind: "link",
-        label: "Publish Plugin",
+        label: "发布 Plugin",
         to: "/plugins/publish",
         search: {
           ownerHandle: undefined,

@@ -105,7 +105,7 @@ export default function Header() {
         kind: "footer",
         key: "footer-skills",
         section: "skills",
-        label: `See skill results for "${trimmedNavSearchQuery}"`,
+        label: `查看 "${trimmedNavSearchQuery}" 的 Skill 结果`,
       });
     }
     for (const result of pluginResults) {
@@ -116,7 +116,7 @@ export default function Header() {
         kind: "footer",
         key: "footer-plugins",
         section: "plugins",
-        label: `See plugin results for "${trimmedNavSearchQuery}"`,
+        label: `查看 "${trimmedNavSearchQuery}" 的 Plugin 结果`,
       });
     }
     return items;
@@ -238,7 +238,7 @@ export default function Header() {
               <button
                 className="nav-mobile-trigger"
                 type="button"
-                aria-label="Open menu"
+                aria-label="打开菜单"
                 onClick={() => setMobileMenuOpen(true)}
               >
                 <Menu className="h-4 w-4" aria-hidden="true" />
@@ -259,13 +259,13 @@ export default function Header() {
                     </span>
                   </SheetTitle>
                   <SheetDescription>
-                    Browse sections, switch theme, and access account actions.
+                    浏览板块、切换主题、管理账户操作
                   </SheetDescription>
                 </SheetHeader>
                 <div className="mobile-nav-section">
                   <SheetClose asChild>
                     <Link to="/" className="mobile-nav-link">
-                      Home
+                      首页
                     </Link>
                   </SheetClose>
                   {primaryItems.map((item) => (
@@ -298,7 +298,7 @@ export default function Header() {
                   ))}
                 </div>
                 <div className="mobile-nav-section">
-                  <div className="mobile-nav-section-title">Theme</div>
+                  <div className="mobile-nav-section-title">主题</div>
                   <button
                     className="mobile-nav-link"
                     type="button"
@@ -308,7 +308,7 @@ export default function Header() {
                     }}
                   >
                     <ThemeModeIcon className="h-4 w-4" aria-hidden="true" />
-                    {mode === "system" ? "System theme" : `${mode} theme`}
+                    {mode === "system" ? "跟随系统主题" : mode === "light" ? "浅色主题" : "深色主题"}
                   </button>
                 </div>
               </SheetContent>
@@ -331,14 +331,14 @@ export default function Header() {
               className="navbar-search"
               onSubmit={handleNavSearch}
               role="search"
-              aria-label="Site search"
+              aria-label="站内搜索"
             >
               <Search size={16} className="navbar-search-icon" aria-hidden="true" />
               <input
                 className="navbar-search-input"
                 type="search"
                 role="combobox"
-                placeholder="Search skills and plugins"
+                placeholder="搜索 Skill 和 Plugin"
                 value={navSearchQuery}
                 onChange={(e) => {
                   setNavSearchQuery(e.target.value);
@@ -346,7 +346,7 @@ export default function Header() {
                 }}
                 onFocus={() => setTypeaheadOpen(true)}
                 onKeyDown={handleSearchKeyDown}
-                aria-label="Search"
+                aria-label="搜索"
                 aria-autocomplete="list"
                 aria-expanded={showTypeahead}
                 aria-controls="navbar-search-typeahead"
@@ -370,19 +370,19 @@ export default function Header() {
             <button
               className="navbar-search-mobile-trigger"
               type="button"
-              aria-label="Search"
+              aria-label="搜索"
               onClick={() => setMobileSearchOpen(!mobileSearchOpen)}
             >
               <Search size={18} aria-hidden="true" />
             </button>
             <div className="theme-toggle">
-              <div className="theme-cycle-group" aria-label="Theme controls">
+              <div className="theme-cycle-group" aria-label="主题控制">
                 <button
                   type="button"
                   className="theme-cycle-button theme-cycle-button-mode"
                   onClick={cycleThemeMode}
-                  aria-label={`Cycle theme mode. Current: ${mode}`}
-                  title={`Theme mode: ${mode}`}
+                  aria-label={`循环切换主题模式，当前：${mode}`}
+                  title={`主题模式：${mode}`}
                 >
                   <ThemeModeIcon className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -395,19 +395,19 @@ export default function Header() {
                   if (!value) return;
                   setThemeMode(value as "system" | "light" | "dark");
                 }}
-                aria-label="Theme mode"
+                aria-label="主题模式"
               >
-                <ToggleGroupItem value="system" aria-label="System theme">
+                <ToggleGroupItem value="system" aria-label="跟随系统主题">
                   <Monitor className="h-4 w-4" aria-hidden="true" />
-                  <span className="sr-only">System</span>
+                  <span className="sr-only">系统</span>
                 </ToggleGroupItem>
-                <ToggleGroupItem value="light" aria-label="Light theme">
+                <ToggleGroupItem value="light" aria-label="浅色主题">
                   <Sun className="h-4 w-4" aria-hidden="true" />
-                  <span className="sr-only">Light</span>
+                  <span className="sr-only">浅色</span>
                 </ToggleGroupItem>
-                <ToggleGroupItem value="dark" aria-label="Dark theme">
+                <ToggleGroupItem value="dark" aria-label="深色主题">
                   <Moon className="h-4 w-4" aria-hidden="true" />
-                  <span className="sr-only">Dark</span>
+                  <span className="sr-only">深色</span>
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
@@ -416,7 +416,7 @@ export default function Header() {
                 <DropdownMenuTrigger asChild>
                   <button className="user-trigger" type="button">
                     {avatar ? (
-                      <img src={avatar} alt={me.displayName ?? me.name ?? "User avatar"} />
+                      <img src={avatar} alt={me.displayName ?? me.name ?? "用户头像"} />
                     ) : (
                       <span className="user-menu-fallback">{initial}</span>
                     )}
@@ -425,7 +425,7 @@ export default function Header() {
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="user-dropdown-content">
-                  <DropdownMenuItem onClick={() => void signOut()}>Sign out</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void signOut()}>退出登录</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : isAuthResolving ? (
@@ -435,7 +435,7 @@ export default function Header() {
                 variant="outline"
                 size="sm"
                 type="button"
-                aria-label="Sign in"
+                aria-label="登录"
                 className="github-sign-in-button"
                 disabled={isLoading}
                 onClick={() => {
@@ -443,21 +443,21 @@ export default function Header() {
                   void signIn("dev-persona", { persona: "admin" })
                     .then((result) => {
                       if (result?.signingIn === false && !result.redirect) {
-                        setAuthError("Sign in failed. Please try again.");
+                        setAuthError("登录失败，请重试");
                       }
                     })
                     .catch((error) => {
                       setAuthError(
-                        getUserFacingAuthError(error, "Sign in failed. Please try again."),
+                        getUserFacingAuthError(error, "登录失败，请重试"),
                       );
                     });
                 }}
               >
                 <span className="sign-in-full-copy" aria-hidden="true">
-                  Sign in
+                  登录
                 </span>
                 <span className="sign-in-compact-copy" aria-hidden="true">
-                  Sign in
+                  登录
                 </span>
               </Button>
             )}
@@ -471,7 +471,7 @@ export default function Header() {
             <input
               className="navbar-search-input"
               type="text"
-              placeholder="Search skills and plugins"
+              placeholder="搜索 Skill 和 Plugin"
               value={navSearchQuery}
               onChange={(e) => setNavSearchQuery(e.target.value)}
               autoFocus
@@ -479,7 +479,7 @@ export default function Header() {
           </form>
         ) : null}
 
-        <nav className="navbar-tabs" aria-label="Content types">
+        <nav className="navbar-tabs" aria-label="内容类型">
           <div className="navbar-tabs-primary">
             {primaryItems.map((item) => {
               const Icon = item.icon ? NAV_ICONS[item.icon] : null;
@@ -563,7 +563,7 @@ function SearchTypeahead({
       className="navbar-search-typeahead"
       id="navbar-search-typeahead"
       role="listbox"
-      aria-label="Search suggestions"
+      aria-label="搜索建议"
     >
       <TypeaheadSection
         activeIndex={activeIndex}
@@ -584,11 +584,11 @@ function SearchTypeahead({
         onSelectItem={onSelectItem}
       />
       {loading && !hasMatches ? (
-        <div className="navbar-search-typeahead-status">Searching...</div>
+        <div className="navbar-search-typeahead-status">搜索中…</div>
       ) : null}
       {!loading && !hasMatches ? (
         <div className="navbar-search-typeahead-status">
-          No skills or plugins found for "{query}"
+          没有找到匹配 "{query}" 的 Skill 或 Plugin
         </div>
       ) : null}
     </div>

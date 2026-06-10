@@ -210,39 +210,39 @@ describe("Header", () => {
     expect(document.querySelector(".navbar-tabs")).toBeTruthy();
     expect(document.querySelector(".navbar-tabs-secondary")).toBeTruthy();
     expect(document.querySelector(".theme-mode-toggle")).toBeTruthy();
-    expect(screen.getByLabelText("Theme mode").className).toContain("theme-mode-toggle");
-    expect(screen.getByRole("button", { name: /Cycle theme mode/i })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "System theme" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Light theme" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Dark theme" })).toBeTruthy();
+    expect(screen.getByLabelText("主题模式").className).toContain("theme-mode-toggle");
+    expect(screen.getByRole("button", { name: /循环切换主题模式/ })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "跟随系统主题" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "浅色主题" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "深色主题" })).toBeTruthy();
     expect(screen.getAllByText("Skills")).toHaveLength(1);
     expect(screen.getAllByText("Plugins")).toHaveLength(1);
-    expect(screen.getAllByText("Publishers")).toHaveLength(1);
+    expect(screen.getAllByText("发布者")).toHaveLength(1);
     expect(screen.queryByText("About")).toBeNull();
     expect(screen.queryByText("Dashboard")).toBeNull();
     expect(screen.queryByText("Manage")).toBeNull();
-    expect(screen.getByPlaceholderText("Search skills and plugins")).toBeTruthy();
+    expect(screen.getByPlaceholderText("搜索 Skill 和 Plugin")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: /Cycle theme mode/i }));
+    fireEvent.click(screen.getByRole("button", { name: /循环切换主题模式/ }));
     expect(setModeMock).toHaveBeenCalledWith("light");
 
-    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "打开菜单" }));
 
-    expect(screen.getAllByText("Home")).toHaveLength(1);
+    expect(screen.getAllByText("首页")).toHaveLength(1);
     expect(screen.getAllByText("Skills")).toHaveLength(2);
     expect(screen.getAllByText("Plugins")).toHaveLength(2);
-    expect(screen.getAllByText("Publishers")).toHaveLength(2);
+    expect(screen.getAllByText("发布者")).toHaveLength(2);
     expect(screen.queryByText("About")).toBeNull();
   });
 
   it("renders the intranet sign-in button with desktop and compact labels", () => {
     render(<Header />);
 
-    const signInButton = screen.getByRole("button", { name: "Sign in" });
+    const signInButton = screen.getByRole("button", { name: "登录" });
     expect(signInButton.className).toContain("github-sign-in-button");
     const fullCopy = signInButton.querySelector(".sign-in-full-copy");
-    expect(fullCopy?.textContent).toBe("Sign in");
-    expect(signInButton.querySelector(".sign-in-compact-copy")?.textContent).toBe("Sign in");
+    expect(fullCopy?.textContent).toBe("登录");
+    expect(signInButton.querySelector(".sign-in-compact-copy")?.textContent).toBe("登录");
   });
 
   it("shows an auth error when the dev-persona sign-in request does not start", async () => {
@@ -251,11 +251,11 @@ describe("Header", () => {
 
     render(<Header />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    fireEvent.click(screen.getByRole("button", { name: "登录" }));
 
     expect(signInMock).toHaveBeenCalledWith("dev-persona", { persona: "admin" });
     await waitFor(() => {
-      expect(setAuthError).toHaveBeenCalledWith("Sign in failed. Please try again.");
+      expect(setAuthError).toHaveBeenCalledWith("登录失败，请重试");
     });
   });
 
@@ -265,7 +265,7 @@ describe("Header", () => {
 
     render(<Header />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
+    fireEvent.click(screen.getByRole("button", { name: "登录" }));
 
     expect(signInMock).toHaveBeenCalledWith("dev-persona", { persona: "admin" });
     await Promise.resolve();
@@ -304,7 +304,7 @@ describe("Header", () => {
 
     render(<Header />);
 
-    const input = screen.getByPlaceholderText("Search skills and plugins");
+    const input = screen.getByPlaceholderText("搜索 Skill 和 Plugin");
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "weather" } });
 
@@ -353,7 +353,7 @@ describe("Header", () => {
 
     render(<Header />);
 
-    const input = screen.getByPlaceholderText("Search skills and plugins");
+    const input = screen.getByPlaceholderText("搜索 Skill 和 Plugin");
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "weather" } });
     fireEvent.click(screen.getByRole("option", { name: /Weather Skill/i }));
@@ -383,23 +383,23 @@ describe("Header", () => {
 
     render(<Header />);
 
-    const input = screen.getByPlaceholderText("Search skills and plugins");
+    const input = screen.getByPlaceholderText("搜索 Skill 和 Plugin");
     fireEvent.focus(input);
     fireEvent.change(input, { target: { value: "zzzz" } });
 
     const typeahead = screen.getByRole("listbox");
-    expect(within(typeahead).getByText('No skills or plugins found for "zzzz"')).toBeTruthy();
+    expect(within(typeahead).getByText('没有找到匹配 "zzzz" 的 Skill 或 Plugin')).toBeTruthy();
     expect(within(typeahead).queryByText("Skills")).toBeNull();
     expect(within(typeahead).queryByText("Plugins")).toBeNull();
-    expect(within(typeahead).queryByText('See skill results for "zzzz"')).toBeNull();
-    expect(within(typeahead).queryByText('See plugin results for "zzzz"')).toBeNull();
+    expect(within(typeahead).queryByText('查看 "zzzz" 的 Skill 结果')).toBeNull();
+    expect(within(typeahead).queryByText('查看 "zzzz" 的 Plugin 结果')).toBeNull();
   });
 
   it("shows Home above Skills in the mobile menu", () => {
 
     render(<Header />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Open menu" }));
+    fireEvent.click(screen.getByRole("button", { name: "打开菜单" }));
 
     expect(document.querySelector(".mobile-nav-brand-mark-image")).toBeTruthy();
 
@@ -407,8 +407,8 @@ describe("Header", () => {
       .map((element) => element.textContent?.trim())
       .filter((label): label is string => Boolean(label));
 
-    expect(labels.slice(0, 2)).toEqual(["Home", "Skills"]);
-    expect(labels[3]).toBe("Publishers");
+    expect(labels.slice(0, 2)).toEqual(["首页", "Skills"]);
+    expect(labels[3]).toBe("发布者");
   });
 
 });

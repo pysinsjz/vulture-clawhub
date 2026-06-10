@@ -3,8 +3,8 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useState } from "react";
 import { FOOTER_NAV_SECTIONS } from "../lib/nav-items";
 
-function sectionId(title: string) {
-  return `footer-section-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+function sectionId(slug: string) {
+  return `footer-section-${slug}`;
 }
 
 // Must match the `@media (max-width: 760px)` breakpoint in styles.css where
@@ -50,7 +50,7 @@ export function Footer() {
         <div className="footer-grid">
           {FOOTER_NAV_SECTIONS.map((section) => {
             const isOpen = openSections.has(section.title);
-            const id = sectionId(section.title);
+            const id = sectionId(section.slug);
             // On desktop the links are always visible; aria-expanded must be true.
             // On mobile the links are hidden/shown via the disclosure button.
             const ariaExpanded = isMobile ? isOpen : true;

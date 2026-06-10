@@ -34,8 +34,8 @@ describe("Footer", () => {
     const columns = container.querySelectorAll(".footer-col");
     expect(columns).toHaveLength(2);
 
-    const browse = screen.getByRole("heading", { name: "Browse" }).closest(".footer-col");
-    const publish = screen.getByRole("heading", { name: "Publish" }).closest(".footer-col");
+    const browse = screen.getByRole("heading", { name: "浏览" }).closest(".footer-col");
+    const publish = screen.getByRole("heading", { name: "发布" }).closest(".footer-col");
 
     expect(browse).not.toBeNull();
     expect(publish).not.toBeNull();
@@ -52,12 +52,12 @@ describe("Footer", () => {
     ).toBe("/plugins");
     expect(
       within(publish as HTMLElement)
-        .getByRole("link", { name: "Publish Skill" })
+        .getByRole("link", { name: "发布 Skill" })
         .getAttribute("href"),
     ).toBe("/skills/publish");
     expect(
       within(publish as HTMLElement)
-        .getByRole("link", { name: "Publish Plugin" })
+        .getByRole("link", { name: "发布 Plugin" })
         .getAttribute("href"),
     ).toBe("/plugins/publish");
 
@@ -73,9 +73,9 @@ describe("Footer", () => {
     mockMatchMedia(true);
     render(<Footer />);
 
-    const browseToggle = screen.getByRole("button", { name: "Browse" });
+    const browseToggle = screen.getByRole("button", { name: "浏览" });
     const browseLinks = document.getElementById("footer-section-browse-links");
-    const publishToggle = screen.getByRole("button", { name: "Publish" });
+    const publishToggle = screen.getByRole("button", { name: "发布" });
     const publishLinks = document.getElementById("footer-section-publish-links");
 
     expect(browseLinks).not.toBeNull();
