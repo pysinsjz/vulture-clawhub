@@ -8,8 +8,6 @@ const signInMock = vi.fn();
 const clearAuthErrorMock = vi.fn();
 const setAuthErrorMock = vi.fn();
 const getUserFacingAuthErrorMock = vi.fn();
-const isBannedAccountAuthErrorMock = vi.fn();
-const routeToBannedAccountPageMock = vi.fn();
 
 vi.mock("@convex-dev/auth/react", () => ({
   useAuthActions: () => ({
@@ -25,8 +23,6 @@ vi.mock("../lib/useAuthError", () => ({
 vi.mock("../lib/authErrorMessage", () => ({
   getUserFacingAuthError: (error: unknown, fallback: string) =>
     getUserFacingAuthErrorMock(error, fallback),
-  isBannedAccountAuthError: (message: string) => isBannedAccountAuthErrorMock(message),
-  routeToBannedAccountPage: () => routeToBannedAccountPageMock(),
 }));
 
 describe("SignInButton", () => {
@@ -35,51 +31,27 @@ describe("SignInButton", () => {
     clearAuthErrorMock.mockReset();
     setAuthErrorMock.mockReset();
     getUserFacingAuthErrorMock.mockReset();
-    isBannedAccountAuthErrorMock.mockReset();
-    routeToBannedAccountPageMock.mockReset();
     getUserFacingAuthErrorMock.mockImplementation((_, fallback) => fallback);
-    isBannedAccountAuthErrorMock.mockReturnValue(false);
-    window.history.replaceState(null, "", "/skills?q=test#top");
   });
 
   afterEach(() => {
     vi.clearAllMocks();
   });
 
-  it("starts GitHub sign-in with the current relative URL by default", async () => {
+  it("signs in through the dev-persona credentials provider", async () => {
     signInMock.mockResolvedValue({ signingIn: true });
 
     render(<SignInButton />);
     fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
 
     await waitFor(() => {
-      expect(signInMock).toHaveBeenCalledWith("github", {
-        redirectTo: "/skills?q=test#top",
-      });
+      expect(signInMock).toHaveBeenCalledWith("dev-persona", { persona: "admin" });
     });
     expect(clearAuthErrorMock).toHaveBeenCalledTimes(1);
     expect(setAuthErrorMock).not.toHaveBeenCalled();
   });
 
-  it("does not show an error when GitHub sign-in starts a redirect", async () => {
-    signInMock.mockResolvedValue({
-      signingIn: false,
-      redirect: new URL("https://github.com/login/oauth/authorize"),
-    });
-
-    render(<SignInButton />);
-    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
-
-    await waitFor(() => {
-      expect(signInMock).toHaveBeenCalledWith("github", {
-        redirectTo: "/skills?q=test#top",
-      });
-    });
-    await Promise.resolve();
-    expect(setAuthErrorMock).not.toHaveBeenCalled();
-  });
-
-  it("surfaces a generic error when sign-in resolves without redirecting", async () => {
+  it("surfaces a generic error when sign-in resolves without a session", async () => {
     signInMock.mockResolvedValue({ signingIn: false });
 
     render(<SignInButton />);
@@ -91,9 +63,9 @@ describe("SignInButton", () => {
   });
 
   it("surfaces user-facing auth errors when sign-in rejects", async () => {
-    const failure = new Error("oauth failed");
+    const failure = new Error("credentials rejected");
     signInMock.mockRejectedValue(failure);
-    getUserFacingAuthErrorMock.mockReturnValue("GitHub auth unavailable");
+    getUserFacingAuthErrorMock.mockReturnValue("Intranet auth unavailable");
 
     render(<SignInButton />);
     fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
@@ -103,22 +75,7 @@ describe("SignInButton", () => {
         failure,
         "Sign in failed. Please try again.",
       );
-      expect(setAuthErrorMock).toHaveBeenCalledWith("GitHub auth unavailable");
+      expect(setAuthErrorMock).toHaveBeenCalledWith("Intranet auth unavailable");
     });
-  });
-
-  it("routes banned-account sign-in rejections to the banned account page", async () => {
-    const failure = new Error("oauth failed");
-    signInMock.mockRejectedValue(failure);
-    getUserFacingAuthErrorMock.mockReturnValue("This account has been banned.");
-    isBannedAccountAuthErrorMock.mockReturnValue(true);
-
-    render(<SignInButton />);
-    fireEvent.click(screen.getByRole("button", { name: "Sign In" }));
-
-    await waitFor(() => {
-      expect(routeToBannedAccountPageMock).toHaveBeenCalledTimes(1);
-    });
-    expect(setAuthErrorMock).not.toHaveBeenCalled();
   });
 });

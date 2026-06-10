@@ -1,10 +1,6 @@
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { ComponentProps } from "react";
-import {
-  getUserFacingAuthError,
-  isBannedAccountAuthError,
-  routeToBannedAccountPage,
-} from "../lib/authErrorMessage";
+import { getUserFacingAuthError } from "../lib/authErrorMessage";
 import { clearAuthError, setAuthError } from "../lib/useAuthError";
 import { Button } from "./ui/button";
 
@@ -14,7 +10,12 @@ type SignInButtonProps = Omit<ButtonProps, "onClick" | "type"> & {
   redirectTo?: string;
 };
 
-export function SignInButton({ redirectTo, children = "Sign In", ...props }: SignInButtonProps) {
+/**
+ * Intranet sign-in: authenticates through the dev-persona credentials
+ * provider (gateway-trust model). GitHub OAuth was removed with the
+ * public marketplace.
+ */
+export function SignInButton({ children = "Sign In", ...props }: SignInButtonProps) {
   const { signIn } = useAuthActions();
 
   return (
@@ -24,29 +25,18 @@ export function SignInButton({ redirectTo, children = "Sign In", ...props }: Sig
       variant="primary"
       onClick={() => {
         clearAuthError();
-        const next = redirectTo ?? getCurrentRelativeUrl();
-        void signIn("github", next ? { redirectTo: next } : undefined)
+        void signIn("dev-persona", { persona: "admin" })
           .then((result) => {
             if (result?.signingIn === false && !result.redirect) {
               setAuthError("Sign in failed. Please try again.");
             }
           })
           .catch((error) => {
-            const message = getUserFacingAuthError(error, "Sign in failed. Please try again.");
-            if (isBannedAccountAuthError(message)) {
-              routeToBannedAccountPage();
-              return;
-            }
-            setAuthError(message);
+            setAuthError(getUserFacingAuthError(error, "Sign in failed. Please try again."));
           });
       }}
     >
       {children}
     </Button>
   );
-}
-
-function getCurrentRelativeUrl() {
-  if (typeof window === "undefined") return "/";
-  return `${window.location.pathname}${window.location.search}${window.location.hash}`;
 }

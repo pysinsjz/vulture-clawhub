@@ -1,5 +1,6 @@
 import { ApiRoutes, LegacyApiRoutes } from "clawhub-schema";
 import { httpRouter } from "convex/server";
+import { auth } from "./auth";
 import { downloadZip } from "./downloads";
 import {
   cliPublishHttp,
@@ -320,5 +321,10 @@ http.route({
   method: "POST",
   handler: cliSkillUndeleteHttp,
 });
+
+// Web sign-in (dev-persona credentials provider) needs the Convex Auth
+// well-known endpoints (/.well-known/openid-configuration, jwks) so the
+// backend can validate the JWTs it issues.
+auth.addHttpRoutes(http);
 
 export default http;
