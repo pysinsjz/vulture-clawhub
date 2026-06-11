@@ -147,7 +147,7 @@ describe("plugins publish route", () => {
   it("links to the plugin publishing guide", () => {
     renderPublishRoute();
 
-    const guideLink = screen.getByRole("link", { name: /Plugin publishing guide/i });
+    const guideLink = screen.getByRole("link", { name: /Plugin 发布指南/ });
     expect(guideLink.getAttribute("href")).toBe(
       "https://docs.openclaw.ai/clawhub/publishing#plugins",
     );
@@ -163,26 +163,26 @@ describe("plugins publish route", () => {
 
     renderPublishRoute();
 
-    expect(screen.getByText("Sign in to publish a plugin")).toBeTruthy();
+    expect(screen.getByText("登录后发布 Plugin")).toBeTruthy();
     expect(
-      screen.getByText("You need to be signed in to publish plugins on ClawHub."),
+      screen.getByText("你需要登录后才能在 ClawHub 上发布 Plugin。"),
     ).toBeTruthy();
-    expect(screen.queryByText(/Upload plugin code first/i)).toBeNull();
-    expect(screen.queryByPlaceholderText("Plugin name")).toBeNull();
+    expect(screen.queryByText(/请先上传 Plugin 代码/)).toBeNull();
+    expect(screen.queryByPlaceholderText("Plugin 名称")).toBeNull();
   });
 
   it("keeps metadata inputs locked until plugin code is uploaded", () => {
     renderPublishRoute();
 
-    expect(screen.getByText(/Upload plugin code first/i)).toBeTruthy();
-    expect(screen.getByPlaceholderText("Plugin name").getAttribute("disabled")).not.toBeNull();
-    expect(screen.getByPlaceholderText("Display name").getAttribute("disabled")).not.toBeNull();
-    expect(screen.getByPlaceholderText("Version").getAttribute("disabled")).not.toBeNull();
-    expect(screen.queryByPlaceholderText("Describe what changed in this release...")).toBeNull();
-    expect(screen.getByLabelText("Owner").textContent).toContain("@vintageayu · VintageAyu");
+    expect(screen.getByText(/请先上传 Plugin 代码/)).toBeTruthy();
+    expect(screen.getByPlaceholderText("Plugin 名称").getAttribute("disabled")).not.toBeNull();
+    expect(screen.getByPlaceholderText("显示名称").getAttribute("disabled")).not.toBeNull();
+    expect(screen.getByPlaceholderText("版本").getAttribute("disabled")).not.toBeNull();
+    expect(screen.queryByPlaceholderText("描述此版本的变更…")).toBeNull();
+    expect(screen.getByLabelText("所有者").textContent).toContain("@vintageayu · VintageAyu");
     expect(document.querySelector('img[src="/clawd-logo.png"]')).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Publish plugin" }).getAttribute("disabled"),
+      screen.getByRole("button", { name: "发布 Plugin" }).getAttribute("disabled"),
     ).not.toBeNull();
   });
 
@@ -195,7 +195,7 @@ describe("plugins publish route", () => {
     archiveInput.click = archiveClick;
     directoryInput.click = directoryClick;
 
-    fireEvent.click(screen.getByRole("button", { name: "Choose folder" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择文件夹" }));
 
     expect(directoryClick).toHaveBeenCalledTimes(1);
     expect(archiveClick).not.toHaveBeenCalled();
@@ -210,7 +210,7 @@ describe("plugins publish route", () => {
     archiveInput.click = archiveClick;
     directoryInput.click = directoryClick;
 
-    fireEvent.click(screen.getByRole("button", { name: "Choose archive" }));
+    fireEvent.click(screen.getByRole("button", { name: "选择压缩包" }));
 
     expect(archiveClick).toHaveBeenCalledTimes(1);
     expect(directoryClick).not.toHaveBeenCalled();
@@ -249,10 +249,10 @@ describe("plugins publish route", () => {
       expect(screen.getByDisplayValue("demo-plugin")).toBeTruthy();
       expect(screen.getByDisplayValue("Demo Plugin")).toBeTruthy();
       expect(screen.getByDisplayValue("1.2.3")).toBeTruthy();
-      expect(screen.getByPlaceholderText("Plugin name").getAttribute("disabled")).toBeNull();
+      expect(screen.getByPlaceholderText("Plugin 名称").getAttribute("disabled")).toBeNull();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Publish plugin" }));
+    fireEvent.click(screen.getByRole("button", { name: "发布 Plugin" }));
 
     await waitFor(() => {
       expect(publishRelease).toHaveBeenCalledTimes(1);
@@ -315,13 +315,13 @@ describe("plugins publish route", () => {
       expect(screen.getByDisplayValue("demo-plugin")).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Publish plugin" }));
+    fireEvent.click(screen.getByRole("button", { name: "发布 Plugin" }));
 
     await waitFor(() => {
-      expect(screen.getByRole("alert").textContent).toContain("Plugin Inspector blocked publish");
+      expect(screen.getByRole("alert").textContent).toContain("Plugin Inspector 阻止了发布");
     });
-    expect(screen.getByRole("columnheader", { name: "Code" })).toBeTruthy();
-    expect(screen.getByRole("columnheader", { name: "Message" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "编码" })).toBeTruthy();
+    expect(screen.getByRole("columnheader", { name: "消息" })).toBeTruthy();
     expect(screen.getByText("missing-expected-seam")).toBeTruthy();
     expect(screen.getByText("missing expected registration registerTool")).toBeTruthy();
     expect(toastErrorMock).not.toHaveBeenCalled();
@@ -365,14 +365,14 @@ describe("plugins publish route", () => {
     fireEvent.change(getFileInput(), { target: { files: [packageJson, manifest] } });
 
     await waitFor(() => {
-      expect(screen.getByText(/Fix package metadata:/i)).toBeTruthy();
+      expect(screen.getByText(/请修复包元数据：/)).toBeTruthy();
     });
 
     expect(screen.getByText(/openclaw\.compat\.pluginApi/i)).toBeTruthy();
     expect(screen.getByText(/openclaw\.build\.openclawVersion/i)).toBeTruthy();
-    expect(screen.getByText("Missing metadata")).toBeTruthy();
+    expect(screen.getByText("缺少元数据")).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Publish plugin" }).getAttribute("disabled"),
+      screen.getByRole("button", { name: "发布 Plugin" }).getAttribute("disabled"),
     ).not.toBeNull();
     expect(publishRelease).not.toHaveBeenCalled();
   });
@@ -410,12 +410,12 @@ describe("plugins publish route", () => {
       ).toBeGreaterThan(0);
     });
 
-    const docsLink = screen.getByRole("link", { name: /Learn how publishing works/i });
+    const docsLink = screen.getByRole("link", { name: /了解发布机制/ });
     expect(docsLink.getAttribute("href")).toBe(DocsLinks.clawhub.packageScopeFaq);
     expect(docsLink.getAttribute("target")).toBe("_blank");
     expect(docsLink.getAttribute("rel")).toBe("noopener noreferrer");
     expect(
-      screen.getByRole("button", { name: "Publish plugin" }).getAttribute("disabled"),
+      screen.getByRole("button", { name: "发布 Plugin" }).getAttribute("disabled"),
     ).not.toBeNull();
     expect(publishRelease).not.toHaveBeenCalled();
   });
@@ -430,7 +430,7 @@ describe("plugins publish route", () => {
     fireEvent.change(getFileInput(), { target: { files: [bigFile] } });
 
     await waitFor(() => {
-      expect(screen.getAllByText(/Each file must be 10MB or smaller/i).length).toBeGreaterThan(0);
+      expect(screen.getAllByText(/每个文件不得超过 10MB/).length).toBeGreaterThan(0);
     });
 
     const summaryBorders = document.querySelectorAll(".border-emerald-300\\/45");
@@ -475,12 +475,12 @@ describe("plugins publish route", () => {
       expect(screen.getByDisplayValue("demo-bundle")).toBeTruthy();
       expect(screen.getByDisplayValue("Demo Bundle")).toBeTruthy();
       expect(screen.getByDisplayValue("0.4.0")).toBeTruthy();
-      expect(screen.getByText("Code plugin")).toBeTruthy();
-      expect(screen.queryByText("Bundle plugin")).toBeNull();
-      expect(screen.getByText("Agent metadata")).toBeTruthy();
-      expect(screen.queryByPlaceholderText("Bundle format")).toBeNull();
-      expect(screen.getByText(/Replace package/i)).toBeTruthy();
-      expect(screen.getByText(/Clear package/i)).toBeTruthy();
+      expect(screen.getByText("代码插件")).toBeTruthy();
+      expect(screen.queryByText("捆绑插件")).toBeNull();
+      expect(screen.getByText("Agent 元数据")).toBeTruthy();
+      expect(screen.queryByPlaceholderText("捆绑格式")).toBeNull();
+      expect(screen.getByText(/替换包/)).toBeTruthy();
+      expect(screen.getByText(/清空包/)).toBeTruthy();
     });
     expect(publishRelease).not.toHaveBeenCalled();
   });
@@ -527,11 +527,11 @@ describe("plugins publish route", () => {
       expect(screen.getByDisplayValue("@opik/opik-openclaw")).toBeTruthy();
       expect(screen.getByDisplayValue("Opik")).toBeTruthy();
       expect(screen.getByDisplayValue("0.2.9")).toBeTruthy();
-      expect(screen.getByText(/Package detected/i)).toBeTruthy();
+      expect(screen.getByText(/已检测到包/)).toBeTruthy();
       expect(screen.queryByText(/^Compatibility:/i)).toBeNull();
       expect(screen.queryByText("Compatibility")).toBeNull();
-      expect(screen.getByText("Package manifest")).toBeTruthy();
-      expect(screen.getByText("Plugin manifest")).toBeTruthy();
+      expect(screen.getByText("包清单")).toBeTruthy();
+      expect(screen.getByText("Plugin 清单")).toBeTruthy();
       expect(screen.queryByText("opik-openclaw-0.2.9/package.json")).toBeNull();
     });
   });
@@ -575,12 +575,12 @@ describe("plugins publish route", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText(/Ignored: node_modules\/dep\/index\.js/i)).toBeTruthy();
+      expect(screen.getByText(/已忽略：node_modules\/dep\/index\.js/)).toBeTruthy();
     });
 
     expect(screen.queryByLabelText("ClawScan note")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "Publish plugin" }));
+    fireEvent.click(screen.getByRole("button", { name: "发布 Plugin" }));
 
     await waitFor(() => {
       expect(publishRelease).toHaveBeenCalledTimes(1);
@@ -630,11 +630,11 @@ describe("plugins publish route", () => {
 
     await waitFor(() => {
       expect(
-        screen.getAllByText(/Each file must be 10MB or smaller: plugin\.wasm/i).length,
+        screen.getAllByText(/每个文件不得超过 10MB：plugin\.wasm/).length,
       ).toBeGreaterThan(0);
     });
     expect(
-      screen.getByRole("button", { name: "Publish plugin" }).getAttribute("disabled"),
+      screen.getByRole("button", { name: "发布 Plugin" }).getAttribute("disabled"),
     ).not.toBeNull();
     expect(publishRelease).not.toHaveBeenCalled();
   });
@@ -666,13 +666,13 @@ describe("plugins publish route", () => {
       expect(screen.getByDisplayValue("demo-plugin")).toBeTruthy();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Publish plugin" }));
+    fireEvent.click(screen.getByRole("button", { name: "发布 Plugin" }));
 
     expect(
-      await screen.findByText(/Pending security checks and verification before public listing\./i),
+      await screen.findByText(/等待安全检查与验证后才会公开列出。/),
     ).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: "Publish plugin" }).getAttribute("disabled"),
+      screen.getByRole("button", { name: "发布 Plugin" }).getAttribute("disabled"),
     ).not.toBeNull();
   });
 

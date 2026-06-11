@@ -35,24 +35,24 @@ export function PublisherOwnerSelect({
       <button
         id={id}
         type="button"
-        aria-label="Owner"
+        aria-label="所有者"
         disabled
         className="flex w-full min-h-[44px] items-center justify-between rounded-[var(--radius-sm)] border border-input-border bg-input-bg px-3.5 py-space-3 text-sm text-[color:var(--ink)] opacity-60"
       >
-        <span className="truncate">{value ? `@${value}` : "Select owner"}</span>
+        <span className="truncate">{value ? `@${value}` : "选择所有者"}</span>
       </button>
     );
   }
 
   return (
     <Select value={value} onValueChange={onValueChange} disabled={disabled}>
-      <SelectTrigger id={id} aria-label="Owner">
+      <SelectTrigger id={id} aria-label="所有者">
         {selected ? (
           <PublisherOwnerOption membership={selected} />
         ) : value ? (
           <span className="truncate">@{value}</span>
         ) : (
-          <SelectValue placeholder="Select owner" />
+          <SelectValue placeholder="选择所有者" />
         )}
       </SelectTrigger>
       <SelectContent>

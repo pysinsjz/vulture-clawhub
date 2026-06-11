@@ -4,7 +4,7 @@ import { Skeleton } from "./ui/skeleton";
 
 export function PublishFormSkeleton() {
   return (
-    <main className="py-10" aria-busy="true" aria-label="Loading publish form">
+    <main className="py-10" aria-busy="true" aria-label="正在加载发布表单">
       <Container size="narrow">
         <div className="mb-6 flex flex-col gap-2">
           <Skeleton className="h-9 w-56" />

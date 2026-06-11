@@ -66,9 +66,9 @@ const PLUGIN_INSPECTOR_BLOCKED_PREFIX = "Plugin Inspector blocked publish:";
 function parsePluginInspectorPublishError(message: string): ParsedInspectorPublishError | null {
   if (!message.startsWith(PLUGIN_INSPECTOR_BLOCKED_PREFIX)) return null;
   const body = message.slice(PLUGIN_INSPECTOR_BLOCKED_PREFIX.length).trim();
-  if (!body) return { summary: "Hard findings blocked this publish.", findings: [] };
+  if (!body) return { summary: "硬性发现项阻止了本次发布。", findings: [] };
   const [summaryPart, ...detailParts] = body.split(". ");
-  const summary = summaryPart?.trim() || "Hard findings blocked this publish.";
+  const summary = summaryPart?.trim() || "硬性发现项阻止了本次发布。";
   const details = detailParts.join(". ").trim();
   if (!details) return { summary, findings: [] };
   const findings = details
@@ -101,7 +101,7 @@ function PluginPublishError({ message }: { message: string }) {
   return (
     <div className="plugin-publish-error-panel" role="alert">
       <div className="plugin-publish-error-heading">
-        <strong>Plugin Inspector blocked publish</strong>
+        <strong>Plugin Inspector 阻止了发布</strong>
         <span>{inspectorError.summary}</span>
       </div>
       {inspectorError.findings.length > 0 ? (
@@ -109,8 +109,8 @@ function PluginPublishError({ message }: { message: string }) {
           <table className="plugin-publish-error-table">
             <thead>
               <tr>
-                <th scope="col">Code</th>
-                <th scope="col">Message</th>
+                <th scope="col">编码</th>
+                <th scope="col">消息</th>
               </tr>
             </thead>
             <tbody>
@@ -177,9 +177,9 @@ export function PublishPluginRoute() {
   );
   const validationError =
     oversizedFiles.length > 0
-      ? `Each file must be 10MB or smaller: ${oversizedFileNames.join(", ")}`
+      ? `每个文件不得超过 10MB：${oversizedFileNames.join(", ")}`
       : totalBytes > MAX_PUBLISH_TOTAL_BYTES
-        ? "Total file size exceeds 50MB."
+        ? "文件总大小超过 50MB。"
         : null;
   const isMetadataLocked = files.length === 0;
   const metadataDisabled = isMetadataLocked || isSubmitting;
@@ -189,13 +189,13 @@ export function PublishPluginRoute() {
   const submitBlockers = useMemo(() => {
     if (isMetadataLocked) return [];
     const blockers: string[] = [];
-    if (!name.trim()) blockers.push("Plugin name is required.");
-    if (!version.trim()) blockers.push("Version is required.");
+    if (!name.trim()) blockers.push("Plugin 名称不能为空。");
+    if (!version.trim()) blockers.push("版本号不能为空。");
     return blockers;
   }, [isMetadataLocked, name, version]);
   const hasPackageBlocker =
     Boolean(validationError) || Boolean(ownerScopeError) || codePluginFieldIssues.length > 0;
-  const hasPublished = status?.startsWith("Published.") ?? false;
+  const hasPublished = status?.startsWith("已发布。") ?? false;
   const isPublishDisabled =
     !isAuthenticated ||
     isMetadataLocked ||
@@ -205,17 +205,17 @@ export function PublishPluginRoute() {
     hasPublished;
   const publishBlockerSummary = useMemo(() => {
     if (isSubmitting) return null;
-    if (!isAuthenticated) return "Sign in to publish.";
-    if (isMetadataLocked) return "Complete plugin files to publish.";
-    if (validationError) return `Fix: ${validationError}`;
-    if (ownerScopeError) return `Fix: ${ownerScopeError}`;
+    if (!isAuthenticated) return "请登录后发布。";
+    if (isMetadataLocked) return "请补全 Plugin 文件后发布。";
+    if (validationError) return `请修复：${validationError}`;
+    if (ownerScopeError) return `请修复：${ownerScopeError}`;
     if (codePluginFieldIssues.length > 0) {
-      return `Fix package metadata: ${formatInlineList(codePluginFieldIssues)}.`;
+      return `请修复包元数据：${formatInlineList(codePluginFieldIssues)}。`;
     }
     const missing = submitBlockers.flatMap(missingPluginPublishLabel);
     const uniqueMissing = [...new Set(missing)];
     if (uniqueMissing.length > 0) {
-      return `Complete ${formatInlineList(uniqueMissing)} to publish.`;
+      return `补全 ${formatInlineList(uniqueMissing)} 后再发布。`;
     }
     return null;
   }, [
@@ -281,8 +281,8 @@ export function PublishPluginRoute() {
       <main className="py-10">
         <Container size="narrow">
           <EmptyState
-            title="Sign in to publish a plugin"
-            description="You need to be signed in to publish plugins on ClawHub."
+            title="登录后发布 Plugin"
+            description="你需要登录后才能在 ClawHub 上发布 Plugin。"
           >
             <SignInButton />
           </EmptyState>
@@ -297,23 +297,23 @@ export function PublishPluginRoute() {
         <header className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="mb-2 font-display text-2xl font-bold text-[color:var(--ink)]">
-              {search.name ? "Publish Plugin Release" : "Publish Plugin"}
+              {search.name ? "发布 Plugin 版本" : "发布 Plugin"}
             </h1>
             <p className="text-sm text-[color:var(--ink-soft)]">
-              Drop or select a plugin folder, .zip, or .tgz
+              拖入或选择 Plugin 文件夹、.zip 或 .tgz
             </p>
             {search.name ? (
               <p className="text-sm text-[color:var(--ink-soft)]">
-                Prefilled for {search.displayName ?? search.name}
+                已为 {search.displayName ?? search.name} 预填
                 {search.nextVersion && semver.valid(search.nextVersion)
-                  ? ` \u00b7 suggested ${search.nextVersion}`
+                  ? ` \u00b7 建议 ${search.nextVersion}`
                   : ""}
               </p>
             ) : null}
           </div>
           <Button asChild variant="outline" size="sm" className="w-fit">
             <a href={PLUGIN_PUBLISHING_GUIDE_URL} target="_blank" rel="noreferrer">
-              Plugin publishing guide
+              Plugin 发布指南
               <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
             </a>
           </Button>
@@ -322,11 +322,10 @@ export function PublishPluginRoute() {
         {SHOW_CLAWPACK_ONBOARDING_BANNER ? (
           <Card className="mb-5 border-[rgba(255,107,74,0.3)] bg-[rgba(255,107,74,0.06)]">
             <p className="text-sm font-medium text-[color:var(--ink)]">
-              ClawPack publishing is moving to npm-pack .tgz uploads.
+              ClawPack 发布正在迁移到 npm-pack .tgz 上传。
             </p>
             <p className="mt-1 text-sm text-[color:var(--ink-soft)]">
-              Use the CLI for exact ClawPack bytes while the web uploader remains on the legacy
-              compatibility path.
+              在 Web 上传器仍走旧兼容路径期间，请使用 CLI 获取精确的 ClawPack 字节。
             </p>
           </Card>
         ) : null}
@@ -360,10 +359,10 @@ export function PublishPluginRoute() {
             <div className="flex flex-col gap-5">
               <div className="grid gap-x-4 gap-y-4 md:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="pluginName">Plugin name</Label>
+                  <Label htmlFor="pluginName">Plugin 名称</Label>
                   <Input
                     id="pluginName"
-                    placeholder="Plugin name"
+                    placeholder="Plugin 名称"
                     value={name}
                     disabled={metadataDisabled}
                     onChange={(event) => setName(event.target.value)}
@@ -378,31 +377,31 @@ export function PublishPluginRoute() {
                       rel="noopener noreferrer"
                       className="underline underline-offset-2"
                     >
-                      Learn how publishing works
+                      了解发布机制
                     </a>
                   </Badge>
                 ) : null}
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="pluginDisplayName">Display name</Label>
+                  <Label htmlFor="pluginDisplayName">显示名称</Label>
                   <Input
                     id="pluginDisplayName"
-                    placeholder="Display name"
+                    placeholder="显示名称"
                     value={displayName}
                     disabled={metadataDisabled}
                     onChange={(event) => setDisplayName(event.target.value)}
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="pluginFamily">Package type</Label>
+                  <Label htmlFor="pluginFamily">包类型</Label>
                   <div
                     id="pluginFamily"
                     className="min-h-[44px] w-full rounded-[var(--radius-sm)] border border-[rgba(29,59,78,0.22)] bg-[rgba(255,255,255,0.94)] px-3.5 py-[13px] text-sm text-[color:var(--ink)] dark:border-[rgba(255,255,255,0.12)] dark:bg-[rgba(14,28,37,0.84)]"
                   >
-                    {family === "code-plugin" ? "Code plugin" : "Bundle plugin"}
+                    {family === "code-plugin" ? "代码插件" : "捆绑插件"}
                   </div>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="pluginOwner">Owner</Label>
+                  <Label htmlFor="pluginOwner">所有者</Label>
                   <PublisherOwnerSelect
                     id="pluginOwner"
                     value={ownerHandle}
@@ -412,10 +411,10 @@ export function PublishPluginRoute() {
                   />
                 </div>
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="pluginVersion">Version</Label>
+                  <Label htmlFor="pluginVersion">版本</Label>
                   <VersionInput
                     id="pluginVersion"
-                    placeholder="Version"
+                    placeholder="版本"
                     value={version}
                     disabled={metadataDisabled}
                     onValueChange={setVersion}
@@ -424,20 +423,20 @@ export function PublishPluginRoute() {
                 {family === "bundle-plugin" ? (
                   <>
                     <div className="flex flex-col gap-2">
-                      <Label htmlFor="pluginBundleFormat">Bundle format</Label>
+                      <Label htmlFor="pluginBundleFormat">捆绑格式</Label>
                       <Input
                         id="pluginBundleFormat"
-                        placeholder="Bundle format"
+                        placeholder="捆绑格式"
                         value={bundleFormat}
                         disabled={metadataDisabled}
                         onChange={(event) => setBundleFormat(event.target.value)}
                       />
                     </div>
                     <div className="flex flex-col gap-2">
-                      <Label htmlFor="pluginHostTargets">Host targets</Label>
+                      <Label htmlFor="pluginHostTargets">宿主目标</Label>
                       <Input
                         id="pluginHostTargets"
-                        placeholder="Host targets (comma separated)"
+                        placeholder="宿主目标（逗号分隔）"
                         value={hostTargets}
                         disabled={metadataDisabled}
                         onChange={(event) => setHostTargets(event.target.value)}
@@ -456,18 +455,18 @@ export function PublishPluginRoute() {
             >
               <div>
                 <h2 className="font-display text-lg font-bold leading-tight text-[color:var(--ink)]">
-                  Changelog
+                  更新日志
                 </h2>
                 <p className="mt-1 text-sm text-[color:var(--ink-soft)]">
-                  Summarize what changed in this release.
+                  概述此版本的变更。
                 </p>
               </div>
               <Label htmlFor="pluginChangelog" className="sr-only">
-                Changelog
+                更新日志
               </Label>
               <Textarea
                 id="pluginChangelog"
-                placeholder="Describe what changed in this release..."
+                placeholder="描述此版本的变更…"
                 rows={4}
                 value={changelog}
                 disabled={metadataDisabled}
@@ -482,7 +481,7 @@ export function PublishPluginRoute() {
               {status ? <div className="text-sm text-[color:var(--ink-soft)]">{status}</div> : null}
               {!status ? (
                 <div className="text-sm text-[color:var(--ink-soft)]">
-                  New releases stay private until automated security checks and verification finish.
+                  新版本在自动安全检查与验证完成前保持私有。
                 </div>
               ) : null}
               {publishBlockerSummary ? (
@@ -511,19 +510,19 @@ export function PublishPluginRoute() {
                       }
                       if (family === "code-plugin" && codePluginFieldIssues.length > 0) {
                         toast.error(
-                          `Missing required OpenClaw package metadata: ${codePluginFieldIssues.join(", ")}`,
+                          `缺少必需的 OpenClaw 包元数据：${codePluginFieldIssues.join(", ")}`,
                         );
                         return;
                       }
                       setIsSubmitting(true);
-                      setStatus("Uploading files...");
+                      setStatus("正在上传文件…");
                       setError(null);
                       const uploaded = await buildPackageUploadEntries(files, {
                         generateUploadUrl,
                         hashFile,
                         uploadFile,
                       });
-                      setStatus("Publishing release...");
+                      setStatus("正在发布版本…");
                       await publishRelease({
                         payload: {
                           name: name.trim(),
@@ -547,7 +546,7 @@ export function PublishPluginRoute() {
                         },
                       });
                       setStatus(
-                        "Published. Pending security checks and verification before public listing.",
+                        "已发布。等待安全检查与验证后才会公开列出。",
                       );
                     } catch (publishError) {
                       const message = formatPublishError(publishError);
@@ -566,7 +565,7 @@ export function PublishPluginRoute() {
               {isPublishDisabled && !isSubmitting ? (
                 <Lock className="h-4 w-4" aria-hidden="true" />
               ) : null}
-              Publish plugin
+              发布 Plugin
             </Button>
           </div>
 
@@ -587,14 +586,14 @@ export function PublishPluginRoute() {
 
 function formatInlineList(items: string[]) {
   if (items.length <= 1) return items[0] ?? "";
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+  if (items.length === 2) return `${items[0]}和${items[1]}`;
+  return `${items.slice(0, -1).join("、")}和${items.at(-1)}`;
 }
 
 function missingPluginPublishLabel(issue: string) {
-  if (issue === "Plugin name is required.") return ["plugin name"];
-  if (issue === "Version is required.") return ["version"];
-  if (issue === "GitHub repository is required.") return ["GitHub repository"];
-  if (issue === "Commit SHA is required.") return ["commit SHA"];
+  if (issue === "Plugin 名称不能为空。") return ["Plugin 名称"];
+  if (issue === "版本号不能为空。") return ["版本"];
+  if (issue === "GitHub 仓库不能为空。") return ["GitHub 仓库"];
+  if (issue === "Commit SHA 不能为空。") return ["commit SHA"];
   return [];
 }

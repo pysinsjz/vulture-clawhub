@@ -56,7 +56,7 @@ function getPackagePathBadges(
   if (lowerPath === "package.json") {
     badges.push(
       <Badge key="package" variant="compact" size="sm">
-        Package manifest
+        包清单
       </Badge>,
     );
     if (options.hasMetadataIssues) {
@@ -65,9 +65,9 @@ function getPackagePathBadges(
           key="metadata-missing"
           variant="destructive"
           size="sm"
-          title="Missing OpenClaw compatibility metadata"
+          title="缺少 OpenClaw 兼容性元数据"
         >
-          Missing metadata
+          缺少元数据
         </Badge>,
       );
     }
@@ -78,7 +78,7 @@ function getPackagePathBadges(
   if (lowerPath === "openclaw.plugin.json") {
     badges.push(
       <Badge key="plugin" variant="compact" size="sm">
-        Plugin manifest
+        Plugin 清单
       </Badge>,
     );
   }
@@ -90,7 +90,7 @@ function getPackagePathBadges(
   ) {
     badges.push(
       <Badge key="agent" variant="compact" size="sm">
-        Agent metadata
+        Agent 元数据
       </Badge>,
     );
   }
@@ -125,7 +125,7 @@ export function PackageSourceChooser(props: {
   const directoryInputRef = useRef<HTMLInputElement | null>(null);
   const isMetadataLocked = props.files.length === 0 || Boolean(props.validationError);
   const hasSelectedPackage = props.normalizedPaths.length > 0;
-  const fileSummary = `${props.files.length} files \u00b7 ${formatBytes(props.totalBytes)}`;
+  const fileSummary = `${props.files.length} 个文件 \u00b7 ${formatBytes(props.totalBytes)}`;
   const sortedPackagePaths = sortPackagePaths(props.normalizedPaths);
   const visiblePackagePaths = sortedPackagePaths.slice(0, PACKAGE_FILE_LIST_LIMIT);
   const hiddenPackagePathCount = Math.max(
@@ -133,7 +133,7 @@ export function PackageSourceChooser(props: {
     0,
   );
   const replaceSourceKind = props.selectedSourceKind ?? "archive";
-  const replaceLabel = replaceSourceKind === "folder" ? "Replace folder" : "Replace package";
+  const replaceLabel = replaceSourceKind === "folder" ? "替换文件夹" : "替换包";
   const hasMetadataIssues =
     props.family === "code-plugin" && props.codePluginFieldIssues.length > 0;
   const hasPackagePanelFooter = props.ignoredPaths.length > 0 || Boolean(props.validationError);
@@ -212,7 +212,7 @@ export function PackageSourceChooser(props: {
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <strong className="text-sm text-[color:var(--ink)]">
-                    {isMetadataLocked ? "Package selected" : "Package detected"}
+                    {isMetadataLocked ? "已选择包" : "已检测到包"}
                   </strong>
                   <span className="text-xs text-[color:var(--ink-soft)]">{fileSummary}</span>
                 </div>
@@ -240,7 +240,7 @@ export function PackageSourceChooser(props: {
                   props.onClearFiles();
                 }}
               >
-                Clear package
+                清空包
               </button>
             </div>
           </div>
@@ -266,7 +266,7 @@ export function PackageSourceChooser(props: {
               })}
               {hiddenPackagePathCount > 0 ? (
                 <div className="px-3 py-1.5 text-xs text-[color:var(--ink-soft)]">
-                  +{hiddenPackagePathCount} more
+                  还有 {hiddenPackagePathCount} 个
                 </div>
               ) : null}
             </div>
@@ -277,7 +277,7 @@ export function PackageSourceChooser(props: {
                 <div className="flex flex-col gap-1">
                   {props.ignoredPaths.length > 0 ? (
                     <p>
-                      Ignored: {props.ignoredPaths.slice(0, 4).join(", ")}
+                      已忽略：{props.ignoredPaths.slice(0, 4).join(", ")}
                       {props.ignoredPaths.length > 4 ? ", ..." : ""}
                     </p>
                   ) : null}
@@ -308,11 +308,10 @@ export function PackageSourceChooser(props: {
             <div className="relative z-[1] flex flex-col items-center gap-2">
               <div className="flex items-center gap-3">
                 <Upload className="h-5 w-5 text-[color:var(--ink-soft)]" aria-hidden="true" />
-                <strong className="text-[color:var(--ink)]">Upload plugin code first</strong>
+                <strong className="text-[color:var(--ink)]">请先上传 Plugin 代码</strong>
               </div>
               <span className="max-w-md text-sm text-[color:var(--ink-soft)]">
-                Drag a folder, zip, or tgz here. We inspect the package to unlock and prefill the
-                rest of the form.
+                将文件夹、zip 或 tgz 拖到此处。我们会检查该包以解锁并预填表单的其余部分。
               </span>
               <div className="flex gap-2 pt-2">
                 <Button
@@ -320,14 +319,14 @@ export function PackageSourceChooser(props: {
                   size="sm"
                   onClick={() => archiveInputRef.current?.click()}
                 >
-                  Choose archive
+                  选择压缩包
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => directoryInputRef.current?.click()}
                 >
-                  Choose folder
+                  选择文件夹
                 </Button>
               </div>
             </div>
