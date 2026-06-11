@@ -13,9 +13,9 @@ export function RecentPushesPage({
 }) {
   return (
     <div className="management-view">
-      <h2 className="section-title text-[1.2rem] m-0">Recent pushes</h2>
+      <h2 className="section-title text-[1.2rem] m-0">最近推送</h2>
       <p className="section-subtitle m-0 mt-1">
-        The latest skill versions published across ClawHub.
+        ClawHub 上最新发布的 Skill 版本。
       </p>
       <div className="management-list">
         {!recentVersions ? (
@@ -26,7 +26,7 @@ export function RecentPushesPage({
           recentVersions.map((entry) => (
             <div key={entry.version._id} className="management-item">
               <div className="management-item-main">
-                <strong>{entry.skill?.displayName ?? "Unknown skill"}</strong>
+                <strong>{entry.skill?.displayName ?? "未知 Skill"}</strong>
                 <div className="section-subtitle m-0">
                   v{entry.version.version} · @{entry.owner?.handle ?? entry.owner?.name ?? "user"} ·{" "}
                   {formatShortTimestamp(entry.version._creationTime)}
@@ -43,7 +43,7 @@ export function RecentPushesPage({
                         plugin: undefined,
                       }}
                     >
-                      Manage
+                      管理
                     </Link>
                   </Button>
                 ) : null}
@@ -59,7 +59,7 @@ export function RecentPushesPage({
                         slug: entry.skill.slug,
                       }}
                     >
-                      View
+                      查看
                     </Link>
                   </Button>
                 ) : null}

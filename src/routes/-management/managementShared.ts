@@ -58,7 +58,7 @@ export function formatWholeNumber(value: number | null | undefined) {
 }
 
 export function formatMutationError(error: unknown) {
-  return getUserFacingConvexError(error, "Request failed.");
+  return getUserFacingConvexError(error, "请求失败。");
 }
 
 export function formatManualOverrideState(
@@ -73,8 +73,8 @@ export function formatManualOverrideState(
     | undefined,
   reviewer?: ManagementUserSummary | null,
 ) {
-  if (!override) return "No override.";
-  return `${formatVerdictLabel(override.verdict)} · reviewer ${formatManagementUserLabel(reviewer, override.reviewerUserId)} · updated ${formatTimestamp(
+  if (!override) return "无覆盖。";
+  return `${formatVerdictLabel(override.verdict)} · 审核员 ${formatManagementUserLabel(reviewer, override.reviewerUserId)} · 更新于 ${formatTimestamp(
     override.updatedAt,
   )} · ${override.note}`;
 }
@@ -87,35 +87,35 @@ export function formatManagementUserLabel(
   if (user?.displayName?.trim()) return user.displayName.trim();
   if (user?.name?.trim()) return user.name.trim();
   if (fallbackId?.trim()) return fallbackId.trim();
-  return "unknown user";
+  return "未知用户";
 }
 
 export function formatAuditActionLabel(action: string, metadata?: unknown) {
   const record = asAuditMetadataRecord(metadata);
   if (action === "skill.manual_override.set") {
     const verdict = typeof record?.verdict === "string" ? record.verdict : "unknown";
-    return `Override set to ${formatVerdictLabel(verdict)}`;
+    return `覆盖设为 ${formatVerdictLabel(verdict)}`;
   }
   if (action === "skill.manual_override.clear") {
-    return "Override cleared";
+    return "已清除覆盖";
   }
   if (action === "skill.owner.change") {
-    return "Owner changed";
+    return "已变更所有者";
   }
   if (action === "skill.duplicate.set") {
-    return "Duplicate target set";
+    return "已设置重复目标";
   }
   if (action === "skill.duplicate.clear") {
-    return "Duplicate target cleared";
+    return "已清除重复目标";
   }
   if (action === "skill.auto_hide") {
-    return "Skill auto-hidden";
+    return "Skill 已自动隐藏";
   }
   if (action === "skill.hard_delete") {
-    return "Skill hard-deleted";
+    return "Skill 已硬删除";
   }
   if (action.startsWith("skill.transfer.")) {
-    return `Transfer ${action.slice("skill.transfer.".length).replaceAll("_", " ")}`;
+    return `转移 ${action.slice("skill.transfer.".length).replaceAll("_", " ")}`;
   }
   if (action.startsWith("skill.")) {
     return action.slice("skill.".length).replaceAll(".", " ").replaceAll("_", " ");
@@ -132,7 +132,7 @@ export function formatAuditMetadataSummary(action: string, metadata?: unknown) {
     if (note) return note;
     const previousVerdict =
       typeof record.previousVerdict === "string" ? record.previousVerdict : null;
-    return previousVerdict ? `Previous verdict: ${formatVerdictLabel(previousVerdict)}` : null;
+    return previousVerdict ? `先前判定：${formatVerdictLabel(previousVerdict)}` : null;
   }
 
   if (action === "skill.manual_override.clear") {
@@ -141,32 +141,32 @@ export function formatAuditMetadataSummary(action: string, metadata?: unknown) {
     const previousVerdict =
       typeof record.previousVerdict === "string" ? record.previousVerdict : null;
     return previousVerdict
-      ? `Previous override verdict: ${formatVerdictLabel(previousVerdict)}`
+      ? `先前覆盖判定：${formatVerdictLabel(previousVerdict)}`
       : null;
   }
 
   if (action === "skill.owner.change") {
     const from = typeof record.from === "string" ? record.from : null;
     const to = typeof record.to === "string" ? record.to : null;
-    if (from || to) return `from ${from ?? "unknown"} to ${to ?? "unknown"}`;
+    if (from || to) return `从 ${from ?? "未知"} 到 ${to ?? "未知"}`;
   }
 
   if (action === "skill.duplicate.set") {
     return typeof record.canonicalSlug === "string"
-      ? `Canonical skill: ${record.canonicalSlug}`
+      ? `规范 Skill：${record.canonicalSlug}`
       : null;
   }
 
   if (action === "skill.duplicate.clear") {
-    return "Canonical skill cleared.";
+    return "已清除规范 Skill。";
   }
 
   if (action === "skill.auto_hide") {
-    return typeof record.reportCount === "number" ? `${record.reportCount} active reports` : null;
+    return typeof record.reportCount === "number" ? `${record.reportCount} 条活跃举报` : null;
   }
 
   if (action === "skill.hard_delete") {
-    return typeof record.slug === "string" ? `Deleted slug: ${record.slug}` : null;
+    return typeof record.slug === "string" ? `已删除 slug：${record.slug}` : null;
   }
 
   if (typeof record.note === "string" && record.note.trim()) {
@@ -184,5 +184,5 @@ function asAuditMetadataRecord(metadata: unknown) {
 }
 
 function formatVerdictLabel(verdict: string) {
-  return verdict === "clean" ? "okay" : verdict;
+  return verdict === "clean" ? "正常" : verdict;
 }

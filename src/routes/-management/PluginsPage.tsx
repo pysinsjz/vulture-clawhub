@@ -23,9 +23,9 @@ export function PluginsPage({
 }) {
   return (
     <div className="management-view">
-      <h2 className="section-title text-[1.2rem] m-0">Plugin tools</h2>
+      <h2 className="section-title text-[1.2rem] m-0">Plugin 工具</h2>
       <p className="section-subtitle m-0 mt-1">
-        Look up a plugin package to open its moderation tooling.
+        查找 Plugin Package 以打开其审核工具。
       </p>
       <div className="management-controls">
         <div className="management-control management-search">
@@ -44,12 +44,12 @@ export function PluginsPage({
           />
         </div>
         <Button type="button" onClick={onManagePlugin} disabled={!pluginSearch.trim()}>
-          Manage
+          管理
         </Button>
       </div>
       {selectedPluginName ? (
         <div className="section-subtitle mt-2">
-          Managing "{selectedPluginName}" ·{" "}
+          正在管理 “{selectedPluginName}” ·{" "}
           <Link
             to="/management"
             search={{
@@ -58,17 +58,17 @@ export function PluginsPage({
               plugin: undefined,
             }}
           >
-            Clear selection
+            清除选择
           </Link>
         </div>
       ) : null}
       <div className="management-list">
         {!selectedPluginName ? (
-          <div className="management-empty">Enter a plugin package name to open tooling here.</div>
+          <div className="management-empty">输入 Plugin Package 名以在此打开工具。</div>
         ) : selectedPlugin === undefined ? (
-          <div className="management-empty">Loading plugin…</div>
+          <div className="management-empty">正在加载 Plugin…</div>
         ) : !selectedPlugin?.package ? (
-          <div className="management-empty">No plugin found for "{selectedPluginName}".</div>
+          <div className="management-empty">未找到 Plugin “{selectedPluginName}”。</div>
         ) : (
           (() => {
             const plugin = selectedPlugin.package;
@@ -83,33 +83,33 @@ export function PluginsPage({
                     {plugin.displayName}
                   </Link>
                   <div className="section-subtitle m-0">
-                    {owner?.handle ? `@${owner.handle}` : "unknown owner"} ·{" "}
-                    {familyLabel(plugin.family)} · v{latestRelease?.version ?? "—"} · updated{" "}
+                    {owner?.handle ? `@${owner.handle}` : "未知所有者"} ·{" "}
+                    {familyLabel(plugin.family)} · v{latestRelease?.version ?? "—"} · 更新于{" "}
                     {formatTimestamp(plugin.updatedAt)}
-                    {plugin.softDeletedAt ? " · hidden" : ""}
-                    {isHighlighted ? " · highlighted" : ""}
+                    {plugin.softDeletedAt ? " · 已隐藏" : ""}
+                    {isHighlighted ? " · 已精选" : ""}
                   </div>
                   <div className="management-tags">
                     <Badge>{plugin.channel}</Badge>
-                    {plugin.isOfficial ? <Badge variant="official">Official</Badge> : null}
-                    {plugin.executesCode ? <Badge>executes code</Badge> : null}
+                    {plugin.isOfficial ? <Badge variant="official">官方</Badge> : null}
+                    {plugin.executesCode ? <Badge>执行代码</Badge> : null}
                     {plugin.runtimeId ? <Badge>{plugin.runtimeId}</Badge> : null}
                   </div>
                   <div className="management-sublist">
                     <div className="management-report-item">
-                      <span className="management-report-meta">Package name</span>
+                      <span className="management-report-meta">Package 名称</span>
                       <span className="mono">{plugin.name}</span>
                     </div>
                     <div className="management-report-item">
-                      <span className="management-report-meta">Summary</span>
-                      <span>{plugin.summary ?? "No summary provided."}</span>
+                      <span className="management-report-meta">简介</span>
+                      <span>{plugin.summary ?? "未提供简介。"}</span>
                     </div>
                     <div className="management-report-item">
-                      <span className="management-report-meta">Featured state</span>
+                      <span className="management-report-meta">精选状态</span>
                       <span>
                         {isHighlighted
-                          ? `Highlighted ${formatTimestamp(selectedPlugin.highlighted?.at ?? 0)}`
-                          : "Not highlighted"}
+                          ? `精选于 ${formatTimestamp(selectedPlugin.highlighted?.at ?? 0)}`
+                          : "未精选"}
                       </span>
                     </div>
                   </div>
@@ -117,7 +117,7 @@ export function PluginsPage({
                 <div className="management-actions management-action-grid">
                   <Button asChild className="management-action-btn">
                     <Link to="/plugins/$name" params={{ name: plugin.name }}>
-                      View
+                      查看
                     </Link>
                   </Button>
                   <Button
@@ -127,7 +127,7 @@ export function PluginsPage({
                       onSetPackageBatch(plugin._id, isHighlighted ? undefined : "highlighted")
                     }
                   >
-                    {isHighlighted ? "Unhighlight" : "Highlight"}
+                    {isHighlighted ? "取消精选" : "精选"}
                   </Button>
                 </div>
               </div>

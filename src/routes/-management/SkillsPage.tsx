@@ -91,9 +91,9 @@ export function SkillsPage({
 }) {
   return (
     <div className="management-view">
-      <h2 className="section-title text-[1.2rem] m-0">Skill tools</h2>
+      <h2 className="section-title text-[1.2rem] m-0">Skill 工具</h2>
       <p className="section-subtitle m-0 mt-1">
-        Look up a skill by slug to manage moderation overrides and view its audit history.
+        按 slug 查找 Skill，管理审核覆盖并查看其审计历史。
       </p>
       <div className="management-controls">
         <div className="management-control management-search">
@@ -112,12 +112,12 @@ export function SkillsPage({
           />
         </div>
         <Button type="button" onClick={onManageSkill} disabled={!skillSearch.trim()}>
-          Manage
+          管理
         </Button>
       </div>
       {selectedSlug ? (
         <div className="section-subtitle mt-2">
-          Managing "{selectedSlug}" ·{" "}
+          正在管理 “{selectedSlug}” ·{" "}
           <Link
             to="/management"
             search={{
@@ -126,19 +126,19 @@ export function SkillsPage({
               plugin: undefined,
             }}
           >
-            Clear selection
+            清除选择
           </Link>
         </div>
       ) : null}
       <div className="management-list">
         {!selectedSlug ? (
           <div className="management-empty">
-            Enter a skill slug above, or use the Manage button on a skill in another view.
+            在上方输入 Skill slug，或在其他视图中对某个 Skill 点击「管理」。
           </div>
         ) : selectedSkill === undefined ? (
-          <div className="management-empty">Loading skill…</div>
+          <div className="management-empty">正在加载 Skill…</div>
         ) : !selectedSkill?.skill ? (
-          <div className="management-empty">No skill found for "{selectedSlug}".</div>
+          <div className="management-empty">未找到 Skill “{selectedSlug}”。</div>
         ) : (
           (() => {
             const { skill, latestVersion, owner, canonical, overrideReviewer, auditLogs } =
@@ -168,7 +168,7 @@ export function SkillsPage({
                   </Link>
                   <div className="section-subtitle m-0">
                     @{owner?.handle ?? owner?.displayName ?? "user"} · v
-                    {latestVersion?.version ?? "—"} · updated {formatTimestamp(skill.updatedAt)} ·{" "}
+                    {latestVersion?.version ?? "—"} · 更新于 {formatTimestamp(skill.updatedAt)} ·{" "}
                     {moderationStatus}
                     {badges.length ? ` · ${badges.join(", ").toLowerCase()}` : ""}
                   </div>
@@ -180,31 +180,31 @@ export function SkillsPage({
                     </div>
                   ) : null}
                   <div className="management-sublist">
-                    <div className="section-subtitle m-0">Manual overrides</div>
+                    <div className="section-subtitle m-0">人工覆盖</div>
                     <section className="management-override-panel">
                       <div className="management-report-item">
-                        <span className="management-report-meta">Current override</span>
+                        <span className="management-report-meta">当前覆盖</span>
                         <span>
                           {formatManualOverrideState(skill.manualOverride, overrideReviewer)}
                         </span>
                       </div>
                       <div className="management-report-item">
-                        <span className="management-report-meta">Latest version</span>
+                        <span className="management-report-meta">最新版本</span>
                         <span>
-                          {latestVersion ? `v${latestVersion.version}` : "No published version."}
+                          {latestVersion ? `v${latestVersion.version}` : "尚无已发布版本。"}
                         </span>
                       </div>
                       <div className="management-report-item">
-                        <span className="management-report-meta">Behavior</span>
-                        <span>Applies to the full skill until a moderator clears it.</span>
+                        <span className="management-report-meta">行为</span>
+                        <span>在审核员清除前，对整个 Skill 生效。</span>
                       </div>
                       <textarea
                         className="form-input management-textarea"
                         rows={4}
                         placeholder={
                           skill.manualOverride
-                            ? "Audit note required to update or clear the okay override"
-                            : "Audit note required to mark this skill okay"
+                            ? "更新或清除正常覆盖需填写审计备注"
+                            : "标记此 Skill 正常需填写审计备注"
                         }
                         value={skillOverrideNote}
                         onChange={(event) => onChangeSkillOverrideNote(event.target.value)}
@@ -216,7 +216,7 @@ export function SkillsPage({
                           disabled={!skillOverrideNote.trim()}
                           onClick={onApplySkillOverride}
                         >
-                          {skill.manualOverride ? "Update okay override" : "Mark skill okay"}
+                          {skill.manualOverride ? "更新正常覆盖" : "标记 Skill 正常"}
                         </Button>
                         {skill.manualOverride ? (
                           <Button
@@ -225,21 +225,21 @@ export function SkillsPage({
                             disabled={!skillOverrideNote.trim()}
                             onClick={onClearSkillOverride}
                           >
-                            Clear skill override
+                            清除 Skill 覆盖
                           </Button>
                         ) : null}
                       </div>
                     </section>
                   </div>
                   <div className="management-sublist">
-                    <div className="section-subtitle m-0">Recent audit activity</div>
+                    <div className="section-subtitle m-0">最近审计活动</div>
                     <section className="management-override-panel management-audit-panel">
                       <div className="management-report-item">
-                        <span className="management-report-meta">Window</span>
-                        <span>Last {SKILL_AUDIT_LOG_LIMIT} entries for this skill.</span>
+                        <span className="management-report-meta">范围</span>
+                        <span>此 Skill 最近 {SKILL_AUDIT_LOG_LIMIT} 条记录。</span>
                       </div>
                       {auditLogs.length === 0 ? (
-                        <div className="section-subtitle m-0">No audit activity yet.</div>
+                        <div className="section-subtitle m-0">暂无审计活动。</div>
                       ) : (
                         <div className="management-audit-list">
                           {auditLogs.map((entry) => {
@@ -280,16 +280,16 @@ export function SkillsPage({
                   </div>
                   <div className="management-tool-grid">
                     <label className="management-control management-control-stack">
-                      <span className="mono">duplicate of</span>
+                      <span className="mono">重复于</span>
                       <input
                         className="management-field"
                         value={selectedDuplicate}
                         onChange={(event) => onChangeSelectedDuplicate(event.target.value)}
-                        placeholder={canonical?.skill?.slug ?? "canonical slug"}
+                        placeholder={canonical?.skill?.slug ?? "规范 slug"}
                       />
                     </label>
                     <div className="management-control management-control-stack">
-                      <span className="mono">duplicate action</span>
+                      <span className="mono">重复操作</span>
                       <Button
                         className="management-action-btn"
                         type="button"
@@ -297,24 +297,24 @@ export function SkillsPage({
                           onSetDuplicate(skill._id, selectedDuplicate.trim() || undefined)
                         }
                       >
-                        Set duplicate
+                        设为重复
                       </Button>
                     </div>
                     {admin ? (
                       <>
                         <label className="management-control management-control-stack">
-                          <span className="mono">owner search</span>
+                          <span className="mono">所有者搜索</span>
                           <input
                             className="management-field"
                             type="search"
-                            placeholder="Search users by handle"
+                            placeholder="按 handle 搜索用户"
                             value={ownerSearch}
                             onChange={(event) => onChangeOwnerSearch(event.target.value)}
                           />
                           <span className="management-count">{ownerSummary}</span>
                         </label>
                         <label className="management-control management-control-stack">
-                          <span className="mono">owner</span>
+                          <span className="mono">所有者</span>
                           <Select
                             value={selectedOwner}
                             onValueChange={(value) => {
@@ -337,7 +337,7 @@ export function SkillsPage({
                           </Select>
                         </label>
                         <div className="management-control management-control-stack">
-                          <span className="mono">owner action</span>
+                          <span className="mono">所有者操作</span>
                           <Button
                             className="management-action-btn"
                             type="button"
@@ -346,7 +346,7 @@ export function SkillsPage({
                               onChangeOwner(skill._id, selectedOwner);
                             }}
                           >
-                            Change owner
+                            变更所有者
                           </Button>
                         </div>
                       </>
@@ -356,7 +356,7 @@ export function SkillsPage({
                 <div className="management-actions management-action-grid">
                   <Button asChild className="management-action-btn">
                     <Link to="/$owner/$slug" params={{ owner: ownerParam, slug: skill.slug }}>
-                      View
+                      查看
                     </Link>
                   </Button>
                   <Button
@@ -364,14 +364,14 @@ export function SkillsPage({
                     type="button"
                     onClick={() => onToggleSkillHidden(skill)}
                   >
-                    {skill.softDeletedAt ? "Restore" : "Hide"}
+                    {skill.softDeletedAt ? "恢复" : "隐藏"}
                   </Button>
                   <Button
                     className="management-action-btn"
                     type="button"
                     onClick={() => onSetBatch(skill._id, isHighlighted ? undefined : "highlighted")}
                   >
-                    {isHighlighted ? "Unhighlight" : "Highlight"}
+                    {isHighlighted ? "取消精选" : "精选"}
                   </Button>
                   {admin ? (
                     <Button
@@ -380,7 +380,7 @@ export function SkillsPage({
                       variant="destructive"
                       onClick={() => onHardDeleteSkill(skill)}
                     >
-                      Hard delete
+                      硬删除
                     </Button>
                   ) : null}
                   {staff ? (
@@ -394,7 +394,7 @@ export function SkillsPage({
                         onBanUser(ownerUserId, `@${ownerHandle}`);
                       }}
                     >
-                      Ban user
+                      封禁用户
                     </Button>
                   ) : null}
                   {admin ? (
@@ -404,14 +404,14 @@ export function SkillsPage({
                         type="button"
                         onClick={() => onSetOfficialBadge(skill._id, !isOfficial)}
                       >
-                        {isOfficial ? "Remove official" : "Mark official"}
+                        {isOfficial ? "移除官方" : "标记官方"}
                       </Button>
                       <Button
                         className="management-action-btn"
                         type="button"
                         onClick={() => onSetDeprecatedBadge(skill._id, !isDeprecated)}
                       >
-                        {isDeprecated ? "Remove deprecated" : "Mark deprecated"}
+                        {isDeprecated ? "移除弃用" : "标记弃用"}
                       </Button>
                     </>
                   ) : null}

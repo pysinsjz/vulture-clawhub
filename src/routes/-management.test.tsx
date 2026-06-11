@@ -127,9 +127,9 @@ describe("Management", () => {
   it("renders the management sidebar for staff", () => {
     render(<Management />);
 
-    expect(screen.getByRole("navigation", { name: "Management sections" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Users" })).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /Users 0/ })).toBeNull();
+    expect(screen.getByRole("navigation", { name: "管理分区" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "用户" })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /用户 0/ })).toBeNull();
   });
 
   it("shows users as a separate management view", () => {
@@ -137,7 +137,7 @@ describe("Management", () => {
 
     render(<Management />);
 
-    expect(screen.getByRole("heading", { name: "Users" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "用户" })).toBeTruthy();
   });
 
   it("shows users while unrelated management queues are still loading", () => {
@@ -151,20 +151,20 @@ describe("Management", () => {
 
     render(<Management />);
 
-    expect(screen.getByRole("heading", { name: "Users" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "用户" })).toBeTruthy();
     expect(screen.queryByText("Loading management console…")).toBeNull();
   });
 
   it("routes sidebar links to separate management views", () => {
     render(<Management />);
 
-    expect(screen.getByRole("link", { name: "Duplicate candidates" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "疑似重复" }).getAttribute("href")).toBe(
       "/management?view=duplicates",
     );
-    expect(screen.getByRole("link", { name: "Recent pushes" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "最近推送" }).getAttribute("href")).toBe(
       "/management?view=recent",
     );
-    expect(screen.getByRole("link", { name: "Users" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "用户" }).getAttribute("href")).toBe(
       "/management?view=users",
     );
   });
@@ -178,7 +178,7 @@ describe("Management", () => {
 
     render(<Management />);
 
-    expect(screen.queryByRole("link", { name: /Users/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /用户/ })).toBeNull();
   });
 
   it("shows recent pushes as a separate management view", () => {
@@ -186,7 +186,7 @@ describe("Management", () => {
 
     render(<Management />);
 
-    expect(screen.getByRole("heading", { name: "Recent pushes" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "最近推送" })).toBeTruthy();
   });
 
   it("shows duplicate candidates as a separate management view", () => {
@@ -194,7 +194,7 @@ describe("Management", () => {
 
     render(<Management />);
 
-    expect(screen.getByRole("heading", { name: "Duplicate candidates" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "疑似重复" })).toBeTruthy();
   });
 
   it("keeps owner search available in the skill tools view", async () => {
@@ -221,15 +221,15 @@ describe("Management", () => {
 
     render(<Management />);
 
-    expect(screen.getByRole("heading", { name: "Skill tools" })).toBeTruthy();
-    expect(screen.getByText("Showing 1 of 201")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Skill 工具" })).toBeTruthy();
+    expect(screen.getByText("显示 1，共 201")).toBeTruthy();
 
-    fireEvent.change(screen.getByPlaceholderText("Search users by handle"), {
+    fireEvent.change(screen.getByPlaceholderText("按 handle 搜索用户"), {
       target: { value: "future-owner" },
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Showing 2 of 2")).toBeTruthy();
+      expect(screen.getByText("显示 2，共 2")).toBeTruthy();
       expect(
         useQueryMock.mock.calls.some(([query, args]) => {
           return (

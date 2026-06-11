@@ -13,16 +13,15 @@ export function DuplicatesPage({
 }) {
   return (
     <div className="management-view">
-      <h2 className="section-title text-[1.2rem] m-0">Duplicate candidates</h2>
+      <h2 className="section-title text-[1.2rem] m-0">疑似重复</h2>
       <p className="section-subtitle m-0 mt-1">
-        Skills whose code fingerprint matches another publisher's — possible copies. Pick the
-        canonical original.
+        代码指纹与其他发布者匹配的 Skill —— 可能是抄袭。请选择规范原版。
       </p>
       <div className="management-list">
         {!duplicateCandidates ? (
-          <div className="management-empty">Loading duplicate candidates…</div>
+          <div className="management-empty">正在加载疑似重复…</div>
         ) : duplicateCandidates.length === 0 ? (
-          <div className="management-empty">No duplicate candidates.</div>
+          <div className="management-empty">暂无疑似重复。</div>
         ) : (
           duplicateCandidates.map((entry) => (
             <div key={entry.skill._id} className="management-item management-dupe">
@@ -60,14 +59,14 @@ export function DuplicatesPage({
                         slug: entry.skill.slug,
                       }}
                     >
-                      View
+                      查看
                     </Link>
                   </Button>
                 </div>
               </div>
               <div className="management-dupe-matches">
                 <div className="management-dupe-label">
-                  {entry.matches.length === 1 ? "Possible duplicate of" : "Possible duplicates of"}
+                  {entry.matches.length === 1 ? "可能重复于" : "可能重复于"}
                 </div>
                 {entry.matches.map((match) => (
                   <div key={match.skill._id} className="management-dupe-match">
@@ -89,14 +88,14 @@ export function DuplicatesPage({
                             slug: match.skill.slug,
                           }}
                         >
-                          View
+                          查看
                         </Link>
                       </Button>
                       <Button
                         type="button"
                         onClick={() => onSetDuplicate(entry.skill._id, match.skill.slug)}
                       >
-                        Mark duplicate
+                        标记为重复
                       </Button>
                     </div>
                   </div>

@@ -34,16 +34,16 @@ export function UsersPage({
 }) {
   return (
     <div className="management-view">
-      <h2 className="section-title text-[1.2rem] m-0">Users</h2>
+      <h2 className="section-title text-[1.2rem] m-0">用户</h2>
       <p className="section-subtitle m-0 mt-1">
-        Staff and member accounts. Search by handle, change a role, or ban an account.
+        员工与成员账户。可按 handle 搜索、变更角色或封禁账户。
       </p>
       <div className="management-controls">
         <div className="management-control management-search">
-          <span className="mono">Filter</span>
+          <span className="mono">筛选</span>
           <input
             type="search"
-            placeholder="Search users"
+            placeholder="搜索用户"
             value={search}
             onChange={(event) => onChangeSearch(event.target.value)}
           />
@@ -68,9 +68,9 @@ export function UsersPage({
                   <div className="management-item-meta">
                     {removed
                       ? user.banReason && user.deletedAt
-                        ? `Banned ${formatTimestamp(user.deletedAt)} · ${user.banReason}`
-                        : `Deleted ${formatTimestamp(removedAt)}`
-                      : `${user.role ?? "user"} · joined ${formatTimestamp(user._creationTime)}`}
+                        ? `已封禁 ${formatTimestamp(user.deletedAt)} · ${user.banReason}`
+                        : `已删除 ${formatTimestamp(removedAt)}`
+                      : `${user.role ?? "user"} · 加入于 ${formatTimestamp(user._creationTime)}`}
                   </div>
                 </div>
                 <div className="management-actions">
@@ -86,9 +86,9 @@ export function UsersPage({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
-                      <SelectItem value="moderator">Moderator</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="user">用户</SelectItem>
+                      <SelectItem value="moderator">审核员</SelectItem>
+                      <SelectItem value="admin">管理员</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -100,11 +100,11 @@ export function UsersPage({
                       onBanUser(user._id, label);
                     }}
                   >
-                    Ban user
+                    封禁用户
                   </Button>
                   {user.deletedAt && !user.deactivatedAt ? (
                     <Button type="button" onClick={() => onUnbanUser(user._id, label)}>
-                      Unban user
+                      解封用户
                     </Button>
                   ) : null}
                 </div>

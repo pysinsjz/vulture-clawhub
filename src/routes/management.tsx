@@ -129,7 +129,7 @@ function ManagementConfirmDialog({
         ) : null}
         <DialogFooter>
           <Button type="button" variant="outline" onClick={onClose}>
-            Cancel
+            取消
           </Button>
           <Button
             type="button"
@@ -273,7 +273,7 @@ export function Management() {
   if (!staff) {
     return (
       <main className="section">
-        <Card>Management only.</Card>
+        <Card>仅限管理人员。</Card>
       </main>
     );
   }
@@ -281,8 +281,8 @@ export function Management() {
   const filteredUsers = userResult?.items ?? [];
   const userTotal = userResult?.total ?? 0;
   const userSummary = userResult
-    ? `Showing ${filteredUsers.length} of ${userTotal}`
-    : "Loading users…";
+    ? `显示 ${filteredUsers.length}，共 ${userTotal}`
+    : "正在加载用户…";
   const ownerUsers = ownerResult?.items ?? [];
   const selectedOwnerOption: ManagementOwnerOption | null = selectedSkill?.owner?.linkedUserId
     ? {
@@ -300,15 +300,15 @@ export function Management() {
       ? [selectedOwnerOption, ...ownerUserOptions]
       : ownerUserOptions;
   const ownerSummary = ownerResult
-    ? `Showing ${ownerOptions.length} of ${Math.max(ownerResult.total, ownerOptions.length)}`
-    : "Loading owners…";
+    ? `显示 ${ownerOptions.length}，共 ${Math.max(ownerResult.total, ownerOptions.length)}`
+    : "正在加载所有者…";
   const userEmptyLabel = userResult
     ? filteredUsers.length === 0
       ? userQuery
-        ? "No matching users."
-        : "No users yet."
+        ? "没有匹配的用户。"
+        : "暂无用户。"
       : ""
-    : "Loading users…";
+    : "正在加载用户…";
 
   const applySkillOverride = () => {
     if (!selectedSkill?.skill) return;
@@ -318,7 +318,7 @@ export function Management() {
     })
       .then(() => {
         setSkillOverrideNote("");
-        toast.success("Skill marked okay.");
+        toast.success("已标记 Skill 正常。");
       })
       .catch((error) => toast.error(formatMutationError(error)));
   };
@@ -331,7 +331,7 @@ export function Management() {
     })
       .then(() => {
         setSkillOverrideNote("");
-        toast.success("Override cleared.");
+        toast.success("覆盖已清除。");
       })
       .catch((error) => toast.error(formatMutationError(error)));
   };
@@ -354,18 +354,18 @@ export function Management() {
   };
   const requestBanUser = (userId: Id<"users">, label: string) => {
     setConfirmRequest({
-      title: `Ban ${label}?`,
-      body: "Hides their skills and personal package/plugin resources, and revokes package publish tokens.",
-      confirmLabel: "Ban user",
+      title: `封禁 ${label}？`,
+      body: "隐藏其 Skill 及个人 Package/Plugin 资源，并吊销 Package 发布令牌。",
+      confirmLabel: "封禁用户",
       destructive: true,
       reason: {
-        label: "Reason (optional)",
-        placeholder: "Why are you banning this user?",
+        label: "原因（可选）",
+        placeholder: "为何封禁该用户？",
         maxLength: USER_BAN_REASON_MAX_LENGTH,
       },
       onConfirm: (reason) => {
         void banUser({ userId, reason })
-          .then(() => toast.success(`Banned ${label}.`))
+          .then(() => toast.success(`已封禁 ${label}。`))
           .catch((error) => toast.error(formatMutationError(error)));
       },
     });
@@ -373,17 +373,17 @@ export function Management() {
 
   const requestUnbanUser = (userId: Id<"users">, label: string) => {
     setConfirmRequest({
-      title: `Unban ${label}?`,
-      body: "Restores eligible skills and ban-hidden personal package/plugin resources.",
-      confirmLabel: "Unban user",
+      title: `解封 ${label}？`,
+      body: "恢复符合条件的 Skill 及因封禁隐藏的个人 Package/Plugin 资源。",
+      confirmLabel: "解封用户",
       reason: {
-        label: "Reason (optional)",
-        placeholder: "Why are you unbanning this user?",
+        label: "原因（可选）",
+        placeholder: "为何解封该用户？",
         maxLength: USER_BAN_REASON_MAX_LENGTH,
       },
       onConfirm: (reason) => {
         void unbanUser({ userId, reason })
-          .then(() => toast.success(`Unbanned ${label}.`))
+          .then(() => toast.success(`已解封 ${label}。`))
           .catch((error) => toast.error(formatMutationError(error)));
       },
     });
@@ -392,12 +392,12 @@ export function Management() {
   const requestToggleSkillHidden = (skill: Doc<"skills">) => {
     const hide = !skill.softDeletedAt;
     setConfirmRequest({
-      title: hide ? `Hide ${skill.displayName}?` : `Restore ${skill.displayName}?`,
-      confirmLabel: hide ? "Hide skill" : "Restore skill",
+      title: hide ? `隐藏 ${skill.displayName}？` : `恢复 ${skill.displayName}？`,
+      confirmLabel: hide ? "隐藏 Skill" : "恢复 Skill",
       destructive: hide,
       reason: {
-        label: "Reason",
-        placeholder: hide ? "Why hide this skill?" : "Why restore this skill?",
+        label: "原因",
+        placeholder: hide ? "为何隐藏此 Skill？" : "为何恢复此 Skill？",
         required: true,
       },
       onConfirm: (reason) => {
@@ -406,7 +406,7 @@ export function Management() {
           deleted: hide,
           reason: reason ?? "",
         })
-          .then(() => toast.success(hide ? "Skill hidden." : "Skill restored."))
+          .then(() => toast.success(hide ? "Skill 已隐藏。" : "Skill 已恢复。"))
           .catch((error) => toast.error(formatMutationError(error)));
       },
     });
@@ -414,13 +414,13 @@ export function Management() {
 
   const requestHardDeleteSkill = (skill: Doc<"skills">) => {
     setConfirmRequest({
-      title: `Hard delete ${skill.displayName}?`,
-      body: "This permanently removes the skill and its history. It cannot be undone.",
-      confirmLabel: "Hard delete",
+      title: `硬删除 ${skill.displayName}？`,
+      body: "这将永久删除该 Skill 及其历史，且无法撤销。",
+      confirmLabel: "硬删除",
       destructive: true,
       onConfirm: () => {
         void hardDelete({ skillId: skill._id })
-          .then(() => toast.success("Skill hard-deleted."))
+          .then(() => toast.success("Skill 已硬删除。"))
           .catch((error) => toast.error(formatMutationError(error)));
       },
     });
@@ -437,7 +437,7 @@ export function Management() {
       />
       <section className="management-main">
         <div className="management-breadcrumb">
-          <span>Management</span>
+          <span>管理</span>
           <ChevronRight size={13} aria-hidden="true" />
           <strong>{formatManagementViewLabel(activeView)}</strong>
         </div>
@@ -529,38 +529,38 @@ export function Management() {
         ) : null}
         {!admin && activeView === "users" ? (
           <ManagementPlaceholder
-            title="Users"
-            description="User administration is available to admins."
+            title="用户"
+            description="用户管理仅管理员可用。"
           />
         ) : null}
         {activeView === "overview" ? (
           <ManagementPlaceholder
-            title="Overview"
-            description="Use the sidebar to jump into focused management queues."
+            title="概览"
+            description="使用侧栏进入专门的管理队列。"
           />
         ) : null}
         {activeView === "publishers" ? (
           <ManagementPlaceholder
-            title="Publishers"
-            description="Publisher-specific tooling will live here as it graduates out of one-off moderation flows."
+            title="发布者"
+            description="发布者专属工具将在脱离一次性审核流程后落地于此。"
           />
         ) : null}
         {activeView === "audit" ? (
           <ManagementPlaceholder
-            title="Audit log"
-            description="Audit log exploration is still handled inside individual tools for now."
+            title="审计日志"
+            description="审计日志查询目前仍在各工具内分别处理。"
           />
         ) : null}
         {activeView === "system" ? (
           <ManagementPlaceholder
-            title="System"
-            description="System maintenance shortcuts can be added here without crowding moderation queues."
+            title="系统"
+            description="系统维护快捷入口可加入此处，避免挤占审核队列。"
           />
         ) : null}
         {activeView === "settings" ? (
           <ManagementPlaceholder
-            title="Settings"
-            description="Staff settings can be split into this view when we have more than inline controls."
+            title="设置"
+            description="当员工设置超出内联控件时，可拆分到此视图。"
           />
         ) : null}
       </section>
@@ -593,47 +593,47 @@ function ManagementSidebar({
 }) {
   return (
     <aside className="management-sidebar">
-      <nav aria-label="Management sections">
-        <div className="management-sidebar-heading">Management</div>
-        <div className="management-sidebar-section-title">Queues</div>
+      <nav aria-label="管理分区">
+        <div className="management-sidebar-heading">管理</div>
+        <div className="management-sidebar-section-title">队列</div>
         <div className="management-sidebar-group">
           <ManagementSidebarLink
             active={activeView === "duplicates"}
             badge={queueBadge(duplicateCount)}
             icon={<PackageSearch size={15} />}
-            label="Duplicate candidates"
+            label="疑似重复"
             view="duplicates"
           />
           <ManagementSidebarLink
             active={activeView === "recent"}
             badge={queueBadge(recentCount)}
             icon={<GitBranch size={15} />}
-            label="Recent pushes"
+            label="最近推送"
             view="recent"
           />
         </div>
 
-        <div className="management-sidebar-section-title">Staff tools</div>
+        <div className="management-sidebar-section-title">员工工具</div>
         <div className="management-sidebar-group">
           {admin ? (
             <ManagementSidebarLink
               active={activeView === "users"}
               badge={userCount === undefined ? undefined : formatWholeNumber(userCount)}
               icon={<UserRound size={15} />}
-              label="Users"
+              label="用户"
               view="users"
             />
           ) : null}
           <ManagementSidebarLink
             active={activeView === "skills"}
             icon={<Wrench size={15} />}
-            label="Skills"
+            label="Skill"
             view="skills"
           />
           <ManagementSidebarLink
             active={activeView === "plugins"}
             icon={<Plug size={15} />}
-            label="Plugins"
+            label="Plugin"
             view="plugins"
           />
         </div>
@@ -679,16 +679,16 @@ function resolveManagementView(
 }
 
 const MANAGEMENT_VIEW_LABELS: Record<ManagementView, string> = {
-  overview: "Overview",
-  users: "Users",
-  publishers: "Publishers",
-  skills: "Skills",
-  plugins: "Plugins",
-  duplicates: "Duplicate candidates",
-  recent: "Recent pushes",
-  audit: "Audit log",
-  system: "System",
-  settings: "Settings",
+  overview: "概览",
+  users: "用户",
+  publishers: "发布者",
+  skills: "Skill",
+  plugins: "Plugin",
+  duplicates: "疑似重复",
+  recent: "最近推送",
+  audit: "审计日志",
+  system: "系统",
+  settings: "设置",
 };
 
 function formatManagementViewLabel(view: ManagementView) {
