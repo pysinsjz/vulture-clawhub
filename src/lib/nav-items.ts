@@ -144,6 +144,7 @@ export const FOOTER_NAV_SECTIONS: FooterNavSection[] = [
       { kind: "link", label: "Skills", to: "/skills", search: SKILLS_SEARCH },
       { kind: "link", label: "Plugins", to: "/plugins" },
       { kind: "link", label: "审计", to: "/audits", search: { type: undefined } },
+      { kind: "link", label: "API 文档", to: "/api-docs" },
     ],
   },
   {

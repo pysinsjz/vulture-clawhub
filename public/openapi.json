@@ -1,0 +1,274 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "VultureHub REST API",
+    "version": "1.0.0",
+    "description": "内网注册中心的 REST API（`/api/v1/*`，由 Convex HTTP Actions 提供）。\n\n- 本文档手工维护，覆盖核心端点；完整端点清单见 `packages/schema/src/routes.ts`。\n- 需要认证的端点使用 `Authorization: Bearer <API Token>`；内网部署下未带 token 的请求回退为 system 身份。\n- 另有自动生成的 **Convex 函数 API** 文档（`/api/run/*`），见页面顶部切换。"
+  },
+  "servers": [],
+  "tags": [
+    { "name": "skills", "description": "Skill 搜索、列表、详情与发布" },
+    { "name": "packages", "description": "Plugin/Package 列表与发布" },
+    { "name": "misc", "description": "身份与杂项" }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": { "type": "http", "scheme": "bearer", "description": "API Token" }
+    },
+    "schemas": {
+      "SearchResult": {
+        "type": "object",
+        "properties": {
+          "score": { "type": "number" },
+          "slug": { "type": "string" },
+          "displayName": { "type": "string" },
+          "summary": { "type": "string", "nullable": true },
+          "version": { "type": "string", "nullable": true },
+          "updatedAt": { "type": "number", "description": "Unix 毫秒时间戳" }
+        }
+      },
+      "SkillDetail": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "skill": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "slug": { "type": "string" },
+              "displayName": { "type": "string" },
+              "summary": { "type": "string", "nullable": true },
+              "tags": { "type": "object", "additionalProperties": { "type": "string" } },
+              "createdAt": { "type": "number" },
+              "updatedAt": { "type": "number" }
+            }
+          },
+          "latestVersion": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "version": { "type": "string" },
+              "createdAt": { "type": "number" },
+              "changelog": { "type": "string" }
+            }
+          },
+          "owner": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "handle": { "type": "string", "nullable": true },
+              "displayName": { "type": "string", "nullable": true }
+            }
+          }
+        }
+      },
+      "PublishSkillRequest": {
+        "type": "object",
+        "required": ["slug", "displayName", "version", "changelog", "files"],
+        "additionalProperties": true,
+        "properties": {
+          "slug": { "type": "string" },
+          "displayName": { "type": "string" },
+          "version": { "type": "string", "description": "semver" },
+          "changelog": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "files": {
+            "type": "array",
+            "description": "先通过上传接口取得 storageId（推荐直接使用 CLI 发布）",
+            "items": {
+              "type": "object",
+              "required": ["path", "storageId"],
+              "properties": {
+                "path": { "type": "string" },
+                "storageId": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/v1/search": {
+      "get": {
+        "tags": ["skills"],
+        "summary": "搜索 Skill",
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string" }, "description": "搜索关键词；为空时返回空结果" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "highlightedOnly", "in": "query", "schema": { "type": "boolean" }, "description": "仅精选" },
+          { "name": "nonSuspiciousOnly", "in": "query", "schema": { "type": "boolean" }, "description": "排除可疑/待审条目" }
+        ],
+        "responses": {
+          "200": {
+            "description": "搜索结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "results": { "type": "array", "items": { "$ref": "#/components/schemas/SearchResult" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/skills": {
+      "get": {
+        "tags": ["skills"],
+        "summary": "Skill 列表（游标分页）",
+        "parameters": [
+          { "name": "cursor", "in": "query", "schema": { "type": "string" }, "description": "上一页返回的 continueCursor" },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "sort", "in": "query", "schema": { "type": "string" } },
+          { "name": "nonSuspiciousOnly", "in": "query", "schema": { "type": "boolean" } }
+        ],
+        "responses": {
+          "200": { "description": "分页列表，含 items 与 continueCursor", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } }
+        }
+      },
+      "post": {
+        "tags": ["skills"],
+        "summary": "发布 Skill 版本",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PublishSkillRequest" } } }
+        },
+        "responses": {
+          "200": { "description": "发布成功（{ ok: true, ... }）" },
+          "400": { "description": "载荷或校验错误（text/plain）" },
+          "401": { "description": "未授权" }
+        }
+      }
+    },
+    "/api/v1/skills/{slug}": {
+      "get": {
+        "tags": ["skills"],
+        "summary": "Skill 详情",
+        "parameters": [
+          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "version", "in": "query", "schema": { "type": "string" }, "description": "指定版本号" },
+          { "name": "tag", "in": "query", "schema": { "type": "string" }, "description": "指定 dist-tag（如 latest）" }
+        ],
+        "responses": {
+          "200": { "description": "Skill 详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SkillDetail" } } } },
+          "404": { "description": "未找到" }
+        }
+      }
+    },
+    "/api/v1/resolve": {
+      "get": {
+        "tags": ["skills"],
+        "summary": "按内容哈希解析 Skill 版本",
+        "parameters": [
+          { "name": "slug", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "hash", "in": "query", "required": true, "schema": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "description": "sha256（hex）" }
+        ],
+        "responses": {
+          "200": { "description": "{ slug, match, latestVersion }" },
+          "400": { "description": "缺参或哈希格式错误" },
+          "404": { "description": "未找到" }
+        }
+      }
+    },
+    "/api/v1/download": {
+      "get": {
+        "tags": ["skills"],
+        "summary": "下载 Skill ZIP（确定性打包）",
+        "description": "响应带完整性头：`ETag: \"sha256:…\"`、`Digest: sha-256=…`、`X-ClawHub-Artifact-Sha256`。",
+        "parameters": [
+          { "name": "slug", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "version", "in": "query", "schema": { "type": "string" } },
+          { "name": "tag", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "ZIP 二进制", "content": { "application/zip": { "schema": { "type": "string", "format": "binary" } } } },
+          "404": { "description": "Skill 或版本未找到" },
+          "410": { "description": "版本已下架" }
+        }
+      }
+    },
+    "/api/v1/skills/export": {
+      "get": {
+        "tags": ["skills"],
+        "summary": "批量导出 Skill（增量同步用）",
+        "parameters": [
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
+          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "导出分页数据" } }
+      }
+    },
+    "/api/v1/packages": {
+      "get": {
+        "tags": ["packages"],
+        "summary": "Package 列表（游标分页）",
+        "parameters": [
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "分页列表" } }
+      },
+      "post": {
+        "tags": ["packages"],
+        "summary": "发布 Package 版本",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true, "description": "载荷较复杂（family/files/artifact…），推荐使用 CLI 或网页发布" } } }
+        },
+        "responses": {
+          "200": { "description": "发布成功" },
+          "400": { "description": "载荷或校验错误" },
+          "401": { "description": "未授权" }
+        }
+      }
+    },
+    "/api/v1/packages/{name}": {
+      "get": {
+        "tags": ["packages"],
+        "summary": "Package 详情",
+        "parameters": [
+          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" }, "description": "包名（scoped 名需 URL 编码）" },
+          { "name": "version", "in": "query", "schema": { "type": "string" } },
+          { "name": "tag", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "Package 详情" },
+          "404": { "description": "未找到" }
+        }
+      }
+    },
+    "/api/v1/plugins": {
+      "get": {
+        "tags": ["packages"],
+        "summary": "Plugin 列表（code + bundle）",
+        "description": "另有 `/api/v1/code-plugins`、`/api/v1/bundle-plugins` 按 family 过滤的同形端点。",
+        "parameters": [
+          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": { "200": { "description": "分页列表" } }
+      }
+    },
+    "/api/v1/whoami": {
+      "get": {
+        "tags": ["misc"],
+        "summary": "当前身份",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": { "description": "{ user: { handle, displayName, image } }" },
+          "401": { "description": "未授权" }
+        }
+      }
+    }
+  }
+}

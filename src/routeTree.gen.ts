@@ -16,6 +16,7 @@ import { Route as PublishPluginRouteImport } from './routes/publish-plugin'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as ImportRouteImport } from './routes/import'
 import { Route as AuditsRouteImport } from './routes/audits'
+import { Route as ApiDocsRouteImport } from './routes/api-docs'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as IndexRouteImport } from './routes/index'
@@ -73,6 +74,11 @@ const ImportRoute = ImportRouteImport.update({
 const AuditsRoute = AuditsRouteImport.update({
   id: '/audits',
   path: '/audits',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiDocsRoute = ApiDocsRouteImport.update({
+  id: '/api-docs',
+  path: '/api-docs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/admin': typeof AdminRoute
+  '/api-docs': typeof ApiDocsRoute
   '/audits': typeof AuditsRoute
   '/import': typeof ImportRoute
   '/management': typeof ManagementRoute
@@ -232,6 +239,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/admin': typeof AdminRoute
+  '/api-docs': typeof ApiDocsRoute
   '/audits': typeof AuditsRoute
   '/import': typeof ImportRoute
   '/management': typeof ManagementRoute
@@ -265,6 +273,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/$slug': typeof SlugRoute
   '/admin': typeof AdminRoute
+  '/api-docs': typeof ApiDocsRoute
   '/audits': typeof AuditsRoute
   '/import': typeof ImportRoute
   '/management': typeof ManagementRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/admin'
+    | '/api-docs'
     | '/audits'
     | '/import'
     | '/management'
@@ -331,6 +341,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/admin'
+    | '/api-docs'
     | '/audits'
     | '/import'
     | '/management'
@@ -363,6 +374,7 @@ export interface FileRouteTypes {
     | '/'
     | '/$slug'
     | '/admin'
+    | '/api-docs'
     | '/audits'
     | '/import'
     | '/management'
@@ -396,6 +408,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SlugRoute: typeof SlugRoute
   AdminRoute: typeof AdminRoute
+  ApiDocsRoute: typeof ApiDocsRoute
   AuditsRoute: typeof AuditsRoute
   ImportRoute: typeof ImportRoute
   ManagementRoute: typeof ManagementRoute
@@ -467,6 +480,13 @@ declare module '@tanstack/react-router' {
       path: '/audits'
       fullPath: '/audits'
       preLoaderRoute: typeof AuditsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api-docs': {
+      id: '/api-docs'
+      path: '/api-docs'
+      fullPath: '/api-docs'
+      preLoaderRoute: typeof ApiDocsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -680,6 +700,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SlugRoute: SlugRoute,
   AdminRoute: AdminRoute,
+  ApiDocsRoute: ApiDocsRoute,
   AuditsRoute: AuditsRoute,
   ImportRoute: ImportRoute,
   ManagementRoute: ManagementRoute,
