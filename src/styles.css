@@ -9024,6 +9024,12 @@ code {
   box-sizing: border-box;
 }
 
+.management-danger-zone {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px dashed color-mix(in srgb, var(--danger) 45%, transparent);
+}
+
 .management-textarea {
   min-height: 104px;
   resize: vertical;

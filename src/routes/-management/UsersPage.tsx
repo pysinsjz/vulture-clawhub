@@ -29,7 +29,7 @@ export function UsersPage({
   userEmptyLabel: string;
   onBanUser: (userId: Id<"users">, label: string) => void;
   onChangeSearch: (value: string) => void;
-  onSetRole: (userId: Id<"users">, role: ManagementRole) => void;
+  onSetRole: (userId: Id<"users">, role: ManagementRole, label: string) => void;
   onUnbanUser: (userId: Id<"users">, label: string) => void;
 }) {
   return (
@@ -78,7 +78,7 @@ export function UsersPage({
                     value={user.role ?? "user"}
                     onValueChange={(value) => {
                       if (value === "admin" || value === "moderator" || value === "user") {
-                        onSetRole(user._id, value);
+                        onSetRole(user._id, value, label);
                       }
                     }}
                   >

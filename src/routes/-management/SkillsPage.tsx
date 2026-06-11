@@ -374,30 +374,6 @@ export function SkillsPage({
                     {isHighlighted ? "取消精选" : "精选"}
                   </Button>
                   {admin ? (
-                    <Button
-                      className="management-action-btn"
-                      type="button"
-                      variant="destructive"
-                      onClick={() => onHardDeleteSkill(skill)}
-                    >
-                      硬删除
-                    </Button>
-                  ) : null}
-                  {staff ? (
-                    <Button
-                      className="management-action-btn"
-                      type="button"
-                      variant="destructive"
-                      disabled={!canBanOwner}
-                      onClick={() => {
-                        if (!ownerUserId || ownerUserId === currentUserId) return;
-                        onBanUser(ownerUserId, `@${ownerHandle}`);
-                      }}
-                    >
-                      封禁用户
-                    </Button>
-                  ) : null}
-                  {admin ? (
                     <>
                       <Button
                         className="management-action-btn"
@@ -414,6 +390,32 @@ export function SkillsPage({
                         {isDeprecated ? "移除弃用" : "标记弃用"}
                       </Button>
                     </>
+                  ) : null}
+                </div>
+                <div className="management-actions management-action-grid management-danger-zone">
+                  {staff ? (
+                    <Button
+                      className="management-action-btn"
+                      type="button"
+                      variant="destructive"
+                      disabled={!canBanOwner}
+                      onClick={() => {
+                        if (!ownerUserId || ownerUserId === currentUserId) return;
+                        onBanUser(ownerUserId, `@${ownerHandle}`);
+                      }}
+                    >
+                      封禁用户
+                    </Button>
+                  ) : null}
+                  {admin ? (
+                    <Button
+                      className="management-action-btn"
+                      type="button"
+                      variant="destructive"
+                      onClick={() => onHardDeleteSkill(skill)}
+                    >
+                      硬删除
+                    </Button>
                   ) : null}
                 </div>
               </div>

@@ -63,6 +63,12 @@ function isManagementView(value: unknown): value is ManagementView {
   return typeof value === "string" && MANAGEMENT_VIEWS.has(value);
 }
 
+const MANAGEMENT_ROLE_LABELS: Record<"admin" | "moderator" | "user", string> = {
+  admin: "管理员",
+  moderator: "审核员",
+  user: "用户",
+};
+
 type ManagementConfirmRequest = {
   title: string;
   body?: string;
@@ -426,6 +432,40 @@ export function Management() {
     });
   };
 
+  const requestSetRole = (
+    userId: Id<"users">,
+    role: "admin" | "moderator" | "user",
+    label: string,
+  ) => {
+    const roleLabel = MANAGEMENT_ROLE_LABELS[role];
+    setConfirmRequest({
+      title: `将 ${label} 的角色改为${roleLabel}？`,
+      body: role === "admin" ? "管理员拥有全部管理权限，请谨慎授予。" : undefined,
+      confirmLabel: "变更角色",
+      destructive: role === "admin",
+      onConfirm: () => {
+        void setRole({ userId, role })
+          .then(() => toast.success(`已将 ${label} 的角色改为${roleLabel}。`))
+          .catch((error) => toast.error(formatMutationError(error)));
+      },
+    });
+  };
+
+  const requestChangeOwner = (skillId: Id<"skills">, ownerUserId: Id<"users">) => {
+    const ownerLabel =
+      ownerOptions.find((option) => option.userId === ownerUserId)?.label ?? "新所有者";
+    setConfirmRequest({
+      title: `将所有权转移给 ${ownerLabel}？`,
+      body: "该 Skill 将归入新所有者名下。",
+      confirmLabel: "变更所有者",
+      onConfirm: () => {
+        void changeOwner({ skillId, ownerUserId })
+          .then(() => toast.success(`已将所有者变更为 ${ownerLabel}。`))
+          .catch((error) => toast.error(formatMutationError(error)));
+      },
+    });
+  };
+
   return (
     <main className="management-shell">
       <ManagementSidebar
@@ -459,9 +499,7 @@ export function Management() {
             staff={staff}
             onApplySkillOverride={applySkillOverride}
             onBanUser={requestBanUser}
-            onChangeOwner={(skillId, ownerUserId) => {
-              void changeOwner({ skillId, ownerUserId });
-            }}
+            onChangeOwner={requestChangeOwner}
             onChangeOwnerSearch={setOwnerSearch}
             onChangeSelectedDuplicate={setSelectedDuplicate}
             onChangeSelectedOwner={setSelectedOwner}
@@ -471,16 +509,24 @@ export function Management() {
             onHardDeleteSkill={requestHardDeleteSkill}
             onManageSkill={manageSkill}
             onSetBatch={(skillId, batch) => {
-              void setBatch({ skillId, batch });
+              void setBatch({ skillId, batch })
+                .then(() => toast.success(batch ? "已精选。" : "已取消精选。"))
+                .catch((error) => toast.error(formatMutationError(error)));
             }}
             onSetDeprecatedBadge={(skillId, deprecated) => {
-              void setDeprecatedBadge({ skillId, deprecated });
+              void setDeprecatedBadge({ skillId, deprecated })
+                .then(() => toast.success(deprecated ? "已标记弃用。" : "已移除弃用标记。"))
+                .catch((error) => toast.error(formatMutationError(error)));
             }}
             onSetDuplicate={(skillId, canonicalSlug) => {
-              void setDuplicate({ skillId, canonicalSlug });
+              void setDuplicate({ skillId, canonicalSlug })
+                .then(() => toast.success(canonicalSlug ? "已设为重复。" : "已清除重复标记。"))
+                .catch((error) => toast.error(formatMutationError(error)));
             }}
             onSetOfficialBadge={(skillId, official) => {
-              void setOfficialBadge({ skillId, official });
+              void setOfficialBadge({ skillId, official })
+                .then(() => toast.success(official ? "已标记官方。" : "已移除官方标记。"))
+                .catch((error) => toast.error(formatMutationError(error)));
             }}
             onToggleSkillHidden={requestToggleSkillHidden}
           />
@@ -494,9 +540,9 @@ export function Management() {
             onChangePluginSearch={setPluginSearch}
             onManagePlugin={managePlugin}
             onSetPackageBatch={(packageId, batch) => {
-              void setPackageBatch({ packageId, batch }).catch((error) =>
-                toast.error(formatMutationError(error)),
-              );
+              void setPackageBatch({ packageId, batch })
+                .then(() => toast.success(batch ? "已精选。" : "已取消精选。"))
+                .catch((error) => toast.error(formatMutationError(error)));
             }}
           />
         ) : null}
@@ -505,7 +551,9 @@ export function Management() {
           <DuplicatesPage
             duplicateCandidates={duplicateCandidates}
             onSetDuplicate={(skillId, canonicalSlug) => {
-              void setDuplicate({ skillId, canonicalSlug });
+              void setDuplicate({ skillId, canonicalSlug })
+                .then(() => toast.success("已标记为重复。"))
+                .catch((error) => toast.error(formatMutationError(error)));
             }}
           />
         ) : null}
@@ -521,9 +569,7 @@ export function Management() {
             userEmptyLabel={userEmptyLabel}
             onBanUser={requestBanUser}
             onChangeSearch={setUserSearch}
-            onSetRole={(userId, role) => {
-              void setRole({ userId, role });
-            }}
+            onSetRole={requestSetRole}
             onUnbanUser={requestUnbanUser}
           />
         ) : null}
