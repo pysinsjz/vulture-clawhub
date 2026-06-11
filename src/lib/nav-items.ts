@@ -52,6 +52,17 @@ const SKILLS_SEARCH = {
 
 const PUBLISHERS_SEARCH = { q: undefined } as const;
 
+const PUBLISH_SKILL_SEARCH = { updateSlug: undefined } as const;
+
+const PUBLISH_PLUGIN_SEARCH = {
+  ownerHandle: undefined,
+  name: undefined,
+  displayName: undefined,
+  family: undefined,
+  nextVersion: undefined,
+  sourceRepo: undefined,
+} as const;
+
 // ---------------------------------------------------------------------------
 // Primary nav items: Skills | Plugins
 // ---------------------------------------------------------------------------
@@ -86,6 +97,20 @@ export const SECONDARY_NAV_ITEMS: NavItem[] = [
     to: "/publishers",
     search: PUBLISHERS_SEARCH,
     authRequired: false,
+    staffOnly: false,
+  },
+  {
+    label: "发布 Skill",
+    to: "/skills/publish",
+    search: PUBLISH_SKILL_SEARCH,
+    authRequired: true,
+    staffOnly: false,
+  },
+  {
+    label: "发布 Plugin",
+    to: "/plugins/publish",
+    search: PUBLISH_PLUGIN_SEARCH,
+    authRequired: true,
     staffOnly: false,
   },
 ];
@@ -129,20 +154,13 @@ export const FOOTER_NAV_SECTIONS: FooterNavSection[] = [
         kind: "link",
         label: "发布 Skill",
         to: "/skills/publish",
-        search: { updateSlug: undefined },
+        search: PUBLISH_SKILL_SEARCH,
       },
       {
         kind: "link",
         label: "发布 Plugin",
         to: "/plugins/publish",
-        search: {
-          ownerHandle: undefined,
-          name: undefined,
-          displayName: undefined,
-          family: undefined,
-          nextVersion: undefined,
-          sourceRepo: undefined,
-        },
+        search: PUBLISH_PLUGIN_SEARCH,
       },
     ],
   },
