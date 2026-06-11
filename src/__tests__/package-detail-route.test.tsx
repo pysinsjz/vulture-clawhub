@@ -404,13 +404,13 @@ describe("plugin detail route", () => {
     render(<Component />);
 
     expect(screen.getByText("安全审计")).toBeTruthy();
-    expect(screen.getByText("Pass")).toBeTruthy();
+    expect(screen.getByText("通过")).toBeTruthy();
     expect(screen.getByRole("link", { name: "查看安全审计" }).getAttribute("href")).toBe(
       "/plugins/demo-plugin/security-audit",
     );
     expect(
       screen.getByRole("button", {
-        name: "Security checks across malware telemetry and agentic risk",
+        name: "覆盖恶意软件遥测与智能体风险的安全检查",
       }),
     ).toBeTruthy();
     expect(screen.queryByText("Looks safe.")).toBeNull();
@@ -469,7 +469,7 @@ describe("plugin detail route", () => {
 
     render(<Component />);
 
-    expect(screen.queryByRole("button", { name: "Rescan" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "重新扫描" })).toBeNull();
     expect(screen.queryByText(/rescans/i)).toBeNull();
   });
 

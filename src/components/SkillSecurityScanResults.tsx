@@ -42,15 +42,15 @@ type LlmRiskSummaryBucket = {
 type LlmRiskSummary = Record<ClawScanRiskBucket, LlmRiskSummaryBucket>;
 
 const SKILL_CAPABILITY_LABELS: Record<string, string> = {
-  crypto: "Crypto",
-  "financial-authority": "Financial authority",
-  "requires-wallet": "Requires wallet",
-  "can-make-purchases": "Can make purchases",
-  "can-sign-transactions": "Can sign transactions",
-  "requires-paid-service": "Requires paid service",
-  "requires-oauth-token": "Requires OAuth token",
-  "requires-sensitive-credentials": "Requires sensitive credentials",
-  "posts-externally": "Posts externally",
+  crypto: "加密货币",
+  "financial-authority": "财务权限",
+  "requires-wallet": "需要钱包",
+  "can-make-purchases": "可进行购买",
+  "can-sign-transactions": "可签署交易",
+  "requires-paid-service": "需要付费服务",
+  "requires-oauth-token": "需要 OAuth 令牌",
+  "requires-sensitive-credentials": "需要敏感凭证",
+  "posts-externally": "对外发布",
 };
 
 export type VtAnalysis = {
@@ -165,31 +165,31 @@ export function getScanStatusInfo(status: string) {
     case "benign":
     case "clean":
     case "undetected-only-fallback":
-      return { label: "Pass", className: "scan-status-clean", badgeVariant: "success" };
+      return { label: "通过", className: "scan-status-clean", badgeVariant: "success" };
     case "cleared":
-      return { label: "Cleared", className: "scan-status-clean", badgeVariant: "success" };
+      return { label: "已放行", className: "scan-status-clean", badgeVariant: "success" };
     case "malicious":
       return {
-        label: "Malicious",
+        label: "恶意",
         className: "scan-status-malicious",
         badgeVariant: "destructive",
       };
     case "review":
-      return { label: "Review", className: "scan-status-review", badgeVariant: "review" };
+      return { label: "待复核", className: "scan-status-review", badgeVariant: "review" };
     case "warn":
     case "warning":
     case "suspicious":
-      return { label: "Warn", className: "scan-status-warn", badgeVariant: "warning" };
+      return { label: "警告", className: "scan-status-warn", badgeVariant: "warning" };
     case "advisory":
-      return { label: "Advisory", className: "scan-status-unknown", badgeVariant: "compact" };
+      return { label: "提示", className: "scan-status-unknown", badgeVariant: "compact" };
     case "loading":
-      return { label: "Loading...", className: "scan-status-pending", badgeVariant: "pending" };
+      return { label: "加载中…", className: "scan-status-pending", badgeVariant: "pending" };
     case "pending":
     case "not_found":
-      return { label: "Pending", className: "scan-status-pending", badgeVariant: "pending" };
+      return { label: "待检测", className: "scan-status-pending", badgeVariant: "pending" };
     case "error":
     case "failed":
-      return { label: "Error", className: "scan-status-error", badgeVariant: "destructive" };
+      return { label: "错误", className: "scan-status-error", badgeVariant: "destructive" };
     default:
       return { label: status, className: "scan-status-unknown", badgeVariant: "default" };
   }
@@ -285,7 +285,7 @@ export function ScanResultBadge({
 }) {
   const statusInfo = getScanStatusInfo(status);
   const variant =
-    tone === "review" && statusInfo.label === "Review" ? "review" : statusInfo.badgeVariant;
+    tone === "review" && statusInfo.label === "待复核" ? "review" : statusInfo.badgeVariant;
   return (
     <Badge
       variant={variant as BadgeProps["variant"]}
@@ -328,20 +328,20 @@ function getFindingSeverityBadgeMeta(severity: string): {
 } {
   switch (severity.trim().toLowerCase()) {
     case "critical":
-      return { label: "Critical", variant: "destructive" };
+      return { label: "严重", variant: "destructive" };
     case "high":
-      return { label: "High", variant: "destructive" };
+      return { label: "高危", variant: "destructive" };
     case "warn":
     case "warning":
-      return { label: "Warn", variant: "warning" };
+      return { label: "警告", variant: "warning" };
     case "medium":
-      return { label: "Medium", variant: "warning" };
+      return { label: "中危", variant: "warning" };
     case "low":
-      return { label: "Low", variant: "review" };
+      return { label: "低危", variant: "review" };
     case "info":
-      return { label: "Info", variant: "compact" };
+      return { label: "信息", variant: "compact" };
     default:
-      return { label: severity || "Finding", variant: "compact" };
+      return { label: severity || "发现项", variant: "compact" };
   }
 }
 
@@ -353,7 +353,7 @@ function FindingSeverityBadge({ severity }: { severity: string }) {
 function formatSkillSpectorConfidence(confidence?: number) {
   if (typeof confidence !== "number" || !Number.isFinite(confidence)) return null;
   const percent = confidence <= 1 ? confidence * 100 : confidence;
-  return `${Math.round(percent)}% confidence`;
+  return `${Math.round(percent)}% 置信度`;
 }
 
 export function getSkillSpectorIssueCount(analysis?: SkillSpectorAnalysis | null) {
@@ -368,11 +368,11 @@ export function hasSkillSpectorFindings(analysis?: SkillSpectorAnalysis | null) 
 
 export function getSkillSpectorOverviewCopy(analysis?: SkillSpectorAnalysis | null) {
   const count = getSkillSpectorIssueCount(analysis);
-  if (count > 0) return `SkillSpector found ${count} issue${count === 1 ? "" : "s"}.`;
+  if (count > 0) return `SkillSpector 发现 ${count} 个问题。`;
   const status = analysis?.status?.trim().toLowerCase();
-  if (status === "clean" || status === "benign") return "No SkillSpector findings.";
-  if (status === "error" || status === "failed") return "SkillSpector could not complete.";
-  return "SkillSpector findings are pending for this release.";
+  if (status === "clean" || status === "benign") return "未发现 SkillSpector 问题。";
+  if (status === "error" || status === "failed") return "SkillSpector 未能完成。";
+  return "该版本的 SkillSpector 检查待完成。";
 }
 
 const SKILLSPECTOR_RULE_LABELS: Record<string, string> = {
@@ -444,13 +444,13 @@ function SkillSpectorFindingCard({
       <dl className="static-analysis-finding-details">
         {issue.category ? (
           <div>
-            <dt>Category</dt>
+            <dt>类别</dt>
             <dd>{issue.category}</dd>
           </div>
         ) : null}
         {trimmedSnippet ? (
           <div>
-            <dt>Content</dt>
+            <dt>内容</dt>
             <dd>
               <pre className="agentic-risk-evidence-snippet">{trimmedSnippet}</pre>
             </dd>
@@ -458,12 +458,12 @@ function SkillSpectorFindingCard({
         ) : null}
         {confidence ? (
           <div>
-            <dt>Confidence</dt>
+            <dt>置信度</dt>
             <dd>{confidence}</dd>
           </div>
         ) : null}
         <div>
-          <dt>Finding</dt>
+          <dt>发现</dt>
           <dd>{issue.finding || issue.explanation}</dd>
         </div>
       </dl>
@@ -527,7 +527,7 @@ function AgenticRiskFindingCard({
           <a
             className="agentic-risk-finding-anchor"
             href={`#${anchorId}`}
-            aria-label={`Link to ${title}`}
+            aria-label={`链接到 ${title}`}
           >
             #
           </a>
@@ -539,15 +539,15 @@ function AgenticRiskFindingCard({
       </div>
       <div className="agentic-risk-report-rows">
         <div className="agentic-risk-report-row">
-          <div className="agentic-risk-report-label">What this means</div>
+          <div className="agentic-risk-report-label">这意味着什么</div>
           <p>{finding.userImpact ?? finding.recommendation ?? evidence.explanation}</p>
         </div>
         <div className="agentic-risk-report-row">
-          <div className="agentic-risk-report-label">Why it was flagged</div>
+          <div className="agentic-risk-report-label">为何被标记</div>
           <p>{evidence.explanation}</p>
         </div>
         <div className="agentic-risk-report-row">
-          <div className="agentic-risk-report-label">Skill content</div>
+          <div className="agentic-risk-report-label">Skill 内容</div>
           <div className="agentic-risk-report-content">
             <pre className="agentic-risk-evidence-snippet">{evidence.snippet}</pre>
           </div>
@@ -555,7 +555,7 @@ function AgenticRiskFindingCard({
       </div>
       {finding.recommendation ? (
         <div className="agentic-risk-report-row agentic-risk-report-row-secondary">
-          <div className="agentic-risk-report-label">Recommendation</div>
+          <div className="agentic-risk-report-label">建议</div>
           <p>{finding.recommendation}</p>
         </div>
       ) : null}
@@ -566,7 +566,7 @@ function AgenticRiskFindingCard({
 export function ClawScanRiskReview({
   analysis,
   showTitle = true,
-  findingsTitle = "Findings",
+  findingsTitle = "发现项",
 }: {
   analysis: LlmAnalysis;
   showTitle?: boolean;
@@ -579,8 +579,7 @@ export function ClawScanRiskReview({
     <div className="clawscan-risk-review">
       {showTitle ? <div className="scan-findings-title">{findingsTitle}</div> : null}
       <p className="clawscan-scope-note">
-        Artifact-based informational review of SKILL.md, metadata, install specs, static scan
-        signals, and capability signals. ClawScan does not execute the skill or run runtime probes.
+        基于制品的 SKILL.md、元数据、安装规格、静态扫描信号与能力信号的信息性审查。ClawScan 不会执行该 Skill，也不会运行运行时探测。
       </p>
       <div className="agentic-risk-findings">
         {visibleFindings.map((finding, index) => (
@@ -616,7 +615,7 @@ function LlmAnalysisDetail({ analysis }: { analysis: LlmAnalysis }) {
       >
         <span className="analysis-summary-text">{analysis.summary}</span>
         <span className="analysis-detail-toggle">
-          Details <span className="chevron">{"\u25BE"}</span>
+          详情 <span className="chevron">{"\u25BE"}</span>
         </span>
       </button>
       <div className="analysis-body">
@@ -639,7 +638,7 @@ function LlmAnalysisDetail({ analysis }: { analysis: LlmAnalysis }) {
         ) : null}
         {analysis.findings ? (
           <div className="scan-findings-section">
-            <div className="scan-findings-title">Scan Findings in Context</div>
+            <div className="scan-findings-title">上下文中的扫描发现</div>
             {(() => {
               const counts = new Map<string, number>();
               return analysis.findings.split("\n").map((line) => {
@@ -658,10 +657,10 @@ function LlmAnalysisDetail({ analysis }: { analysis: LlmAnalysis }) {
           <div className={`analysis-guidance ${guidanceClass}`}>
             <div className="analysis-guidance-label">
               {verdict === "malicious"
-                ? "Do not install this skill"
+                ? "请勿安装此 Skill"
                 : verdict === "suspicious"
-                  ? "Review before installing"
-                  : "Assessment"}
+                  ? "安装前请复核"
+                  : "评估"}
             </div>
             {analysis.guidance}
           </div>
@@ -721,11 +720,11 @@ export function SecurityScanResults({
 
   return (
     <div className="scan-results-panel">
-      <div className="scan-results-title">Security Scan</div>
+      <div className="scan-results-title">安全扫描</div>
       <div className="scan-results-list">
         {visibleCapabilityTags.length > 0 ? (
           <div className="scan-capabilities-section">
-            <div className="scan-findings-title">Capability signals</div>
+            <div className="scan-findings-title">能力信号</div>
             <div className="scan-capability-tags">
               {visibleCapabilityTags.map((tag) => (
                 <Badge key={tag} className="scan-capability-tag">
@@ -734,8 +733,7 @@ export function SecurityScanResults({
               ))}
             </div>
             <div className="scan-capability-note">
-              These labels describe what authority the skill may exercise. They are separate from
-              warning or malicious moderation verdicts.
+              这些标签描述该 Skill 可能行使的权限，与警告或恶意审核结论无关。
             </div>
           </div>
         ) : null}
@@ -753,7 +751,7 @@ export function SecurityScanResults({
                 rel="noopener noreferrer"
                 className="scan-result-link"
               >
-                View report →
+                查看报告 →
               </a>
             ) : null}
           </div>

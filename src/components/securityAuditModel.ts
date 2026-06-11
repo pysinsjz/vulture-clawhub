@@ -8,7 +8,7 @@ import {
 
 export type AuditScannerKind = "clawscan" | "virustotal" | "skillspector";
 
-export const SECURITY_AUDIT_SUBTEXT = "Security checks across malware telemetry and agentic risk";
+export const SECURITY_AUDIT_SUBTEXT = "覆盖恶意软件遥测与智能体风险的安全检查";
 
 type SecurityAuditSignals = {
   vtAnalysis?: VtAnalysis | null;
@@ -18,7 +18,7 @@ type SecurityAuditSignals = {
 };
 
 export const AUDIT_SCANNER_LABELS: Record<AuditScannerKind, string> = {
-  clawscan: "Risk analysis",
+  clawscan: "风险分析",
   skillspector: "SkillSpector",
   virustotal: "VirusTotal",
 };
@@ -45,7 +45,7 @@ export function getSecurityAuditOverviewCopy({
 }) {
   if (suppressScanResults && suppressedMessage?.trim()) return [suppressedMessage.trim()];
   return [
-    llmAnalysis?.summary?.trim() || "No risk analysis has been recorded yet.",
+    llmAnalysis?.summary?.trim() || "尚未记录风险分析。",
     llmAnalysis?.guidance?.trim() || null,
   ].filter((copy): copy is string => Boolean(copy));
 }

@@ -85,8 +85,8 @@ describe("skill security audit route", () => {
 
     render(<Component />);
 
-    expect(screen.queryByText("Loading security audit...")).toBeNull();
-    const loadingRegion = screen.getByRole("status", { name: "Loading security audit" });
+    expect(screen.queryByText("正在加载安全审计...")).toBeNull();
+    const loadingRegion = screen.getByRole("status", { name: "正在加载安全审计" });
     expect(loadingRegion.getAttribute("aria-busy")).toBe("true");
     expect(document.querySelector(".security-scanner-skeleton")).toBeTruthy();
   });
@@ -124,8 +124,8 @@ describe("skill security audit route", () => {
 
     render(<Component />);
 
-    expect(screen.getByRole("button", { name: "Download security audit" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Rescan" }));
+    expect(screen.getByRole("button", { name: "下载安全审计" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "重新扫描" }));
 
     await waitFor(() =>
       expect(requestRescan).toHaveBeenCalledWith({

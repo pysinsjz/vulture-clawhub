@@ -218,10 +218,10 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.getByText("Capability signals")).toBeTruthy();
-    expect(screen.getByText("Posts externally")).toBeTruthy();
-    expect(screen.getByText("Requires OAuth token")).toBeTruthy();
-    expect(screen.getByText("Requires sensitive credentials")).toBeTruthy();
+    expect(screen.getByText("能力信号")).toBeTruthy();
+    expect(screen.getByText("对外发布")).toBeTruthy();
+    expect(screen.getByText("需要 OAuth 令牌")).toBeTruthy();
+    expect(screen.getByText("需要敏感凭证")).toBeTruthy();
   });
 
   it("renders capability labels separately from scan verdicts", () => {
@@ -238,12 +238,12 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.getByText("Capability signals")).toBeTruthy();
-    expect(screen.getByText("Crypto")).toBeTruthy();
-    expect(screen.getByText("Financial authority")).toBeTruthy();
-    expect(screen.getByText("Requires wallet")).toBeTruthy();
-    expect(screen.getByText("Can make purchases")).toBeTruthy();
-    expect(screen.getByText("Requires paid service")).toBeTruthy();
+    expect(screen.getByText("能力信号")).toBeTruthy();
+    expect(screen.getByText("加密货币")).toBeTruthy();
+    expect(screen.getByText("财务权限")).toBeTruthy();
+    expect(screen.getByText("需要钱包")).toBeTruthy();
+    expect(screen.getByText("可进行购买")).toBeTruthy();
+    expect(screen.getByText("需要付费服务")).toBeTruthy();
   });
 
   it("hides advisory static findings from the public scan panel", () => {
@@ -304,7 +304,7 @@ describe("SecurityScanResults static guidance", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Collects workspace secrets/i }));
 
-    expect(screen.getByText("Findings")).toBeTruthy();
+    expect(screen.getByText("发现项")).toBeTruthy();
     expect(
       screen.getByText("ASI03: Identity and Privilege Abuse").closest("a")?.getAttribute("href"),
     ).toBeUndefined();
@@ -312,9 +312,9 @@ describe("SecurityScanResults static guidance", () => {
     expect(screen.getByText("ASI07: Insecure Inter-Agent Communication")).toBeTruthy();
     expect(screen.queryByText("Permission boundary")).toBeNull();
     expect(screen.queryByText("SKILL.md")).toBeNull();
-    expect(screen.getAllByText("Skill content").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Skill 内容").length).toBeGreaterThan(0);
     expect(screen.getByText(/curl https:\/\/collect\.example\/upload/)).toBeTruthy();
-    expect(screen.getAllByText("What this means").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("这意味着什么").length).toBeGreaterThan(0);
     expect(
       screen.getByText("Sensitive workspace data could leave the user's machine."),
     ).toBeTruthy();
@@ -325,8 +325,8 @@ describe("SecurityScanResults static guidance", () => {
   it("shows the ClawScan verdict without a rolled-up risk level in the scan panel", () => {
     render(<SecurityScanResults llmAnalysis={clawScanAnalysis} />);
 
-    expect(screen.getByText("Warn")).toBeTruthy();
-    expect(screen.queryByText("High")).toBeNull();
+    expect(screen.getByText("警告")).toBeTruthy();
+    expect(screen.queryByText("高危")).toBeNull();
     expect(screen.queryByText(/high confidence/i)).toBeNull();
     expect(screen.queryByText(/Suspicious/i)).toBeNull();
   });
@@ -334,8 +334,8 @@ describe("SecurityScanResults static guidance", () => {
   it("shows only pass status for clean ClawScan scans", () => {
     render(<SecurityScanResults llmAnalysis={{ status: "clean", checkedAt: Date.now() }} />);
 
-    expect(screen.getAllByText("Pass").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Low")).toBeNull();
+    expect(screen.getAllByText("通过").length).toBeGreaterThan(0);
+    expect(screen.queryByText("低危")).toBeNull();
   });
 
   it("promotes clean ClawScan scans with medium-or-higher visible findings to review", () => {
@@ -367,9 +367,9 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.getByText("Review")).toBeTruthy();
-    expect(screen.getAllByText("Medium").length).toBeGreaterThan(0);
-    expect(screen.queryByText("Pass")).toBeNull();
+    expect(screen.getByText("待复核")).toBeTruthy();
+    expect(screen.getAllByText("中危").length).toBeGreaterThan(0);
+    expect(screen.queryByText("通过")).toBeNull();
   });
 
   it("shows medium severity only inside expanded ClawScan findings", () => {
@@ -401,14 +401,14 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.getByText("Review")).toBeTruthy();
-    expect(screen.getAllByText("Medium").length).toBe(1);
+    expect(screen.getByText("待复核")).toBeTruthy();
+    expect(screen.getAllByText("中危").length).toBe(1);
     expect(container.querySelector(".scan-risk-level-badge")).toBeNull();
     expect(container.querySelector(".scan-result-risk")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /The skill needs context/i }));
-    expect(screen.getAllByText("Medium").length).toBe(1);
+    expect(screen.getAllByText("中危").length).toBe(1);
     expect(screen.queryByText("Concern")).toBeNull();
-    expect(screen.queryByText("Warn")).toBeNull();
+    expect(screen.queryByText("警告")).toBeNull();
   });
 
   it("ignores low-confidence findings for visible findings and status", () => {
@@ -416,8 +416,8 @@ describe("SecurityScanResults static guidance", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Potential concern/i }));
 
-    expect(screen.getByText("Review")).toBeTruthy();
-    expect(screen.getAllByText("Low").length).toBeGreaterThan(0);
+    expect(screen.getByText("待复核")).toBeTruthy();
+    expect(screen.getAllByText("低危").length).toBeGreaterThan(0);
     expect(screen.getByText("ASI03: Identity and Privilege Abuse")).toBeTruthy();
     expect(screen.queryByText("ASI02: Tool Misuse and Exploitation")).toBeNull();
     expect(screen.queryByText("delete everything")).toBeNull();
@@ -447,7 +447,7 @@ describe("SecurityScanResults static guidance", () => {
 
     expect(screen.getByText("Purpose & Capability")).toBeTruthy();
     expect(screen.getByText("No mismatch found.")).toBeTruthy();
-    expect(screen.queryByText("Findings")).toBeNull();
+    expect(screen.queryByText("发现项")).toBeNull();
   });
 
   it("shows ClawScan buckets on the dedicated security audit page", () => {
@@ -465,22 +465,22 @@ describe("SecurityScanResults static guidance", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Todo Guard" })).toBeTruthy();
-    expect(screen.getAllByText("Warn").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("警告").length).toBeGreaterThan(0);
     expect(screen.queryByText("Risk")).toBeNull();
     expect(screen.queryByText("ClawScan risk")).toBeNull();
     expect(
-      screen.getByText("Security checks across malware telemetry and agentic risk"),
+      screen.getByText("覆盖恶意软件遥测与智能体风险的安全检查"),
     ).toBeTruthy();
     expect(container.querySelector(".security-scan-hero-subtext")?.textContent).not.toContain(
-      "Warn",
+      "警告",
     );
     expect(screen.queryByText(/Current verdict/i)).toBeNull();
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Risk analysis" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "概览" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "风险分析" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "ClawScan" })).toBeNull();
     expect(screen.getByText(/Collects workspace secrets/i)).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Findings (2)" })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Security Audit Metadata" })).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "发现项（2）" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "安全审计元数据" })).toBeTruthy();
     expect(screen.queryByText("Legacy dimensions")).toBeNull();
     expect(screen.queryByText("Scanner")).toBeNull();
     expect(screen.queryByText("Review scope")).toBeNull();
@@ -491,28 +491,28 @@ describe("SecurityScanResults static guidance", () => {
     expect(
       screen
         .getByRole("button", {
-          name: "ClawHub reviews SkillSpector, VirusTotal, and artifact evidence before producing the final verdict.",
+          name: "ClawHub 在给出最终结论前会综合 SkillSpector、VirusTotal 与制品证据。",
         })
         .tagName.toLowerCase(),
     ).toBe("button");
     expect(screen.getByText("ASI03: Identity and Privilege Abuse")).toBeTruthy();
     expect(screen.queryByText("metadata")).toBeNull();
-    expect(screen.getAllByText("Skill content").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Skill 内容").length).toBeGreaterThan(0);
     expect(screen.getByText("requires.env: TODOIST_API_TOKEN")).toBeTruthy();
-    expect(screen.queryByText("Confidence")).toBeNull();
-    expect(container.querySelector('nav[aria-label="Breadcrumb"]')?.textContent).toContain(
-      "Security Audit",
+    expect(screen.queryByText("置信度")).toBeNull();
+    expect(container.querySelector('nav[aria-label="面包屑"]')?.textContent).toContain(
+      "安全审计",
     );
     expect(
       Array.from(
         container.querySelectorAll(".security-report-sidebar .sidebar-metadata-label"),
       ).map((node) => node.textContent?.trim()),
-    ).toEqual(["Outcome", "Latest audit", "Version"]);
+    ).toEqual(["结论", "最近审计", "版本"]);
     expect(
       Array.from(container.querySelectorAll(".security-report-main > section h2")).map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(["Overview", "VirusTotal", "Risk analysis"]);
+    ).toEqual(["概览", "VirusTotal", "风险分析"]);
   });
 
   it("renders SkillSpector findings as the agentic-risk finding source", () => {
@@ -537,24 +537,24 @@ describe("SecurityScanResults static guidance", () => {
     );
 
     expect(screen.getByRole("heading", { name: "SkillSpector" })).toBeTruthy();
-    expect(screen.getByText("By NVIDIA")).toBeTruthy();
-    expect(screen.queryByText("SkillSpector found 1 issue.")).toBeNull();
+    expect(screen.getByText("由 NVIDIA 提供")).toBeTruthy();
+    expect(screen.queryByText("SkillSpector 发现 1 个问题。")).toBeNull();
     expect(screen.getByRole("heading", { name: "Description-Behavior Mismatch" })).toBeTruthy();
-    expect(screen.getAllByText("High").length).toBeGreaterThan(0);
-    expect(screen.getByText("98% confidence")).toBeTruthy();
+    expect(screen.getAllByText("高危").length).toBeGreaterThan(0);
+    expect(screen.getByText("98% 置信度")).toBeTruthy();
     expect(screen.queryByText("SKILL.md:3-6")).toBeNull();
-    expect(screen.getByText("Content")).toBeTruthy();
+    expect(screen.getByText("内容")).toBeTruthy();
     expect(screen.getByText("description: Harmless security benchmark fixture")).toBeTruthy();
     expect(screen.getByText(/generic security benchmark skill/i)).toBeTruthy();
     expect(screen.queryByText(/Make the manifest and body accurately describe/i)).toBeNull();
     expect(screen.queryByText(/OWASP Agentic Skills Top 10/i)).toBeNull();
-    expect(screen.queryByText("SkillSpector found 1 issue.")).toBeNull();
-    expect(screen.getByText("Findings (1)")).toBeTruthy();
-    expect(screen.getByText("Vulnerability Patterns")).toBeTruthy();
+    expect(screen.queryByText("SkillSpector 发现 1 个问题。")).toBeNull();
+    expect(screen.getByText("发现项（1）")).toBeTruthy();
+    expect(screen.getByText("漏洞模式")).toBeTruthy();
     expect(screen.getByText("Prompt Injection")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Show 11 more" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "展开其余 11 项" })).toBeTruthy();
     const pageText = container.textContent ?? "";
-    expect(pageText.indexOf("Vulnerability Patterns")).toBeLessThan(
+    expect(pageText.indexOf("漏洞模式")).toBeLessThan(
       pageText.indexOf("Description-Behavior Mismatch"),
     );
     expect(
@@ -565,7 +565,7 @@ describe("SecurityScanResults static guidance", () => {
       Array.from(container.querySelectorAll(".security-report-main > section h2")).map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(["Overview", "SkillSpector", "VirusTotal"]);
+    ).toEqual(["概览", "SkillSpector", "VirusTotal"]);
   });
 
   it("uses ClawScan only for the security audit outcome", () => {
@@ -602,16 +602,16 @@ describe("SecurityScanResults static guidance", () => {
     const outcomeRow = Array.from(
       container.querySelectorAll(".security-report-sidebar .sidebar-metadata-row"),
     ).find(
-      (row) => row.querySelector(".sidebar-metadata-label")?.textContent?.trim() === "Outcome",
+      (row) => row.querySelector(".sidebar-metadata-label")?.textContent?.trim() === "结论",
     );
-    expect(outcomeRow?.textContent).toContain("Pass");
-    expect(outcomeRow?.textContent).not.toContain("Pending");
-    expect(outcomeRow?.textContent).not.toContain("Malicious");
+    expect(outcomeRow?.textContent).toContain("通过");
+    expect(outcomeRow?.textContent).not.toContain("待检测");
+    expect(outcomeRow?.textContent).not.toContain("恶意");
     expect(
-      screen.getByText("VirusTotal findings are pending for this skill version."),
+      screen.getByText("该 Skill 版本的 VirusTotal 检查待完成。"),
     ).toBeTruthy();
-    expect(screen.queryByText("No SkillSpector findings.")).toBeNull();
-    expect(screen.getByText("Vulnerability Patterns")).toBeTruthy();
+    expect(screen.queryByText("未发现 SkillSpector 问题。")).toBeNull();
+    expect(screen.getByText("漏洞模式")).toBeTruthy();
     expect(screen.getByText("Prompt Injection")).toBeTruthy();
     expect(
       container.querySelector(".skillspector-check-row .skillspector-check-category")?.textContent,
@@ -621,10 +621,10 @@ describe("SecurityScanResults static guidance", () => {
       screen.getByText("Instruction Override, Hidden Instructions, Exfiltration Commands"),
     ).toBeTruthy();
     expect(screen.queryByText("Output Handling")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Show 11 more" }));
+    fireEvent.click(screen.getByRole("button", { name: "展开其余 11 项" }));
     expect(screen.getByText("Output Handling")).toBeTruthy();
     expect(screen.getByText("MCP Tool Poisoning")).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Show less" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "收起" })).toBeTruthy();
   });
 
   it("uses the full SkillSpector issue count when stored findings are capped", () => {
@@ -650,7 +650,7 @@ describe("SecurityScanResults static guidance", () => {
     );
 
     expect(screen.getByRole("heading", { name: "SkillSpector" })).toBeTruthy();
-    expect(screen.getByText("Findings (30)")).toBeTruthy();
+    expect(screen.getByText("发现项（30）")).toBeTruthy();
     expect(
       container.querySelector(".skillspector-check-row .skillspector-check-category")?.textContent,
     ).toBe("MCP Tool Poisoning");
@@ -737,7 +737,7 @@ describe("SecurityScanResults static guidance", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Description-Behavior Mismatch" })).toBeTruthy();
-    expect(screen.queryByRole("heading", { name: "Risk analysis" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "风险分析" })).toBeNull();
     expect(screen.queryByText(/Agentic-risk findings are shown in SkillSpector/i)).toBeNull();
     expect(screen.queryByText("ASI07: Insecure Inter-Agent Communication")).toBeNull();
     expect(
@@ -760,7 +760,7 @@ describe("SecurityScanResults static guidance", () => {
     );
 
     const permalink = screen.getByRole("link", {
-      name: "Link to ASI03: Identity and Privilege Abuse",
+      name: "链接到 ASI03: Identity and Privilege Abuse",
     });
     expect(permalink.textContent).toBe("#");
     expect(permalink.getAttribute("href")).toBe(
@@ -806,14 +806,14 @@ describe("SecurityScanResults static guidance", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Plugin Guard" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Security Audit Metadata" })).toBeTruthy();
-    expect(screen.getByText("Outcome")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "安全审计元数据" })).toBeTruthy();
+    expect(screen.getByText("结论")).toBeTruthy();
     expect(screen.queryByText("Risk")).toBeNull();
-    expect(screen.getByText("Latest audit")).toBeTruthy();
-    expect(screen.getByText("Version")).toBeTruthy();
+    expect(screen.getByText("最近审计")).toBeTruthy();
+    expect(screen.getByText("版本")).toBeTruthy();
     expect(screen.queryByText("Hash")).toBeNull();
     expect(screen.queryByText("seeded-plugin-hash")).toBeNull();
-    expect(screen.getByRole("link", { name: /View on VirusTotal/i }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: /在 VirusTotal 查看/i }).getAttribute("href")).toBe(
       "https://www.virustotal.com/gui/file/seeded-plugin-hash",
     );
   });
@@ -861,13 +861,13 @@ describe("SecurityScanResults static guidance", () => {
 
     expect(screen.getByRole("heading", { name: "Hash Guard" })).toBeTruthy();
     expect(
-      screen.getByText("Security checks across malware telemetry and agentic risk"),
+      screen.getByText("覆盖恶意软件遥测与智能体风险的安全检查"),
     ).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
-    expect(screen.getByText("62/62 vendors flagged this skill as clean.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "概览" })).toBeTruthy();
+    expect(screen.getByText("62/62 家厂商将此 Skill 标记为安全。")).toBeTruthy();
     expect(screen.queryByLabelText("VirusTotal findings")).toBeNull();
-    expect(screen.getByRole("heading", { name: "Security Audit Metadata" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: /View on VirusTotal/i }).getAttribute("href")).toBe(
+    expect(screen.getByRole("heading", { name: "安全审计元数据" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: /在 VirusTotal 查看/i }).getAttribute("href")).toBe(
       "https://www.virustotal.com/gui/file/abc123",
     );
     expect(screen.queryByRole("heading", { name: /Findings/i })).toBeNull();
@@ -878,7 +878,7 @@ describe("SecurityScanResults static guidance", () => {
       Array.from(container.querySelectorAll(".security-report-main > section h2")).map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(["Overview", "SkillSpector", "VirusTotal"]);
+    ).toEqual(["概览", "SkillSpector", "VirusTotal"]);
   });
 
   it("summarizes completed engine-only VirusTotal scans", () => {
@@ -901,8 +901,8 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
-    expect(screen.getByText("62/62 vendors flagged this skill as clean.")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "概览" })).toBeTruthy();
+    expect(screen.getByText("62/62 家厂商将此 Skill 标记为安全。")).toBeTruthy();
     expect(screen.queryByLabelText("VirusTotal findings")).toBeNull();
     expect(screen.queryByText(/No VirusTotal analysis has been recorded/i)).toBeNull();
   });
@@ -929,7 +929,7 @@ describe("SecurityScanResults static guidance", () => {
 
     expect(
       screen.getByText(
-        "2/64 vendors flagged this skill as malicious, 1/64 flagged it as suspicious, and 61/64 flagged it as clean.",
+        "2/64 家厂商将此 Skill 标记为恶意，1/64将其标记为可疑，61/64将其标记为安全。",
       ),
     ).toBeTruthy();
     expect(screen.queryByLabelText("VirusTotal findings")).toBeNull();
@@ -957,7 +957,7 @@ describe("SecurityScanResults static guidance", () => {
 
     expect(
       screen.getByText(
-        "1/64 vendors flagged this plugin as suspicious, and 63/64 flagged it as clean.",
+        "1/64 家厂商将此 Plugin 标记为可疑，63/64将其标记为安全。",
       ),
     ).toBeTruthy();
   });
@@ -982,8 +982,8 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.getByText("1 vendor flagged this skill as suspicious.")).toBeTruthy();
-    expect(screen.queryByText("1/1 vendors flagged this skill as suspicious.")).toBeNull();
+    expect(screen.getByText("1 家厂商将此 Skill 标记为可疑。")).toBeTruthy();
+    expect(screen.queryByText("1/1 家厂商将此 Skill 标记为可疑。")).toBeNull();
   });
 
   it("renders VirusTotal undetected-only fallback as pass", () => {
@@ -1010,8 +1010,8 @@ describe("SecurityScanResults static guidance", () => {
     );
 
     expect(screen.getByRole("heading", { name: "VirusTotal" })).toBeTruthy();
-    expect(screen.getByText("Pass")).toBeTruthy();
-    expect(screen.getByText("No VirusTotal findings")).toBeTruthy();
+    expect(screen.getByText("通过")).toBeTruthy();
+    expect(screen.getByText("未发现 VirusTotal 问题")).toBeTruthy();
     expect(screen.queryByText("undetected-only-fallback")).toBeNull();
   });
 
@@ -1036,14 +1036,14 @@ describe("SecurityScanResults static guidance", () => {
     );
 
     expect(
-      screen.getByText("Security checks across malware telemetry and agentic risk"),
+      screen.getByText("覆盖恶意软件遥测与智能体风险的安全检查"),
     ).toBeTruthy();
-    expect(screen.queryByText("Pass")).toBeNull();
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
+    expect(screen.queryByText("通过")).toBeNull();
+    expect(screen.getByRole("heading", { name: "概览" })).toBeTruthy();
     expect(screen.queryByText(/multi-engine malware detections/i)).toBeNull();
     expect(screen.queryByRole("heading", { name: /Findings/ })).toBeNull();
     expect(screen.queryByText(/raw AI context/i)).toBeNull();
-    expect(screen.getByText("No VirusTotal findings")).toBeTruthy();
+    expect(screen.getByText("未发现 VirusTotal 问题")).toBeTruthy();
   });
 
   it("keeps static analysis reports out of the public scanner report shell", () => {
@@ -1061,27 +1061,27 @@ describe("SecurityScanResults static guidance", () => {
 
     expect(screen.getByRole("heading", { name: "Pattern Guard" })).toBeTruthy();
     expect(
-      screen.getByText("Security checks across malware telemetry and agentic risk"),
+      screen.getByText("覆盖恶意软件遥测与智能体风险的安全检查"),
     ).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "概览" })).toBeTruthy();
     expect(screen.queryByText("Static analysis")).toBeNull();
     expect(screen.queryByText("Pattern checks found a network request.")).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Findings (1)" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "发现项（1）" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Network access" })).toBeNull();
     expect(screen.queryByText("suspicious.network_access")).toBeNull();
     expect(screen.queryByText("Network access found in skill instructions.")).toBeNull();
     expect(screen.queryByText("Location")).toBeNull();
     expect(screen.queryByText("SKILL.md:12")).toBeNull();
-    expect(screen.queryByText("Content")).toBeNull();
+    expect(screen.queryByText("内容")).toBeNull();
     expect(screen.queryByText("curl https://example.test")).toBeNull();
-    expect(screen.getByRole("heading", { name: "Security Audit Metadata" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "安全审计元数据" })).toBeTruthy();
     expect(screen.queryByText("Scanner verdict")).toBeNull();
     expect(screen.queryByText("Artifact")).toBeNull();
     expect(
       Array.from(container.querySelectorAll(".security-report-main > section h2")).map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(["Overview", "SkillSpector", "VirusTotal"]);
+    ).toEqual(["概览", "SkillSpector", "VirusTotal"]);
   });
 
   it("builds a security audit ZIP with scanner outcome files", () => {
@@ -1149,12 +1149,12 @@ describe("SecurityScanResults static guidance", () => {
 
     expect(screen.getByRole("heading", { name: "Plugin Guard" })).toBeTruthy();
     expect(
-      screen.getByText("Security checks across malware telemetry and agentic risk"),
+      screen.getByText("覆盖恶意软件遥测与智能体风险的安全检查"),
     ).toBeTruthy();
     expect(screen.getByText("Legacy plugin analysis summary.")).toBeTruthy();
     expect(screen.getByText("Legacy plugin guidance.")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Security Audit Metadata" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "概览" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "安全审计元数据" })).toBeTruthy();
     expect(screen.queryByText("[legacy.rule] expected: Legacy finding text.")).toBeNull();
     expect(screen.queryByText("Review Dimensions")).toBeNull();
     expect(screen.queryByText("Purpose & Capability")).toBeNull();
@@ -1176,15 +1176,15 @@ describe("SecurityScanResults static guidance", () => {
 
     expect(screen.getByRole("heading", { name: "Legacy Skill" })).toBeTruthy();
     expect(
-      screen.getByText("Security checks across malware telemetry and agentic risk"),
+      screen.getByText("覆盖恶意软件遥测与智能体风险的安全检查"),
     ).toBeTruthy();
     expect(screen.getByText("Legacy plugin analysis summary.")).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
-    expect(screen.getByRole("heading", { name: "Security Audit Metadata" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "概览" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "安全审计元数据" })).toBeTruthy();
     expect(screen.queryByText("Review Dimensions")).toBeNull();
     expect(screen.queryByText("Purpose & Capability")).toBeNull();
     expect(
-      container.querySelector('nav[aria-label="Breadcrumb"] a[href="/user/local"]'),
+      container.querySelector('nav[aria-label="面包屑"] a[href="/user/local"]'),
     ).toBeTruthy();
   });
 
@@ -1203,29 +1203,29 @@ describe("SecurityScanResults static guidance", () => {
 
     expect(screen.getByRole("heading", { name: "Pending Skill" })).toBeTruthy();
     expect(
-      screen.getByText("Security checks across malware telemetry and agentic risk"),
+      screen.getByText("覆盖恶意软件遥测与智能体风险的安全检查"),
     ).toBeTruthy();
-    expect(screen.getAllByText("Pending").length).toBeGreaterThan(0);
-    expect(screen.getByText("No risk analysis has been recorded yet.")).toBeTruthy();
+    expect(screen.getAllByText("待检测").length).toBeGreaterThan(0);
+    expect(screen.getByText("尚未记录风险分析。")).toBeTruthy();
     expect(
-      screen.getByText("VirusTotal findings are pending for this skill version."),
+      screen.getByText("该 Skill 版本的 VirusTotal 检查待完成。"),
     ).toBeTruthy();
     expect(screen.queryByText("Static analysis")).toBeNull();
     expect(screen.queryByText("Static analysis findings are pending for this release.")).toBeNull();
-    expect(screen.queryByText("No VirusTotal findings")).toBeNull();
+    expect(screen.queryByText("未发现 VirusTotal 问题")).toBeNull();
     expect(
       screen.queryByText("No static analysis findings were reported for this release."),
     ).toBeNull();
     expect(screen.queryByText("Review Dimensions")).toBeNull();
-    expect(screen.getByRole("heading", { name: "Overview" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "概览" })).toBeTruthy();
     expect(screen.getByRole("heading", { name: "SkillSpector" })).toBeTruthy();
-    expect(screen.getByText("SkillSpector findings are pending for this release.")).toBeTruthy();
+    expect(screen.getByText("该版本的 SkillSpector 检查待完成。")).toBeTruthy();
     expect(screen.queryByText("Prompt Injection")).toBeNull();
-    expect(screen.queryByRole("heading", { name: "Risk analysis" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "风险分析" })).toBeNull();
     expect(
       screen.queryByText("No visible risk-analysis findings were reported for this release."),
     ).toBeNull();
-    expect(screen.getByRole("heading", { name: "Security Audit Metadata" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "安全审计元数据" })).toBeTruthy();
   });
 
   it("shows only legacy Risk analysis when legacy agentic-risk findings exist without SkillSpector", () => {
@@ -1242,7 +1242,7 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Risk analysis" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "风险分析" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "SkillSpector" })).toBeNull();
     expect(
       screen.queryByText(/Legacy ClawScan findings remain available under Risk analysis/i),
@@ -1251,7 +1251,7 @@ describe("SecurityScanResults static guidance", () => {
       Array.from(container.querySelectorAll(".security-report-main > section h2")).map((node) =>
         node.textContent?.trim(),
       ),
-    ).toEqual(["Overview", "VirusTotal", "Risk analysis"]);
+    ).toEqual(["概览", "VirusTotal", "风险分析"]);
   });
 
   it("lets skill managers enqueue a security rescan from the audit sidebar", async () => {
@@ -1271,11 +1271,11 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Download security audit" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Rescan" }));
+    expect(screen.getByRole("button", { name: "下载安全审计" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "重新扫描" }));
 
     await waitFor(() => expect(requestRescan).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole("button", { name: "Scanning" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "扫描中" })).toHaveProperty("disabled", true);
   });
 
   it("hides security audit downloads when rescans are not available", () => {
@@ -1291,8 +1291,8 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Rescan" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Download security audit" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "重新扫描" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "下载安全审计" })).toBeNull();
   });
 
   it("lets plugin managers use the shared security rescan control", async () => {
@@ -1312,9 +1312,9 @@ describe("SecurityScanResults static guidance", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Rescan" }));
+    fireEvent.click(screen.getByRole("button", { name: "重新扫描" }));
 
     await waitFor(() => expect(requestRescan).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole("button", { name: "Scanning" })).toHaveProperty("disabled", true);
+    expect(screen.getByRole("button", { name: "扫描中" })).toHaveProperty("disabled", true);
   });
 });

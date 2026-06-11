@@ -65,7 +65,7 @@ type SecurityAuditPageProps = {
 const EMPTY_SKILLSPECTOR_ISSUES: SkillSpectorIssue[] = [];
 const SKILLSPECTOR_VISIBLE_CHECK_LIMIT = 5;
 const RISK_ANALYSIS_SCOPE_COPY =
-  "ClawHub reviews SkillSpector, VirusTotal, and artifact evidence before producing the final verdict.";
+  "ClawHub 在给出最终结论前会综合 SkillSpector、VirusTotal 与制品证据。";
 const SKILLSPECTOR_CLEAN_CHECKS = [
   {
     category: "Prompt Injection",
@@ -264,7 +264,7 @@ const UTC_MONTH_LABELS = [
 ] as const;
 
 function formatTime(value?: number | null) {
-  if (!value) return "Not checked yet";
+  if (!value) return "尚未检查";
   const date = new Date(value);
   const hour = date.getUTCHours();
   const hour12 = hour % 12 || 12;
@@ -292,14 +292,14 @@ function SecurityAuditHero({ props }: { props: SecurityAuditPageProps }) {
 
   return (
     <header className="security-scan-hero">
-      <nav className="skill-hero-breadcrumbs" aria-label="Breadcrumb">
+      <nav className="skill-hero-breadcrumbs" aria-label="面包屑">
         <a href={`/${listingLabel}`}>{listingLabel}</a>
         <span aria-hidden="true">/</span>
         <a href={ownerHref}>{ownerLabel}</a>
         <span aria-hidden="true">/</span>
         <a href={props.entity.detailPath}>{props.entity.name}</a>
         <span aria-hidden="true">/</span>
-        <span>Security Audit</span>
+        <span>安全审计</span>
       </nav>
       <div className="security-scan-hero-heading">
         <h1 className="skill-page-title">{props.entity.title}</h1>
@@ -315,8 +315,8 @@ function getVirusTotalEngineStats(analysis?: VtAnalysis | null) {
 
 function joinReadableClauses(clauses: string[]) {
   if (clauses.length <= 1) return clauses[0] ?? "";
-  if (clauses.length === 2) return `${clauses[0]}, and ${clauses[1]}`;
-  return `${clauses.slice(0, -1).join(", ")}, and ${clauses.at(-1)}`;
+  if (clauses.length === 2) return `${clauses[0]}，${clauses[1]}`;
+  return `${clauses.slice(0, -1).join("，")}，${clauses.at(-1)}`;
 }
 
 function hasNonEngineVirusTotalSource(analysis?: VtAnalysis | null) {
@@ -329,15 +329,15 @@ function hasNonEngineVirusTotalSource(analysis?: VtAnalysis | null) {
 }
 
 function getArtifactKindLabel(entity: EntityRef) {
-  return entity.kind === "plugin" ? "plugin" : "skill";
+  return entity.kind === "plugin" ? "Plugin" : "Skill";
 }
 
 function getVirusTotalNoFindingsCopy(_entity: EntityRef) {
-  return "No VirusTotal findings";
+  return "未发现 VirusTotal 问题";
 }
 
 function getVirusTotalPendingCopy(entity: EntityRef) {
-  return `VirusTotal findings are pending for this ${getArtifactKindLabel(entity)} version.`;
+  return `该 ${getArtifactKindLabel(entity)} 版本的 VirusTotal 检查待完成。`;
 }
 
 function getVirusTotalEngineOverview(analysis: VtAnalysis | null | undefined, entity: EntityRef) {
@@ -357,30 +357,30 @@ function getVirusTotalEngineOverview(analysis: VtAnalysis | null | undefined, en
       stats.undetected !== undefined;
     const firstCountLabel = (count: number) =>
       hasFullEngineStats
-        ? `${count}/${total} vendors`
-        : `${count} ${count === 1 ? "vendor" : "vendors"}`;
+        ? `${count}/${total} 家厂商`
+        : `${count} 家厂商`;
     const followupCountLabel = (count: number) =>
-      hasFullEngineStats ? `${count}/${total}` : `${count} ${count === 1 ? "vendor" : "vendors"}`;
+      hasFullEngineStats ? `${count}/${total}` : `${count} 家厂商`;
 
     if (malicious === 0 && suspicious === 0) {
-      return `${firstCountLabel(clean)} flagged this ${artifactKind} as clean.`;
+      return `${firstCountLabel(clean)}将此 ${artifactKind} 标记为安全。`;
     }
 
     const clauses: string[] = [];
     if (malicious > 0) {
-      clauses.push(`${firstCountLabel(malicious)} flagged this ${artifactKind} as malicious`);
+      clauses.push(`${firstCountLabel(malicious)}将此 ${artifactKind} 标记为恶意`);
     }
     if (suspicious > 0) {
       clauses.push(
         clauses.length === 0
-          ? `${firstCountLabel(suspicious)} flagged this ${artifactKind} as suspicious`
-          : `${followupCountLabel(suspicious)} flagged it as suspicious`,
+          ? `${firstCountLabel(suspicious)}将此 ${artifactKind} 标记为可疑`
+          : `${followupCountLabel(suspicious)}将其标记为可疑`,
       );
     }
     if (clean > 0) {
-      clauses.push(`${followupCountLabel(clean)} flagged it as clean`);
+      clauses.push(`${followupCountLabel(clean)}将其标记为安全`);
     }
-    return `${joinReadableClauses(clauses)}.`;
+    return `${joinReadableClauses(clauses)}。`;
   }
 
   if (hasNonEngineVirusTotalSource(analysis)) {
@@ -396,7 +396,7 @@ function getVirusTotalEngineOverview(analysis: VtAnalysis | null | undefined, en
     return getVirusTotalNoFindingsCopy(entity);
   }
   if (status && !["loading", "not_found", "pending"].includes(status)) {
-    return `VirusTotal engine telemetry is currently ${status} for this artifact.`;
+    return `VirusTotal 引擎遥测对此制品当前为 ${status}。`;
   }
 
   return null;
@@ -415,7 +415,7 @@ function SecurityAuditOverview(props: SecurityAuditPageProps) {
     >
       <div className="security-report-panel-header">
         <h2 id="overview-heading" className="skill-install-panel-title">
-          Overview
+          概览
         </h2>
       </div>
       <div className="security-report-overview-body">
@@ -455,7 +455,7 @@ function VirusTotalSection(props: SecurityAuditPageProps) {
           rel="noopener noreferrer"
           className="security-audit-external-link"
         >
-          View on VirusTotal
+          在 VirusTotal 查看
           <ExternalLink className="h-3 w-3" aria-hidden="true" />
         </a>
       ) : null}
@@ -474,7 +474,7 @@ function SkillSpectorSection(props: SecurityAuditPageProps) {
   const issueCount = getSkillSpectorIssueCount(analysis);
   const storedIssueCount = analysis?.issues.length ?? 0;
   const hasHiddenFindings = issueCount > storedIssueCount;
-  const findingsTitle = issueCount > 0 ? `Findings (${issueCount})` : "Findings";
+  const findingsTitle = issueCount > 0 ? `发现项（${issueCount}）` : "发现项";
   const status = analysis?.status?.trim().toLowerCase();
   const showChecks = Boolean(
     analysis && !["error", "failed", "loading", "not_found", "pending"].includes(status ?? ""),
@@ -525,8 +525,8 @@ function SkillSpectorChecks({
   const remainingCount = sortedChecks.length - SKILLSPECTOR_VISIBLE_CHECK_LIMIT;
 
   return (
-    <div className="skillspector-checks" aria-label="SkillSpector checks">
-      <div className="skillspector-subsection-title">Vulnerability Patterns</div>
+    <div className="skillspector-checks" aria-label="SkillSpector 检查项">
+      <div className="skillspector-subsection-title">漏洞模式</div>
       <ul className="skillspector-checks-list">
         {visibleChecks.map((check) => {
           const isFlagged = flaggedCategories.has(check.category);
@@ -553,7 +553,7 @@ function SkillSpectorChecks({
           className="skillspector-checks-toggle"
           onClick={() => setIsExpanded((value) => !value)}
         >
-          {isExpanded ? "Show less" : `Show ${remainingCount} more`}
+          {isExpanded ? "收起" : `展开其余 ${remainingCount} 项`}
         </button>
       ) : null}
     </div>
@@ -562,14 +562,14 @@ function SkillSpectorChecks({
 
 function SkillSpectorAttribution() {
   return (
-    <div className="skillspector-attribution" aria-label="By NVIDIA">
+    <div className="skillspector-attribution" aria-label="由 NVIDIA 提供">
       <img
         className="skillspector-nvidia-mark"
         src="https://www.nvidia.com/favicon.ico"
         alt=""
         aria-hidden="true"
       />
-      <span>By NVIDIA</span>
+      <span>由 NVIDIA 提供</span>
     </div>
   );
 }
@@ -772,7 +772,7 @@ function SecurityAuditSidebar(props: SecurityAuditPageProps) {
 
   const versionValue = (
     <div className="security-audit-version-stack">
-      <span>{props.entity.version ?? "Latest"}</span>
+      <span>{props.entity.version ?? "最新"}</span>
       {showRescanButton ? (
         <>
           <Button
@@ -782,26 +782,26 @@ function SecurityAuditSidebar(props: SecurityAuditPageProps) {
             onClick={() => void requestRescan()}
             disabled={isRescanBusy}
             loading={isRescanBusy}
-            aria-label={isRescanBusy ? "Scanning" : "Rescan"}
+            aria-label={isRescanBusy ? "扫描中" : "重新扫描"}
           >
             {!isRescanBusy ? (
               <RefreshCw className="security-audit-rescan-icon" aria-hidden="true" />
             ) : null}
-            <span>{isRescanBusy ? "Scanning" : "Rescan"}</span>
+            <span>{isRescanBusy ? "扫描中" : "重新扫描"}</span>
           </Button>
           <Button
             type="button"
             variant="outline"
             className="skill-sidebar-action-button security-audit-download-button"
             onClick={downloadAuditExport}
-            aria-label="Download security audit"
+            aria-label="下载安全审计"
           >
             <Download className="security-audit-action-icon" aria-hidden="true" />
-            <span>Download</span>
+            <span>下载</span>
           </Button>
           {rescanState === "error" ? (
             <span className="security-audit-rescan-error" role="status">
-              Rescan could not be queued.
+              无法加入重新扫描队列。
             </span>
           ) : null}
         </>
@@ -811,15 +811,15 @@ function SecurityAuditSidebar(props: SecurityAuditPageProps) {
 
   return (
     <SidebarMetadata
-      ariaLabel="Security audit metadata"
+      ariaLabel="安全审计元数据"
       density="compact"
       blocks={[
         {
-          label: "Outcome",
+          label: "结论",
           value: <ScanResultBadge status={verdict} />,
         },
         {
-          label: "Latest audit",
+          label: "最近审计",
           value: (
             <span className="sidebar-metadata-inline">
               <Clock className="h-3.5 w-3.5" aria-hidden="true" />
@@ -827,7 +827,7 @@ function SecurityAuditSidebar(props: SecurityAuditPageProps) {
             </span>
           ),
         },
-        { label: "Version", value: versionValue },
+        { label: "版本", value: versionValue },
       ]}
     />
   );
@@ -849,8 +849,8 @@ export function SecurityAuditPage(props: SecurityAuditPageProps) {
             ))}
           </div>
 
-          <aside className="security-report-sidebar" aria-label="Security audit metadata">
-            <h2 className="sr-only">Security Audit Metadata</h2>
+          <aside className="security-report-sidebar" aria-label="安全审计元数据">
+            <h2 className="sr-only">安全审计元数据</h2>
             <SecurityAuditSidebar {...props} />
           </aside>
         </div>
@@ -865,7 +865,7 @@ export function SecurityAuditPageSkeleton() {
       <div
         className="security-report-shell security-scanner-skeleton"
         role="status"
-        aria-label="Loading security audit"
+        aria-label="正在加载安全审计"
         aria-busy="true"
       >
         <header className="security-scan-hero">
@@ -907,7 +907,7 @@ export function SecurityAuditPageSkeleton() {
             ))}
           </div>
 
-          <aside className="security-report-sidebar" aria-label="Security audit metadata">
+          <aside className="security-report-sidebar" aria-label="安全审计元数据">
             <div className="sidebar-metadata sidebar-metadata-compact">
               <div className="sidebar-metadata-row">
                 <Skeleton className="h-3 w-16" />

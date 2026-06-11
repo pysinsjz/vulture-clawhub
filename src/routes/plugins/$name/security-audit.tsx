@@ -67,11 +67,11 @@ export function pluginSecurityAuditHead(name: string, loaderData?: PluginSecurit
   return {
     meta: [
       {
-        title: `Security audit · ${loaderData?.detail.package?.displayName ?? name}`,
+        title: `安全审计 · ${loaderData?.detail.package?.displayName ?? name}`,
       },
       {
         name: "description",
-        content: `Security audit details for ${loaderData?.detail.package?.displayName ?? name}.`,
+        content: `${loaderData?.detail.package?.displayName ?? name} 的安全审计详情。`,
       },
     ],
   };
@@ -120,7 +120,7 @@ export function PluginSecurityAuditPage({
   if (rateLimited) {
     return (
       <main className="section">
-        <div className="card">Plugin security audit is temporarily unavailable.</div>
+        <div className="card">Plugin 安全审计暂时不可用。</div>
       </main>
     );
   }
@@ -128,7 +128,7 @@ export function PluginSecurityAuditPage({
   if (!pkg || !release) {
     return (
       <main className="section">
-        <div className="card">Security audit is unavailable for this plugin.</div>
+        <div className="card">此 Plugin 暂无安全审计。</div>
       </main>
     );
   }

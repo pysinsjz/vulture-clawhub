@@ -222,7 +222,7 @@ describe("SkillDetailPage", () => {
       />,
     );
 
-    expect(await screen.findByText("Pending")).toBeTruthy();
+    expect(await screen.findByText("待检测")).toBeTruthy();
     expect(screen.getByText("安全审计")).toBeTruthy();
     expect(screen.queryByText("Loading README...")).toBeNull();
   });
@@ -819,12 +819,12 @@ describe("SkillDetailPage", () => {
     expect(securityAuditLabelIndex).toBe(sidebarLabels.indexOf("发布者") + 1);
     expect(
       screen.getByRole("button", {
-        name: "Security checks across malware telemetry and agentic risk",
+        name: "覆盖恶意软件遥测与智能体风险的安全检查",
       }),
     ).toBeTruthy();
-    expect(screen.queryByText("No risk analysis has been recorded yet.")).toBeNull();
+    expect(screen.queryByText("尚未记录风险分析。")).toBeNull();
     expect(screen.queryByText(/Like a lobster shell, security has layers/i)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Rescan" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "重新扫描" })).toBeNull();
 
     const installHeading = screen.getAllByRole("heading", { name: "安装" })[0];
     const filesTab = screen.getByRole("tab", { name: "文件" });
@@ -928,7 +928,7 @@ describe("SkillDetailPage", () => {
     );
 
     await screen.findByText("安全审计");
-    expect(screen.getByText("Cleared")).toBeTruthy();
+    expect(screen.getByText("已放行")).toBeTruthy();
     expect(screen.getByRole("link", { name: "查看安全审计" })).toBeTruthy();
     expect(screen.queryByText(/reviewed by staff and cleared/i)).toBeNull();
     expect(screen.queryByRole("link", { name: /Suspicious/i })).toBeNull();
@@ -1007,7 +1007,7 @@ describe("SkillDetailPage", () => {
     expect(screen.queryByText("Publish a new version")).toBeNull();
     expect(screen.queryByRole("link", { name: "New Version" })).toBeNull();
     expect(screen.queryByText(/request security/i)).toBeNull();
-    expect(screen.queryByRole("button", { name: "Rescan" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "重新扫描" })).toBeNull();
     expect(screen.queryByText(/rescans/i)).toBeNull();
   });
 

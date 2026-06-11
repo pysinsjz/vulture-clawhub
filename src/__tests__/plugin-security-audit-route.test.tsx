@@ -61,8 +61,8 @@ describe("plugin security audit route", () => {
 
     render(<PluginSecurityAuditPage name="demo-plugin" loaderData={makeLoaderData() as never} />);
 
-    expect(screen.getByRole("button", { name: "Download security audit" })).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "Rescan" }));
+    expect(screen.getByRole("button", { name: "下载安全审计" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "重新扫描" }));
 
     await waitFor(() =>
       expect(requestRescan).toHaveBeenCalledWith({
@@ -77,7 +77,7 @@ describe("plugin security audit route", () => {
 
     render(<PluginSecurityAuditPage name="demo-plugin" loaderData={makeLoaderData() as never} />);
 
-    expect(screen.queryByRole("button", { name: "Rescan" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Download security audit" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "重新扫描" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "下载安全审计" })).toBeNull();
   });
 });

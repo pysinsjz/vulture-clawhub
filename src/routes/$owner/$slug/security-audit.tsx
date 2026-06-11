@@ -50,10 +50,10 @@ export const Route = createFileRoute("/$owner/$slug/security-audit")({
     });
     return {
       meta: [
-        { title: `Security audit · ${meta.title}` },
+        { title: `安全审计 · ${meta.title}` },
         {
           name: "description",
-          content: `Security audit details for ${loaderData?.displayName ?? params.slug}.`,
+          content: `${loaderData?.displayName ?? params.slug} 的安全审计详情。`,
         },
       ],
     };
@@ -81,7 +81,7 @@ function SkillSecurityAuditRoute() {
   if (!skill || !latestVersion) {
     return (
       <main className="section">
-        <div className="card">Security audit is unavailable for this skill.</div>
+        <div className="card">此 Skill 暂无安全审计。</div>
       </main>
     );
   }

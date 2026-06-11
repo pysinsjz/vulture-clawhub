@@ -19,7 +19,7 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Pass")).toBeTruthy();
+    expect(screen.getByText("通过")).toBeTruthy();
     const auditLink = screen.getByRole("link", { name: "查看安全审计" });
     expect(auditLink.getAttribute("href")).toBe("/steipete/weather/security-audit");
     expect(auditLink.getAttribute("target")).toBeNull();
@@ -30,7 +30,7 @@ describe("DetailSecuritySummary", () => {
     expect(screen.queryByText("Install from publishers you trust.")).toBeNull();
     expect(screen.queryByRole("link", { name: /VirusTotal/i })).toBeNull();
     expect(
-      screen.queryByText("Security checks across malware telemetry and agentic risk"),
+      screen.queryByText("覆盖恶意软件遥测与智能体风险的安全检查"),
     ).toBeNull();
     expect(document.querySelector(".security-audit-meter")?.getAttribute("data-level")).toBe("4");
     expect(document.querySelectorAll(".security-audit-meter span")).toHaveLength(4);
@@ -44,7 +44,7 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Pending")).toBeTruthy();
+    expect(screen.getByText("待检测")).toBeTruthy();
     expect(document.querySelector(".security-audit-meter")?.getAttribute("data-level")).toBe("0");
   });
 
@@ -58,8 +58,8 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Cleared")).toBeTruthy();
-    expect(screen.queryByText("Warn")).toBeNull();
+    expect(screen.getByText("已放行")).toBeTruthy();
+    expect(screen.queryByText("警告")).toBeNull();
   });
 
   it("rolls ClawScan review and warning states into the compact verdict", () => {
@@ -93,7 +93,7 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getAllByText("Review").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("待复核").length).toBeGreaterThan(0);
 
     rerender(
       <DetailSecuritySummary
@@ -125,7 +125,7 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getAllByText("Warn").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("警告").length).toBeGreaterThan(0);
     expect(screen.queryByText("Suspicious")).toBeNull();
   });
 
@@ -138,7 +138,7 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Pass")).toBeTruthy();
+    expect(screen.getByText("通过")).toBeTruthy();
     expect(screen.queryByText("Benign")).toBeNull();
     expect(document.querySelector(".security-audit-meter")?.getAttribute("data-level")).toBe("4");
   });
@@ -157,7 +157,7 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Malicious")).toBeTruthy();
+    expect(screen.getByText("恶意")).toBeTruthy();
     expect(document.querySelector(".security-audit-meter")?.getAttribute("data-level")).toBe("1");
   });
 
@@ -176,9 +176,9 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Pass")).toBeTruthy();
-    expect(screen.queryByText("Advisory")).toBeNull();
-    expect(screen.queryByText("Warn")).toBeNull();
+    expect(screen.getByText("通过")).toBeTruthy();
+    expect(screen.queryByText("提示")).toBeNull();
+    expect(screen.queryByText("警告")).toBeNull();
   });
 
   it("renders legacy VirusTotal AI fields without engine stats as neutral", () => {
@@ -196,8 +196,8 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Pass")).toBeTruthy();
-    expect(screen.queryByText("Warn")).toBeNull();
+    expect(screen.getByText("通过")).toBeTruthy();
+    expect(screen.queryByText("警告")).toBeNull();
   });
 
   it("renders VirusTotal undetected-only fallback as pass", () => {
@@ -216,7 +216,7 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Pass")).toBeTruthy();
+    expect(screen.getByText("通过")).toBeTruthy();
     expect(screen.queryByText("undetected-only-fallback")).toBeNull();
   });
 
@@ -229,9 +229,9 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Pass")).toBeTruthy();
-    expect(screen.queryByText("Review")).toBeNull();
-    expect(screen.queryByText("Warn")).toBeNull();
+    expect(screen.getByText("通过")).toBeTruthy();
+    expect(screen.queryByText("待复核")).toBeNull();
+    expect(screen.queryByText("警告")).toBeNull();
   });
 
   it("does not let supporting scanner operational errors drive the compact verdict", () => {
@@ -243,8 +243,8 @@ describe("DetailSecuritySummary", () => {
       />,
     );
 
-    expect(screen.getByText("Pass")).toBeTruthy();
-    expect(screen.queryByText("Error")).toBeNull();
-    expect(screen.queryByText("Malicious")).toBeNull();
+    expect(screen.getByText("通过")).toBeTruthy();
+    expect(screen.queryByText("错误")).toBeNull();
+    expect(screen.queryByText("恶意")).toBeNull();
   });
 });
