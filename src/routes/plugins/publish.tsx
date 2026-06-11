@@ -24,6 +24,13 @@ import { Button } from "../../components/ui/button";
 import { Card } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import { Textarea } from "../../components/ui/textarea";
 import { VersionInput } from "../../components/VersionInput";
 import {
@@ -41,7 +48,10 @@ export const Route = createFileRoute("/plugins/publish")({
     ownerHandle: typeof search.ownerHandle === "string" ? search.ownerHandle : undefined,
     name: typeof search.name === "string" ? search.name : undefined,
     displayName: typeof search.displayName === "string" ? search.displayName : undefined,
-    family: search.family === "code-plugin" ? search.family : undefined,
+    family:
+      search.family === "code-plugin" || search.family === "bundle-plugin"
+        ? search.family
+        : undefined,
     nextVersion: typeof search.nextVersion === "string" ? search.nextVersion : undefined,
   }),
   component: PublishPluginRoute,
@@ -194,7 +204,9 @@ export function PublishPluginRoute() {
     return blockers;
   }, [isMetadataLocked, name, version]);
   const hasPackageBlocker =
-    Boolean(validationError) || Boolean(ownerScopeError) || codePluginFieldIssues.length > 0;
+    Boolean(validationError) ||
+    Boolean(ownerScopeError) ||
+    (family === "code-plugin" && codePluginFieldIssues.length > 0);
   const hasPublished = status?.startsWith("已发布。") ?? false;
   const isPublishDisabled =
     !isAuthenticated ||
@@ -209,7 +221,7 @@ export function PublishPluginRoute() {
     if (isMetadataLocked) return "请补全 Plugin 文件后发布。";
     if (validationError) return `请修复：${validationError}`;
     if (ownerScopeError) return `请修复：${ownerScopeError}`;
-    if (codePluginFieldIssues.length > 0) {
+    if (family === "code-plugin" && codePluginFieldIssues.length > 0) {
       return `请修复包元数据：${formatInlineList(codePluginFieldIssues)}。`;
     }
     const missing = submitBlockers.flatMap(missingPluginPublishLabel);
@@ -220,6 +232,7 @@ export function PublishPluginRoute() {
     return null;
   }, [
     codePluginFieldIssues,
+    family,
     isAuthenticated,
     isMetadataLocked,
     isSubmitting,
@@ -245,7 +258,7 @@ export function PublishPluginRoute() {
     const prefill = await derivePluginPrefill(normalized);
     setDetectedPrefillFields(listPrefilledFields(prefill));
     setCodePluginFieldIssues(prefill.missingRequiredFields ?? []);
-    if (prefill.family === "code-plugin") setFamily(prefill.family);
+    if (prefill.family) setFamily(prefill.family);
     if (prefill.name) setName(prefill.name);
     if (prefill.displayName) setDisplayName(prefill.displayName);
     if (prefill.version) setVersion(prefill.version);
@@ -393,12 +406,23 @@ export function PublishPluginRoute() {
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="pluginFamily">包类型</Label>
-                  <div
-                    id="pluginFamily"
-                    className="min-h-[44px] w-full rounded-[var(--radius-sm)] border border-[rgba(29,59,78,0.22)] bg-[rgba(255,255,255,0.94)] px-3.5 py-[13px] text-sm text-[color:var(--ink)] dark:border-[rgba(255,255,255,0.12)] dark:bg-[rgba(14,28,37,0.84)]"
+                  <Select
+                    value={family}
+                    disabled={metadataDisabled}
+                    onValueChange={(value) => {
+                      if (value === "code-plugin" || value === "bundle-plugin") {
+                        setFamily(value);
+                      }
+                    }}
                   >
-                    {family === "code-plugin" ? "代码插件" : "捆绑插件"}
-                  </div>
+                    <SelectTrigger id="pluginFamily" className="min-h-[44px] w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="code-plugin">代码插件</SelectItem>
+                      <SelectItem value="bundle-plugin">捆绑插件</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="pluginOwner">所有者</Label>

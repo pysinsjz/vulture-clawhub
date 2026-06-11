@@ -437,7 +437,7 @@ describe("plugins publish route", () => {
     expect(summaryBorders.length).toBe(0);
   });
 
-  it("does not expose the staged bundle plugin publish mode", async () => {
+  it("detects bundle packages and exposes the package family selector", async () => {
     renderPublishRoute();
 
     const packageJson = withRelativePath(
@@ -475,10 +475,9 @@ describe("plugins publish route", () => {
       expect(screen.getByDisplayValue("demo-bundle")).toBeTruthy();
       expect(screen.getByDisplayValue("Demo Bundle")).toBeTruthy();
       expect(screen.getByDisplayValue("0.4.0")).toBeTruthy();
-      expect(screen.getByText("代码插件")).toBeTruthy();
-      expect(screen.queryByText("捆绑插件")).toBeNull();
+      expect(screen.getAllByText("捆绑插件").length).toBeGreaterThan(0);
       expect(screen.getByText("Agent 元数据")).toBeTruthy();
-      expect(screen.queryByPlaceholderText("捆绑格式")).toBeNull();
+      expect(screen.getByPlaceholderText("捆绑格式")).toBeTruthy();
       expect(screen.getByText(/替换包/)).toBeTruthy();
       expect(screen.getByText(/清空包/)).toBeTruthy();
     });
