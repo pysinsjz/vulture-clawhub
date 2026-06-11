@@ -2,85 +2,576 @@
   "openapi": "3.0.3",
   "info": {
     "title": "VultureHub REST API",
-    "version": "1.0.0",
-    "description": "内网注册中心的 REST API（`/api/v1/*`，由 Convex HTTP Actions 提供）。\n\n- 本文档手工维护，覆盖核心端点；完整端点清单见 `packages/schema/src/routes.ts`。\n- 需要认证的端点使用 `Authorization: Bearer <API Token>`；内网部署下未带 token 的请求回退为 system 身份。\n- 另有自动生成的 **Convex 函数 API** 文档（`/api/run/*`），见页面顶部切换。"
+    "version": "1.1.0",
+    "description": "内网注册中心的 REST API（`/api/v1/*`，由 Convex HTTP Actions 提供）。\n\n- 本文档手工维护，覆盖核心端点；完整端点清单见 `packages/schema/src/routes.ts`。\n- 需要认证的端点使用 `Authorization: Bearer <API Token>`；内网部署下未带 token 的请求回退为 system 身份。\n- 所有端点均有速率限制，响应附带 `X-RateLimit-Limit` / `X-RateLimit-Remaining` / `X-RateLimit-Reset` 头。\n- 错误响应一律为 `text/plain` 纯文本消息（不是 JSON）。\n- 时间戳字段统一为 Unix 毫秒。\n- 另有自动生成的 **Convex 函数 API** 文档（`/api/run/*`），见页面顶部切换。"
   },
   "servers": [],
   "tags": [
-    { "name": "skills", "description": "Skill 搜索、列表、详情与发布" },
-    { "name": "packages", "description": "Plugin/Package 列表与发布" },
+    { "name": "skills", "description": "Skill 搜索、列表、详情、发布、下载与导出" },
+    { "name": "packages", "description": "Plugin/Package 列表、详情与发布" },
     { "name": "misc", "description": "身份与杂项" }
   ],
   "components": {
     "securitySchemes": {
-      "bearerAuth": { "type": "http", "scheme": "bearer", "description": "API Token" }
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API Token。内网部署下未带 token 的请求回退为 system 身份。"
+      }
+    },
+    "parameters": {
+      "PkgLimit": {
+        "name": "limit",
+        "in": "query",
+        "schema": { "type": "integer", "default": 25, "minimum": 1, "maximum": 100 },
+        "description": "每页条数，默认 25，自动收敛到 1–100 区间"
+      },
+      "PkgCursor": {
+        "name": "cursor",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "分页游标，取上一页响应的 nextCursor；首页不传"
+      },
+      "PkgChannel": {
+        "name": "channel",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["official", "community", "private"] },
+        "description": "按发布频道过滤：official（官方）/ community（社区）/ private（私有）"
+      },
+      "PkgIsOfficial": {
+        "name": "isOfficial",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "按官方标记过滤；接受 true/false/1/0"
+      },
+      "PkgFeatured": {
+        "name": "featured",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "仅精选条目；与 highlightedOnly 任一为 true 即生效"
+      },
+      "PkgHighlightedOnly": {
+        "name": "highlightedOnly",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "仅精选条目（featured 的同义参数）"
+      },
+      "PkgExecutesCode": {
+        "name": "executesCode",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "按「是否执行代码」过滤（code-plugin 通常为 true）"
+      },
+      "PkgSort": {
+        "name": "sort",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["updated", "downloads"] },
+        "description": "排序方式：updated（最近更新，默认）/ downloads（下载量）；非法值返回 400"
+      },
+      "PkgCategory": {
+        "name": "category",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "插件分类 slug 过滤。仅插件类端点可用；对包含 skill 的端点使用会返回 400"
+      },
+      "PkgCapabilityTag": {
+        "name": "capabilityTag",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "按能力标签精确过滤（如 `host:node`、`requires:browser`）。能力过滤参数同一请求只生效一个，按优先级取第一个命中：capabilityTag > target > os > arch > libc > externalService > binary > osPermission > artifactKind > npmMirror > requiresBrowser > requiresDesktop > requiresNativeDeps > requiresExternalService > requiresBinary > requiresOsPermission > environmentDeclared"
+      },
+      "PkgTarget": {
+        "name": "target",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "便捷能力过滤：宿主目标，规范化为 `host:<值>` 标签（别名 hostTarget）"
+      },
+      "PkgOs": {
+        "name": "os",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "便捷能力过滤：操作系统，规范化为 `host-os:<值>` 标签"
+      },
+      "PkgArch": {
+        "name": "arch",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "便捷能力过滤：CPU 架构，规范化为 `host-arch:<值>` 标签"
+      },
+      "PkgLibc": {
+        "name": "libc",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "便捷能力过滤：libc 实现，规范化为 `host-libc:<值>` 标签"
+      },
+      "PkgExternalService": {
+        "name": "externalService",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "便捷能力过滤：依赖的外部服务，规范化为 `external-service:<值>` 标签"
+      },
+      "PkgBinary": {
+        "name": "binary",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "便捷能力过滤：依赖的二进制，规范化为 `binary:<值>` 标签"
+      },
+      "PkgOsPermission": {
+        "name": "osPermission",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "便捷能力过滤：所需系统权限，规范化为 `os-permission:<值>` 标签"
+      },
+      "PkgArtifactKind": {
+        "name": "artifactKind",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["legacy-zip", "npm-pack"] },
+        "description": "按制品类型过滤：legacy-zip（旧版 ZIP）/ npm-pack（ClawPack tgz）；其它值返回 400"
+      },
+      "PkgNpmMirror": {
+        "name": "npmMirror",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "为 true 时仅返回 npm 镜像可用（`npm-mirror:available`）的包"
+      },
+      "PkgRequiresBrowser": {
+        "name": "requiresBrowser",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "为 true 时仅返回需要浏览器环境（`requires:browser`）的包"
+      },
+      "PkgRequiresDesktop": {
+        "name": "requiresDesktop",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "为 true 时仅返回需要桌面环境（`requires:desktop`）的包"
+      },
+      "PkgRequiresNativeDeps": {
+        "name": "requiresNativeDeps",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "为 true 时仅返回需要原生依赖（`requires:native-deps`）的包；别名 nativeDeps"
+      },
+      "PkgRequiresExternalService": {
+        "name": "requiresExternalService",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "为 true 时仅返回依赖外部服务（`requires:external-service`）的包"
+      },
+      "PkgRequiresBinary": {
+        "name": "requiresBinary",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "为 true 时仅返回依赖外部二进制（`requires:binary`）的包"
+      },
+      "PkgRequiresOsPermission": {
+        "name": "requiresOsPermission",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "为 true 时仅返回需要系统权限（`requires:os-permission`）的包"
+      },
+      "PkgEnvironmentDeclared": {
+        "name": "environmentDeclared",
+        "in": "query",
+        "schema": { "type": "boolean" },
+        "description": "为 true 时仅返回已声明运行环境元数据（`environment:declared`）的包"
+      }
     },
     "schemas": {
+      "OwnerInfo": {
+        "type": "object",
+        "description": "所有者公开信息",
+        "properties": {
+          "handle": { "type": "string", "nullable": true, "description": "所有者 handle（@ 之后的部分）" },
+          "displayName": { "type": "string", "nullable": true, "description": "所有者显示名" },
+          "image": { "type": "string", "nullable": true, "description": "头像 URL" }
+        }
+      },
       "SearchResult": {
         "type": "object",
+        "description": "单条搜索结果",
         "properties": {
-          "score": { "type": "number" },
-          "slug": { "type": "string" },
-          "displayName": { "type": "string" },
-          "summary": { "type": "string", "nullable": true },
-          "version": { "type": "string", "nullable": true },
-          "updatedAt": { "type": "number", "description": "Unix 毫秒时间戳" }
+          "score": { "type": "number", "description": "相关性得分，越大越靠前（词法/前缀匹配 + 热度加权）" },
+          "slug": { "type": "string", "description": "Skill 唯一标识（小写）" },
+          "displayName": { "type": "string", "description": "显示名称" },
+          "summary": { "type": "string", "nullable": true, "description": "一句话简介；未填写时为 null" },
+          "version": { "type": "string", "nullable": true, "description": "匹配到的版本号；无可用版本时为 null" },
+          "updatedAt": { "type": "number", "description": "最后更新时间（Unix 毫秒）" },
+          "ownerHandle": { "type": "string", "nullable": true, "description": "所有者 handle，便于直接展示" },
+          "owner": {
+            "allOf": [{ "$ref": "#/components/schemas/OwnerInfo" }],
+            "nullable": true,
+            "description": "所有者信息；无法解析时为 null"
+          }
+        }
+      },
+      "SkillLatestVersion": {
+        "type": "object",
+        "description": "最新版本概要",
+        "properties": {
+          "version": { "type": "string", "description": "版本号（semver）" },
+          "createdAt": { "type": "number", "description": "版本发布时间（Unix 毫秒）" },
+          "changelog": { "type": "string", "description": "版本变更说明" },
+          "license": { "type": "string", "nullable": true, "description": "许可证标识；当前仅 \"MIT-0\"，未声明时为 null" }
+        }
+      },
+      "SkillRuntimeMetadata": {
+        "type": "object",
+        "nullable": true,
+        "description": "最新版本声明的运行环境元数据；未声明时整体为 null",
+        "properties": {
+          "os": {
+            "type": "array",
+            "items": { "type": "string" },
+            "nullable": true,
+            "description": "支持的操作系统列表（如 darwin/linux/win32）；未声明为 null"
+          },
+          "systems": {
+            "type": "array",
+            "items": { "type": "string" },
+            "nullable": true,
+            "description": "支持的 Nix system 列表（如 x86_64-linux）；未声明为 null"
+          }
+        }
+      },
+      "SkillListItem": {
+        "type": "object",
+        "description": "列表中的 Skill 概要",
+        "properties": {
+          "slug": { "type": "string", "description": "Skill 唯一标识（小写）" },
+          "displayName": { "type": "string", "description": "显示名称" },
+          "summary": { "type": "string", "nullable": true, "description": "一句话简介；未填写时为 null" },
+          "tags": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "description": "dist-tag 映射：tag 名 → 版本号（如 {\"latest\": \"1.2.0\"}）"
+          },
+          "stats": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "统计计数（下载、安装、星标等聚合对象）"
+          },
+          "createdAt": { "type": "number", "description": "创建时间（Unix 毫秒）" },
+          "updatedAt": { "type": "number", "description": "最后更新时间（Unix 毫秒）" },
+          "latestVersion": {
+            "allOf": [{ "$ref": "#/components/schemas/SkillLatestVersion" }],
+            "nullable": true,
+            "description": "最新版本概要；无可用版本时为 null"
+          },
+          "metadata": { "$ref": "#/components/schemas/SkillRuntimeMetadata" }
+        }
+      },
+      "ModerationInfo": {
+        "type": "object",
+        "nullable": true,
+        "description": "安全审核结论；尚无结论时整体为 null",
+        "properties": {
+          "isSuspicious": { "type": "boolean", "description": "是否被标记为可疑" },
+          "isMalwareBlocked": { "type": "boolean", "description": "是否因恶意软件判定被拦截下载" },
+          "verdict": {
+            "type": "string",
+            "enum": ["clean", "suspicious", "malicious"],
+            "description": "审核结论：clean（干净）/ suspicious（可疑）/ malicious（恶意）"
+          },
+          "reasonCodes": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "判定原因代码列表（扫描器产出的英文代码）"
+          },
+          "summary": { "type": "string", "nullable": true, "description": "审核结论摘要" },
+          "engineVersion": { "type": "string", "nullable": true, "description": "扫描引擎版本" },
+          "updatedAt": { "type": "number", "nullable": true, "description": "结论更新时间（Unix 毫秒）" }
         }
       },
       "SkillDetail": {
         "type": "object",
-        "additionalProperties": true,
+        "description": "Skill 详情（最新版本视角）",
         "properties": {
           "skill": {
             "type": "object",
-            "additionalProperties": true,
+            "description": "Skill 基本信息",
             "properties": {
-              "slug": { "type": "string" },
-              "displayName": { "type": "string" },
-              "summary": { "type": "string", "nullable": true },
-              "tags": { "type": "object", "additionalProperties": { "type": "string" } },
-              "createdAt": { "type": "number" },
-              "updatedAt": { "type": "number" }
+              "slug": { "type": "string", "description": "Skill 唯一标识（小写）" },
+              "displayName": { "type": "string", "description": "显示名称" },
+              "summary": { "type": "string", "nullable": true, "description": "一句话简介；未填写时为 null" },
+              "tags": {
+                "type": "object",
+                "additionalProperties": { "type": "string" },
+                "description": "dist-tag 映射：tag 名 → 版本号"
+              },
+              "stats": {
+                "type": "object",
+                "additionalProperties": true,
+                "description": "统计计数（下载、安装、星标等聚合对象）"
+              },
+              "createdAt": { "type": "number", "description": "创建时间（Unix 毫秒）" },
+              "updatedAt": { "type": "number", "description": "最后更新时间（Unix 毫秒）" }
             }
           },
           "latestVersion": {
-            "type": "object",
+            "allOf": [{ "$ref": "#/components/schemas/SkillLatestVersion" }],
             "nullable": true,
-            "properties": {
-              "version": { "type": "string" },
-              "createdAt": { "type": "number" },
-              "changelog": { "type": "string" }
-            }
+            "description": "最新版本概要；无可用版本时为 null"
           },
+          "metadata": { "$ref": "#/components/schemas/SkillRuntimeMetadata" },
           "owner": {
             "type": "object",
             "nullable": true,
+            "description": "所有者信息；无法解析时为 null",
             "properties": {
-              "handle": { "type": "string", "nullable": true },
-              "displayName": { "type": "string", "nullable": true }
+              "handle": { "type": "string", "nullable": true, "description": "所有者 handle" },
+              "userId": { "type": "string", "description": "所有者用户 ID（Convex 文档 ID）" },
+              "displayName": { "type": "string", "nullable": true, "description": "所有者显示名" },
+              "image": { "type": "string", "nullable": true, "description": "头像 URL" }
+            }
+          },
+          "moderation": { "$ref": "#/components/schemas/ModerationInfo" }
+        }
+      },
+      "PublishSkillFile": {
+        "type": "object",
+        "description": "Skill 文件描述（JSON 发布路径：需先上传文件取得 storageId）",
+        "required": ["path", "size", "storageId", "sha256"],
+        "properties": {
+          "path": { "type": "string", "description": "包内相对路径（如 SKILL.md）" },
+          "size": { "type": "number", "description": "文件字节数；单文件上限 10MB" },
+          "storageId": { "type": "string", "description": "通过上传接口取得的存储 ID" },
+          "sha256": { "type": "string", "description": "文件内容 SHA-256（hex）" },
+          "contentType": { "type": "string", "description": "MIME 类型（可选）" }
+        }
+      },
+      "PublishSkillPayload": {
+        "type": "object",
+        "description": "Skill 发布元数据（multipart 路径的 payload 字段；文件走表单 files 域，由服务端计算 sha256 并存储）",
+        "required": ["slug", "displayName", "version"],
+        "properties": {
+          "slug": { "type": "string", "description": "Skill 唯一标识；小写 npm-safe，保留字会被拒绝" },
+          "displayName": { "type": "string", "description": "显示名称" },
+          "version": { "type": "string", "description": "版本号（semver）" },
+          "changelog": { "type": "string", "description": "版本变更说明；multipart 路径缺省为空字符串" },
+          "acceptLicenseTerms": {
+            "type": "boolean",
+            "description": "必须为 true，表示接受 MIT-0 发布条款；否则返回 400"
+          },
+          "ownerHandle": { "type": "string", "description": "以组织/发布者身份发布时指定其 handle（可带 @ 前缀，自动剥离）；缺省为个人身份" },
+          "migrateOwner": { "type": "boolean", "description": "为 true 时把已存在的 Skill 所有权迁移到 ownerHandle 指定的发布者" },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "本次发布要指向该版本的 dist-tag 列表（如 [\"latest\"]）"
+          },
+          "source": {
+            "allOf": [{ "$ref": "#/components/schemas/PublishSource" }],
+            "description": "来源仓库信息（可选）"
+          },
+          "forkOf": {
+            "type": "object",
+            "description": "声明复制来源（可选）",
+            "required": ["slug"],
+            "properties": {
+              "slug": { "type": "string", "description": "源 Skill 的 slug" },
+              "version": { "type": "string", "description": "源版本号（可选）" }
             }
           }
         }
       },
       "PublishSkillRequest": {
+        "allOf": [
+          { "$ref": "#/components/schemas/PublishSkillPayload" },
+          {
+            "type": "object",
+            "required": ["changelog", "files"],
+            "properties": {
+              "files": {
+                "type": "array",
+                "minItems": 1,
+                "items": { "$ref": "#/components/schemas/PublishSkillFile" },
+                "description": "文件清单，至少 1 个；单文件 ≤ 10MB、整包 ≤ 50MB（推荐直接使用 CLI 发布）"
+              }
+            }
+          }
+        ],
+        "description": "Skill 发布请求（application/json 路径）；未知字段会被拒绝"
+      },
+      "PublishSkillResponse": {
         "type": "object",
-        "required": ["slug", "displayName", "version", "changelog", "files"],
         "additionalProperties": true,
+        "description": "发布成功结果",
         "properties": {
-          "slug": { "type": "string" },
-          "displayName": { "type": "string" },
-          "version": { "type": "string", "description": "semver" },
-          "changelog": { "type": "string" },
-          "tags": { "type": "array", "items": { "type": "string" } },
-          "files": {
+          "ok": { "type": "boolean", "description": "恒为 true" },
+          "skillId": { "type": "string", "description": "Skill 文档 ID" },
+          "versionId": { "type": "string", "description": "新建版本文档 ID" }
+        }
+      },
+      "PublishSource": {
+        "type": "object",
+        "description": "来源仓库信息",
+        "required": ["kind", "url", "repo", "ref", "commit", "path", "importedAt"],
+        "properties": {
+          "kind": { "type": "string", "enum": ["github"], "description": "来源类型，当前仅 github" },
+          "url": { "type": "string", "description": "仓库 URL" },
+          "repo": { "type": "string", "description": "owner/repo 形式的仓库名" },
+          "ref": { "type": "string", "description": "分支或标签名" },
+          "commit": { "type": "string", "description": "提交 SHA" },
+          "path": { "type": "string", "description": "仓库内子目录路径" },
+          "importedAt": { "type": "number", "description": "导入时间（Unix 毫秒）" }
+        }
+      },
+      "PackageStats": {
+        "type": "object",
+        "description": "Package 统计计数",
+        "properties": {
+          "downloads": { "type": "number", "description": "累计下载次数" },
+          "installs": { "type": "number", "description": "当前安装数" },
+          "stars": { "type": "number", "description": "星标数" },
+          "versions": { "type": "number", "description": "已发布版本数" }
+        }
+      },
+      "PackageListItem": {
+        "type": "object",
+        "description": "列表中的 Package 概要",
+        "properties": {
+          "name": { "type": "string", "description": "包名（可能为 @scope/name 形式）" },
+          "displayName": { "type": "string", "description": "显示名称" },
+          "family": {
+            "type": "string",
+            "enum": ["skill", "code-plugin", "bundle-plugin"],
+            "description": "包类型：skill / code-plugin（代码插件）/ bundle-plugin（捆绑插件）"
+          },
+          "runtimeId": { "type": "string", "nullable": true, "description": "运行时标识（来自 plugin manifest id 或包名推断）" },
+          "channel": {
+            "type": "string",
+            "enum": ["official", "community", "private"],
+            "description": "发布频道"
+          },
+          "isOfficial": { "type": "boolean", "description": "是否官方包" },
+          "summary": { "type": "string", "nullable": true, "description": "一句话简介；未填写时为 null" },
+          "ownerHandle": { "type": "string", "nullable": true, "description": "所有者 handle" },
+          "createdAt": { "type": "number", "description": "创建时间（Unix 毫秒）" },
+          "updatedAt": { "type": "number", "description": "最后更新时间（Unix 毫秒）" },
+          "latestVersion": { "type": "string", "nullable": true, "description": "最新版本号；无可用版本时为 null" },
+          "capabilityTags": {
             "type": "array",
-            "description": "先通过上传接口取得 storageId（推荐直接使用 CLI 发布）",
-            "items": {
-              "type": "object",
-              "required": ["path", "storageId"],
-              "properties": {
-                "path": { "type": "string" },
-                "storageId": { "type": "string" }
+            "items": { "type": "string" },
+            "description": "能力标签（如 host:node、requires:browser、artifact:npm-pack）"
+          },
+          "executesCode": { "type": "boolean", "description": "是否执行代码" },
+          "verificationTier": {
+            "type": "string",
+            "nullable": true,
+            "description": "验证层级：structural / source-linked / provenance-verified / rebuild-verified；未验证为 null"
+          },
+          "stats": { "$ref": "#/components/schemas/PackageStats" }
+        }
+      },
+      "PackageArtifact": {
+        "type": "object",
+        "description": "最新版本制品信息",
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": ["legacy-zip", "npm-pack"],
+            "description": "制品类型：legacy-zip（按文件清单确定性打包）/ npm-pack（ClawPack tgz）"
+          },
+          "sha256": { "type": "string", "description": "制品 SHA-256（hex）" },
+          "size": { "type": "number", "description": "制品字节数" },
+          "format": { "type": "string", "description": "制品封装格式（如 tgz）" },
+          "npmIntegrity": { "type": "string", "description": "npm integrity 串（sha512-…）" },
+          "npmShasum": { "type": "string", "description": "npm shasum（sha1）" },
+          "npmTarballName": { "type": "string", "description": "npm tarball 文件名" },
+          "npmUnpackedSize": { "type": "number", "description": "解包后总字节数" },
+          "npmFileCount": { "type": "number", "description": "解包后文件数" }
+        }
+      },
+      "PackageDetail": {
+        "type": "object",
+        "description": "Package 详情。family=skill 的包会改用 Skill 形态字段返回（toSkillPackageDetail）",
+        "properties": {
+          "_id": { "type": "string", "description": "Package 文档 ID" },
+          "name": { "type": "string", "description": "包名（可能为 @scope/name 形式）" },
+          "displayName": { "type": "string", "description": "显示名称" },
+          "family": {
+            "type": "string",
+            "enum": ["skill", "code-plugin", "bundle-plugin"],
+            "description": "包类型"
+          },
+          "tags": {
+            "type": "object",
+            "additionalProperties": { "type": "string" },
+            "description": "dist-tag 映射：tag 名 → 版本号"
+          },
+          "channel": {
+            "type": "string",
+            "enum": ["official", "community", "private"],
+            "description": "发布频道"
+          },
+          "isOfficial": { "type": "boolean", "description": "是否官方包" },
+          "scanStatus": { "type": "string", "nullable": true, "description": "安全扫描状态（clean / suspicious / malicious / pending / not-run）" },
+          "publicDownloadBlocked": { "type": "boolean", "description": "是否被拦截公开下载" },
+          "runtimeId": { "type": "string", "nullable": true, "description": "运行时标识" },
+          "summary": { "type": "string", "nullable": true, "description": "一句话简介" },
+          "latestVersion": { "type": "string", "nullable": true, "description": "最新版本号" },
+          "compatibility": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "兼容性声明（pluginApiRange、builtWithOpenClawVersion、pluginSdkVersion、minGatewayVersion 等）"
+          },
+          "capabilities": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "能力清单（executesCode、pluginKind、channels、providers、hooks、bundledSkills、toolNames、commandNames、capabilityTags、hostTargets、bundleFormat 等）"
+          },
+          "verification": {
+            "type": "object",
+            "additionalProperties": true,
+            "description": "验证信息（tier、scope、summary、sourceRepo、sourceCommit、hasProvenance、scanStatus 等）"
+          },
+          "artifact": { "$ref": "#/components/schemas/PackageArtifact" },
+          "stats": { "$ref": "#/components/schemas/PackageStats" },
+          "createdAt": { "type": "number", "description": "创建时间（Unix 毫秒）" },
+          "updatedAt": { "type": "number", "description": "最后更新时间（Unix 毫秒）" }
+        }
+      },
+      "PackagePublishPayload": {
+        "type": "object",
+        "description": "Package 发布元数据（multipart 的 payload 表单字段，JSON 字符串）；未知字段会被拒绝",
+        "required": ["name", "family", "version", "changelog"],
+        "properties": {
+          "name": { "type": "string", "description": "包名（npm-safe；可为 @scope/name，scope 须与发布者 scope 匹配）" },
+          "displayName": { "type": "string", "description": "显示名称（可选，缺省由包名推断）" },
+          "ownerHandle": { "type": "string", "description": "以组织/发布者身份发布时指定其 handle；不得与包名 scope 冲突" },
+          "family": {
+            "type": "string",
+            "enum": ["skill", "code-plugin", "bundle-plugin"],
+            "description": "包类型。code-plugin 必须包含 openclaw.plugin.json manifest；bundle-plugin 不强制"
+          },
+          "version": { "type": "string", "description": "版本号（semver）" },
+          "changelog": { "type": "string", "description": "版本变更说明（必填）" },
+          "manualOverrideReason": { "type": "string", "description": "人工覆盖原因（管理用途，可选）" },
+          "channel": {
+            "type": "string",
+            "enum": ["official", "community", "private"],
+            "description": "发布频道（可选）"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "本次发布要指向该版本的 dist-tag 列表"
+          },
+          "source": {
+            "allOf": [{ "$ref": "#/components/schemas/PublishSource" }],
+            "description": "来源仓库信息（可选）"
+          },
+          "bundle": {
+            "type": "object",
+            "description": "捆绑插件元数据（可选）",
+            "properties": {
+              "id": { "type": "string", "description": "捆绑包标识（缺省由包名推断）" },
+              "format": { "type": "string", "description": "捆绑格式" },
+              "hostTargets": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "宿主目标列表（如 node）"
               }
             }
           }
@@ -93,21 +584,47 @@
       "get": {
         "tags": ["skills"],
         "summary": "搜索 Skill",
+        "description": "词法搜索（关键词/前缀匹配 + 热度加权，无向量检索）。`q` 为空或纯空白时直接返回空结果（HTTP 200）。",
         "parameters": [
-          { "name": "q", "in": "query", "required": true, "schema": { "type": "string" }, "description": "搜索关键词；为空时返回空结果" },
-          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
-          { "name": "highlightedOnly", "in": "query", "schema": { "type": "boolean" }, "description": "仅精选" },
-          { "name": "nonSuspiciousOnly", "in": "query", "schema": { "type": "boolean" }, "description": "排除可疑/待审条目" }
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "搜索关键词，自动去除首尾空白；为空时返回空结果"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer" },
+            "description": "返回结果数上限（由搜索后端收敛到内部上限）"
+          },
+          {
+            "name": "highlightedOnly",
+            "in": "query",
+            "schema": { "type": "boolean" },
+            "description": "仅返回精选 Skill；接受 true/1"
+          },
+          {
+            "name": "nonSuspiciousOnly",
+            "in": "query",
+            "schema": { "type": "boolean" },
+            "description": "排除被安全审核标记为可疑/待审的条目；兼容旧参数名 nonSuspicious"
+          }
         ],
         "responses": {
           "200": {
-            "description": "搜索结果",
+            "description": "搜索结果（按 score 降序）",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "results": { "type": "array", "items": { "$ref": "#/components/schemas/SearchResult" } }
+                    "results": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SearchResult" },
+                      "description": "结果列表；q 为空时为空数组"
+                    }
                   }
                 }
               }
@@ -120,28 +637,105 @@
       "get": {
         "tags": ["skills"],
         "summary": "Skill 列表（游标分页）",
+        "description": "公开 Skill 的分页列表。`sort=trending` 走热度榜单，不支持游标（cursor 会被忽略）。",
         "parameters": [
-          { "name": "cursor", "in": "query", "schema": { "type": "string" }, "description": "上一页返回的 continueCursor" },
-          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
-          { "name": "sort", "in": "query", "schema": { "type": "string" } },
-          { "name": "nonSuspiciousOnly", "in": "query", "schema": { "type": "boolean" } }
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "分页游标，取上一页响应的 nextCursor；首页不传"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer" },
+            "description": "每页条数（由后端收敛到内部上限）"
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": ["updated", "recommended", "newest", "downloads", "stars", "installs", "installs-all-time", "trending"],
+              "default": "updated"
+            },
+            "description": "排序方式（大小写不敏感）：updated（最近更新，默认）/ recommended（推荐，别名 default）/ newest（最新创建，别名 createdAt、created-at）/ downloads（下载量）/ stars（星标，别名 rating）/ installs（当前安装数，别名 install、installsCurrent、installs-current）/ installs-all-time（累计安装，别名 installsAllTime）/ trending（热度）。非法值返回 400"
+          },
+          {
+            "name": "nonSuspiciousOnly",
+            "in": "query",
+            "schema": { "type": "boolean" },
+            "description": "排除被安全审核标记为可疑/待审的条目；兼容旧参数名 nonSuspicious"
+          }
         ],
         "responses": {
-          "200": { "description": "分页列表，含 items 与 continueCursor", "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true } } } }
+          "200": {
+            "description": "分页列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SkillListItem" },
+                      "description": "本页条目"
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "下一页游标；null 表示没有更多"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "sort 取值非法（text/plain：Invalid sort query parameter）" }
         }
       },
       "post": {
         "tags": ["skills"],
         "summary": "发布 Skill 版本",
+        "description": "支持两种 Content-Type：\n- `application/json`：files 需先通过上传接口取得 storageId（推荐直接使用 CLI 发布，自动处理上传）。\n- `multipart/form-data`：`payload` 表单字段放 JSON 元数据，`files` 文件域直接上传文件，服务端计算 sha256 并存储。\n\n限制：单文件 ≤ 10MB、整包 ≤ 50MB、至少 1 个文件；`acceptLicenseTerms` 必须为 true（MIT-0 条款）。slug 须为小写 npm-safe 且非保留字。",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
-          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PublishSkillRequest" } } }
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PublishSkillRequest" }
+            },
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["payload", "files"],
+                "properties": {
+                  "payload": { "$ref": "#/components/schemas/PublishSkillPayload" },
+                  "files": {
+                    "type": "array",
+                    "items": { "type": "string", "format": "binary" },
+                    "description": "包内文件（文件名即包内路径；macOS 垃圾文件如 .DS_Store 自动忽略）"
+                  }
+                }
+              },
+              "encoding": {
+                "payload": { "contentType": "application/json" }
+              }
+            }
+          }
         },
         "responses": {
-          "200": { "description": "发布成功（{ ok: true, ... }）" },
-          "400": { "description": "载荷或校验错误（text/plain）" },
-          "401": { "description": "未授权" }
+          "200": {
+            "description": "发布成功",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublishSkillResponse" }
+              }
+            }
+          },
+          "400": { "description": "载荷或校验错误（text/plain）：未接受 MIT-0 条款 / files 为空（files required）/ 文件超 10MB / 整包超 50MB / slug 或 version 不合法等" },
+          "401": { "description": "API Token 缺失或无效（text/plain）" },
+          "415": { "description": "Content-Type 不受支持（text/plain：Unsupported content type）" }
         }
       }
     },
@@ -149,14 +743,29 @@
       "get": {
         "tags": ["skills"],
         "summary": "Skill 详情",
+        "description": "返回 Skill 基本信息、最新版本概要、所有者与安全审核结论。slug 自动小写化。\n\n另有未列入本文档的子路由：`/versions`（版本分页）、`/versions/{version}`（指定版本含文件清单）、`/install`（安装解析）、`/file?path=`（在线读取文件，≤200KB）、`/card`（Skill 卡片）等。",
         "parameters": [
-          { "name": "slug", "in": "path", "required": true, "schema": { "type": "string" } },
-          { "name": "version", "in": "query", "schema": { "type": "string" }, "description": "指定版本号" },
-          { "name": "tag", "in": "query", "schema": { "type": "string" }, "description": "指定 dist-tag（如 latest）" }
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Skill 唯一标识（自动小写化）"
+          }
         ],
         "responses": {
-          "200": { "description": "Skill 详情", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SkillDetail" } } } },
-          "404": { "description": "未找到" }
+          "200": {
+            "description": "Skill 详情",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/SkillDetail" }
+              }
+            }
+          },
+          "404": { "description": "未找到（含对外不可见的隐藏态；text/plain：Skill not found）" },
+          "403": { "description": "被审核隐藏/恶意拦截（仅对所有者 token 显示具体原因，text/plain）" },
+          "410": { "description": "已被删除（text/plain）" },
+          "423": { "description": "等待安全扫描（text/plain）" }
         }
       }
     },
@@ -164,14 +773,55 @@
       "get": {
         "tags": ["skills"],
         "summary": "按内容哈希解析 Skill 版本",
+        "description": "用本地文件指纹反查对应的已发布版本（指纹 = 对文件清单 path+sha256 的规范化哈希），供 CLI 判断本地副本对应哪个版本、是否需要更新。",
         "parameters": [
-          { "name": "slug", "in": "query", "required": true, "schema": { "type": "string" } },
-          { "name": "hash", "in": "query", "required": true, "schema": { "type": "string", "pattern": "^[a-f0-9]{64}$" }, "description": "sha256（hex）" }
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Skill 唯一标识（自动小写化）"
+          },
+          {
+            "name": "hash",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+            "description": "本地内容指纹：SHA-256 hex，64 位小写"
+          }
         ],
         "responses": {
-          "200": { "description": "{ slug, match, latestVersion }" },
-          "400": { "description": "缺参或哈希格式错误" },
-          "404": { "description": "未找到" }
+          "200": {
+            "description": "解析结果",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "slug": { "type": "string", "description": "请求的 slug（回显）" },
+                    "match": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "指纹命中的版本；本地内容不对应任何已发布版本时为 null",
+                      "properties": {
+                        "version": { "type": "string", "description": "命中的版本号（多版本命中时取最新）" }
+                      }
+                    },
+                    "latestVersion": {
+                      "type": "object",
+                      "nullable": true,
+                      "description": "当前最新公开版本；无可用版本时为 null",
+                      "properties": {
+                        "version": { "type": "string", "description": "最新版本号" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "缺参（Missing slug or hash）或哈希格式错误（Invalid hash），text/plain" },
+          "404": { "description": "Skill 不存在（text/plain：Skill not found）" }
         }
       }
     },
@@ -179,16 +829,42 @@
       "get": {
         "tags": ["skills"],
         "summary": "下载 Skill ZIP（确定性打包）",
-        "description": "响应带完整性头：`ETag: \"sha256:…\"`、`Digest: sha-256=…`、`X-ClawHub-Artifact-Sha256`。",
+        "description": "按文件清单确定性打包（同一版本重复下载字节级一致），响应附完整性校验头：\n- `ETag: \"sha256:<hex>\"`\n- `Digest: sha-256=<base64>`\n- `X-ClawHub-Artifact-Sha256: <hex>`\n- `Content-Disposition: attachment; filename=\"{slug}-{version}.zip\"`\n\nversion 与 tag 都不传时下载最新版本；version 优先于 tag。",
         "parameters": [
-          { "name": "slug", "in": "query", "required": true, "schema": { "type": "string" } },
-          { "name": "version", "in": "query", "schema": { "type": "string" } },
-          { "name": "tag", "in": "query", "schema": { "type": "string" } }
+          {
+            "name": "slug",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Skill 唯一标识（自动小写化）；缺失返回 400"
+          },
+          {
+            "name": "version",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "精确版本号；与 tag 同时提供时以 version 为准"
+          },
+          {
+            "name": "tag",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "dist-tag（如 latest）"
+          }
         ],
         "responses": {
-          "200": { "description": "ZIP 二进制", "content": { "application/zip": { "schema": { "type": "string", "format": "binary" } } } },
-          "404": { "description": "Skill 或版本未找到" },
-          "410": { "description": "版本已下架" }
+          "200": {
+            "description": "ZIP 二进制（含完整性校验头）",
+            "content": {
+              "application/zip": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          },
+          "400": { "description": "缺少 slug（text/plain：Missing slug）" },
+          "403": { "description": "被恶意软件判定拦截，或被审核隐藏（text/plain）" },
+          "404": { "description": "Skill 或版本未找到（text/plain）" },
+          "410": { "description": "版本已下架，或 Skill 已被管理员移除（text/plain）" },
+          "423": { "description": "等待安全扫描，暂不可下载（text/plain）" }
         }
       }
     },
@@ -196,38 +872,165 @@
       "get": {
         "tags": ["skills"],
         "summary": "批量导出 Skill（增量同步用）",
+        "description": "按更新时间窗口分页导出 Skill 及其文件，打成一个 ZIP：`{ownerHandle}/{slug}/<文件>` + 每个 Skill 的 `_export_skill_meta.json`（slug/displayName/version/createdAt/updatedAt/stats/owner）+ 顶层 `_export_manifest.json`（出错时附 `_errors.json`）。\n\n分页信息走响应头：`X-Next-Cursor`（下一页游标，空串表示无）/ `X-Has-More`（true/false）/ `X-Total-Returned`（本页 Skill 数）/ `X-Date-Range`（时间窗口回显）。\n\n单页硬上限：10000 个文件或 256MB，超限的条目记入 `_errors.json`。",
+        "security": [{ "bearerAuth": [] }],
         "parameters": [
-          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
-          { "name": "startDate", "in": "query", "schema": { "type": "string" } },
-          { "name": "endDate", "in": "query", "schema": { "type": "string" } }
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number" },
+            "description": "时间窗口起点（Unix 毫秒）；必须 ≤ endDate"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "number" },
+            "description": "时间窗口终点（Unix 毫秒）"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 250, "maximum": 250 },
+            "description": "每页 Skill 数，默认与上限均为 250；超过返回 400"
+          },
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "分页游标，取上一页响应头 X-Next-Cursor；首页不传"
+          }
         ],
-        "responses": { "200": { "description": "导出分页数据" } }
+        "responses": {
+          "200": {
+            "description": "导出 ZIP（分页信息见响应头）",
+            "content": {
+              "application/zip": {
+                "schema": { "type": "string", "format": "binary" }
+              }
+            }
+          },
+          "400": { "description": "缺少 startDate/endDate、startDate > endDate、limit 超过 250 或游标格式错误（text/plain）" },
+          "401": { "description": "API Token 缺失或无效（text/plain）" }
+        }
       }
     },
     "/api/v1/packages": {
       "get": {
         "tags": ["packages"],
         "summary": "Package 列表（游标分页）",
+        "description": "全部包（含 skill、code-plugin、bundle-plugin）的分页列表，支持类型/频道/能力标签等多维过滤。能力过滤参数同一请求只生效一个（优先级见 capabilityTag 参数说明）。",
         "parameters": [
-          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
-          { "name": "category", "in": "query", "schema": { "type": "string" } }
+          { "$ref": "#/components/parameters/PkgCursor" },
+          { "$ref": "#/components/parameters/PkgLimit" },
+          {
+            "name": "family",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["skill", "code-plugin", "bundle-plugin"] },
+            "description": "按包类型过滤；非法值返回 400"
+          },
+          { "$ref": "#/components/parameters/PkgChannel" },
+          { "$ref": "#/components/parameters/PkgIsOfficial" },
+          { "$ref": "#/components/parameters/PkgFeatured" },
+          { "$ref": "#/components/parameters/PkgHighlightedOnly" },
+          { "$ref": "#/components/parameters/PkgExecutesCode" },
+          { "$ref": "#/components/parameters/PkgSort" },
+          { "$ref": "#/components/parameters/PkgCategory" },
+          { "$ref": "#/components/parameters/PkgCapabilityTag" },
+          { "$ref": "#/components/parameters/PkgTarget" },
+          { "$ref": "#/components/parameters/PkgOs" },
+          { "$ref": "#/components/parameters/PkgArch" },
+          { "$ref": "#/components/parameters/PkgLibc" },
+          { "$ref": "#/components/parameters/PkgExternalService" },
+          { "$ref": "#/components/parameters/PkgBinary" },
+          { "$ref": "#/components/parameters/PkgOsPermission" },
+          { "$ref": "#/components/parameters/PkgArtifactKind" },
+          { "$ref": "#/components/parameters/PkgNpmMirror" },
+          { "$ref": "#/components/parameters/PkgRequiresBrowser" },
+          { "$ref": "#/components/parameters/PkgRequiresDesktop" },
+          { "$ref": "#/components/parameters/PkgRequiresNativeDeps" },
+          { "$ref": "#/components/parameters/PkgRequiresExternalService" },
+          { "$ref": "#/components/parameters/PkgRequiresBinary" },
+          { "$ref": "#/components/parameters/PkgRequiresOsPermission" },
+          { "$ref": "#/components/parameters/PkgEnvironmentDeclared" }
         ],
-        "responses": { "200": { "description": "分页列表" } }
+        "responses": {
+          "200": {
+            "description": "分页列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/PackageListItem" },
+                      "description": "本页条目"
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "下一页游标；null 表示没有更多"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "查询参数非法：family/channel/sort/artifactKind 等枚举取值错误，或对含 skill 的端点使用 category（text/plain）" }
+        }
       },
       "post": {
         "tags": ["packages"],
         "summary": "发布 Package 版本",
+        "description": "仅接受 `multipart/form-data`。表单结构：\n- `payload`（必填）：JSON 字符串元数据，见 schema。\n- `files`（多文件域）或 `clawpack`（单个 .tgz，npm pack 格式）：二选一，同时提供返回 400。\n- `clawpackUploadTicket`（可选）：预上传票据；multipart 总量超限时先经上传接口取得 ticket 再引用。\n\n大小限制：multipart 请求总量 ≤ 18MB（更大走预上传 ticket）、clawpack ≤ 120MB、单文件 ≤ 10MB、解包后总量 ≤ 50MB。\n\ncode-plugin 必须包含 `openclaw.plugin.json` manifest；bundle-plugin 不强制。推荐使用 CLI 或网页发布。",
         "security": [{ "bearerAuth": [] }],
         "requestBody": {
           "required": true,
-          "content": { "application/json": { "schema": { "type": "object", "additionalProperties": true, "description": "载荷较复杂（family/files/artifact…），推荐使用 CLI 或网页发布" } } }
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["payload"],
+                "properties": {
+                  "payload": { "$ref": "#/components/schemas/PackagePublishPayload" },
+                  "files": {
+                    "type": "array",
+                    "items": { "type": "string", "format": "binary" },
+                    "description": "逐个上传的包内文件（与 clawpack 二选一）"
+                  },
+                  "clawpack": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "单个 .tgz 制品（npm pack 格式，≤120MB；与 files 二选一）"
+                  },
+                  "clawpackUploadTicket": {
+                    "type": "string",
+                    "description": "预上传票据 ID（大制品先上传后引用）"
+                  }
+                }
+              },
+              "encoding": {
+                "payload": { "contentType": "application/json" }
+              }
+            }
+          }
         },
         "responses": {
-          "200": { "description": "发布成功" },
-          "400": { "description": "载荷或校验错误" },
-          "401": { "description": "未授权" }
+          "200": {
+            "description": "发布成功（JSON，含包/版本标识等发布结果）",
+            "content": {
+              "application/json": {
+                "schema": { "type": "object", "additionalProperties": true }
+              }
+            }
+          },
+          "400": { "description": "载荷或校验错误（text/plain）：payload JSON 非法、必填字段缺失、files 与 clawpack 同时提供、包名与发布者 scope 不匹配、大小超限、code-plugin 缺少 manifest 等" },
+          "401": { "description": "API Token 缺失或无效（text/plain）" },
+          "413": { "description": "上传体积过大（text/plain）" },
+          "415": { "description": "Content-Type 不是 multipart/form-data（text/plain：Package publish requires multipart/form-data）" },
+          "503": { "description": "Convex 写冲突，可重试（text/plain，附 Retry-After: 1 头）" }
         }
       }
     },
@@ -235,14 +1038,36 @@
       "get": {
         "tags": ["packages"],
         "summary": "Package 详情",
+        "description": "返回 Package 完整详情与所有者信息。family=skill 的包会改用 Skill 形态字段返回。\n\n另有未列入本文档的子路由：`/versions`（版本分页，limit 默认 25 / 1–100）、`/versions/{version}`（版本详情含文件清单与扫描结果）、`/versions/{version}/artifact`（制品信息含下载 URL）、`/download`（ZIP 下载）、`/file?path=`（在线读取文件）、`/readiness`（就绪检查清单）、`/trusted-publisher`（受信发布者配置）等。",
         "parameters": [
-          { "name": "name", "in": "path", "required": true, "schema": { "type": "string" }, "description": "包名（scoped 名需 URL 编码）" },
-          { "name": "version", "in": "query", "schema": { "type": "string" } },
-          { "name": "tag", "in": "query", "schema": { "type": "string" } }
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "包名；scoped 包需 URL 编码（@scope/name → %40scope%2Fname）"
+          }
         ],
         "responses": {
-          "200": { "description": "Package 详情" },
-          "404": { "description": "未找到" }
+          "200": {
+            "description": "Package 详情",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "package": { "$ref": "#/components/schemas/PackageDetail" },
+                    "owner": {
+                      "allOf": [{ "$ref": "#/components/schemas/OwnerInfo" }],
+                      "nullable": true,
+                      "description": "所有者信息；无法解析时为 null"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "未找到（text/plain：Package not found）" }
         }
       }
     },
@@ -250,23 +1075,92 @@
       "get": {
         "tags": ["packages"],
         "summary": "Plugin 列表（code + bundle）",
-        "description": "另有 `/api/v1/code-plugins`、`/api/v1/bundle-plugins` 按 family 过滤的同形端点。",
+        "description": "与 `/api/v1/packages` 同形，但只返回插件（code-plugin + bundle-plugin），不含 skill；支持 `category` 插件分类过滤。\n\n另有按 family 预过滤的同形端点：`/api/v1/code-plugins`（仅代码插件）、`/api/v1/bundle-plugins`（仅捆绑插件）。",
         "parameters": [
-          { "name": "cursor", "in": "query", "schema": { "type": "string" } },
-          { "name": "limit", "in": "query", "schema": { "type": "integer" } },
-          { "name": "category", "in": "query", "schema": { "type": "string" } }
+          { "$ref": "#/components/parameters/PkgCursor" },
+          { "$ref": "#/components/parameters/PkgLimit" },
+          { "$ref": "#/components/parameters/PkgChannel" },
+          { "$ref": "#/components/parameters/PkgIsOfficial" },
+          { "$ref": "#/components/parameters/PkgFeatured" },
+          { "$ref": "#/components/parameters/PkgHighlightedOnly" },
+          { "$ref": "#/components/parameters/PkgExecutesCode" },
+          { "$ref": "#/components/parameters/PkgSort" },
+          { "$ref": "#/components/parameters/PkgCategory" },
+          { "$ref": "#/components/parameters/PkgCapabilityTag" },
+          { "$ref": "#/components/parameters/PkgTarget" },
+          { "$ref": "#/components/parameters/PkgOs" },
+          { "$ref": "#/components/parameters/PkgArch" },
+          { "$ref": "#/components/parameters/PkgLibc" },
+          { "$ref": "#/components/parameters/PkgExternalService" },
+          { "$ref": "#/components/parameters/PkgBinary" },
+          { "$ref": "#/components/parameters/PkgOsPermission" },
+          { "$ref": "#/components/parameters/PkgArtifactKind" },
+          { "$ref": "#/components/parameters/PkgNpmMirror" },
+          { "$ref": "#/components/parameters/PkgRequiresBrowser" },
+          { "$ref": "#/components/parameters/PkgRequiresDesktop" },
+          { "$ref": "#/components/parameters/PkgRequiresNativeDeps" },
+          { "$ref": "#/components/parameters/PkgRequiresExternalService" },
+          { "$ref": "#/components/parameters/PkgRequiresBinary" },
+          { "$ref": "#/components/parameters/PkgRequiresOsPermission" },
+          { "$ref": "#/components/parameters/PkgEnvironmentDeclared" }
         ],
-        "responses": { "200": { "description": "分页列表" } }
+        "responses": {
+          "200": {
+            "description": "分页列表",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "items": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/PackageListItem" },
+                      "description": "本页条目（仅插件）"
+                    },
+                    "nextCursor": {
+                      "type": "string",
+                      "nullable": true,
+                      "description": "下一页游标；null 表示没有更多"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "查询参数非法（text/plain）" }
+        }
       }
     },
     "/api/v1/whoami": {
       "get": {
         "tags": ["misc"],
         "summary": "当前身份",
+        "description": "返回当前 API Token 对应的用户信息。内网部署下未带 token 的请求回退为 system 身份。",
         "security": [{ "bearerAuth": [] }],
         "responses": {
-          "200": { "description": "{ user: { handle, displayName, image } }" },
-          "401": { "description": "未授权" }
+          "200": {
+            "description": "当前用户",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "type": "object",
+                      "description": "用户公开信息",
+                      "properties": {
+                        "handle": { "type": "string", "nullable": true, "description": "用户 handle" },
+                        "displayName": { "type": "string", "nullable": true, "description": "显示名" },
+                        "image": { "type": "string", "nullable": true, "description": "头像 URL" },
+                        "role": { "type": "string", "nullable": true, "description": "角色（如 admin / moderator / user）；未设置为 null" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "API Token 无效（text/plain）" }
         }
       }
     }
