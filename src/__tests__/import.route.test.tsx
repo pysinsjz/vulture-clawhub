@@ -130,7 +130,7 @@ describe("Import route", () => {
     fireEvent.change(screen.getByPlaceholderText("https://github.com/owner/repo"), {
       target: { value: "https://github.com/octo/repo" },
     });
-    fireEvent.click(screen.getByRole("button", { name: /detect/i }));
+    fireEvent.click(screen.getByRole("button", { name: /检测/ }));
 
     await waitFor(() => {
       expect(previewImport).toHaveBeenCalled();
@@ -142,7 +142,7 @@ describe("Import route", () => {
     ).toBeTruthy();
     expect(screen.getByRole("link", { name: "/alice/taken-skill" })).toBeTruthy();
     expect(
-      screen.getByRole("button", { name: /import \+ publish/i }).getAttribute("disabled"),
+      screen.getByRole("button", { name: /导入并发布/ }).getAttribute("disabled"),
     ).not.toBeNull();
   });
 });

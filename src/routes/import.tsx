@@ -121,10 +121,10 @@ export function ImportGitHub() {
         const only = items[0];
         if (only) await loadCandidate(only.path);
       } else {
-        setStatus(`Found ${items.length} skills. Pick one.`);
+        setStatus(`找到 ${items.length} 个 Skill，请选择一个。`);
       }
     } catch (e) {
-      setError(getUserFacingConvexError(e, "Preview failed"));
+      setError(getUserFacingConvexError(e, "预览失败"));
     } finally {
       setIsBusy(false);
     }
@@ -150,9 +150,9 @@ export function ImportGitHub() {
       const nextSelected: Record<string, boolean> = {};
       for (const file of result.files) nextSelected[file.path] = file.defaultSelected;
       setSelected(nextSelected);
-      setStatus("Ready to import.");
+      setStatus("准备就绪，可导入。");
     } catch (e) {
-      setError(getUserFacingConvexError(e, "Preview failed"));
+      setError(getUserFacingConvexError(e, "预览失败"));
     } finally {
       setIsBusy(false);
     }
@@ -188,7 +188,7 @@ export function ImportGitHub() {
     }
     setIsBusy(true);
     setError(null);
-    setStatus("Importing...");
+    setStatus("正在导入…");
     try {
       const selectedPaths = preview.files.map((file) => file.path).filter((path) => selected[path]);
       const tagList = tags
@@ -206,11 +206,11 @@ export function ImportGitHub() {
         tags: tagList,
       });
       const nextSlug = result.slug;
-      setStatus("Imported.");
+      setStatus("已导入。");
       const ownerParam = me?.handle ?? (me?._id ? String(me._id) : "unknown");
       await navigate({ to: "/$owner/$slug", params: { owner: ownerParam, slug: nextSlug } });
     } catch (e) {
-      toast.error(getUserFacingConvexError(e, "Import failed"));
+      toast.error(getUserFacingConvexError(e, "导入失败"));
       setStatus(null);
     } finally {
       setIsBusy(false);
@@ -224,8 +224,8 @@ export function ImportGitHub() {
   if (!isAuthenticated || !me) {
     return (
       <SignInPrompt
-        title="Sign in to import and publish skills"
-        description="You need to be signed in to import skills from GitHub."
+        title="登录后导入并发布 Skill"
+        description="你需要登录后才能从 GitHub 导入 Skill。"
       />
     );
   }
@@ -237,16 +237,16 @@ export function ImportGitHub() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.14em] text-[color:var(--accent)]">
-                GitHub import
+                GitHub 导入
               </p>
               <h1 className="font-display text-2xl font-bold text-[color:var(--ink)]">
-                Import from GitHub
+                从 GitHub 导入
               </h1>
               <p className="text-sm text-[color:var(--ink-soft)]">
-                Public repos only. Detects SKILL.md automatically.
+                仅支持公开仓库。自动检测 SKILL.md。
               </p>
               <Badge variant="accent" className="mt-3 w-fit">
-                Skill-only import. Plugins are not supported here. Use{" "}
+                仅支持 Skill 导入，此处不支持 Plugin。请使用{" "}
                 <Link
                   to="/plugins/publish"
                   search={{
@@ -258,14 +258,14 @@ export function ImportGitHub() {
                   }}
                   className="underline"
                 >
-                  Publish Plugin
+                  发布 Plugin
                 </Link>
-                .
+                。
               </Badge>
             </div>
             <div className="flex flex-col items-end gap-1 rounded-[var(--radius-sm)] border border-[color:var(--line)] bg-[color:var(--surface-muted)] px-4 py-3 text-sm">
-              <div className="font-semibold">Public only</div>
-              <div className="text-xs text-[color:var(--ink-soft)]">Commit pinned</div>
+              <div className="font-semibold">仅公开</div>
+              <div className="text-xs text-[color:var(--ink-soft)]">已锁定提交</div>
             </div>
           </div>
         </header>
@@ -276,7 +276,7 @@ export function ImportGitHub() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="github-url">GitHub URL</Label>
                 <span className="text-xs text-[color:var(--ink-soft)]">
-                  Repo, tree path, or blob
+                  仓库、tree 路径或 blob
                 </span>
               </div>
               <Input
@@ -298,7 +298,7 @@ export function ImportGitHub() {
               disabled={!url.trim() || isBusy}
               onClick={() => void detect()}
             >
-              Detect
+              检测
             </Button>
             {status ? <p className="text-sm text-[color:var(--ink-soft)]">{status}</p> : null}
           </div>
@@ -312,7 +312,7 @@ export function ImportGitHub() {
 
         {candidates.length > 1 ? (
           <Card className="mb-5">
-            <h2 className="font-display text-lg font-bold text-[color:var(--ink)]">Pick a skill</h2>
+            <h2 className="font-display text-lg font-bold text-[color:var(--ink)]">选择一个 Skill</h2>
             <div className="flex flex-col gap-2">
               {candidates.map((candidate) => (
                 <label
@@ -326,7 +326,7 @@ export function ImportGitHub() {
                     onChange={() => void loadCandidate(candidate.path)}
                     disabled={isBusy}
                   />
-                  <span className="font-mono text-xs">{candidate.path || "(repo root)"}</span>
+                  <span className="font-mono text-xs">{candidate.path || "(仓库根目录)"}</span>
                   <span className="text-sm text-[color:var(--ink-soft)]">
                     {candidate.name
                       ? candidate.name
@@ -349,7 +349,7 @@ export function ImportGitHub() {
                     <div className="flex items-center justify-between">
                       <Label htmlFor="slug">Slug</Label>
                       <span className="text-xs text-[color:var(--ink-soft)]">
-                        Unique, lowercase
+                        唯一、小写
                       </span>
                     </div>
                     <Input
@@ -364,9 +364,9 @@ export function ImportGitHub() {
                   </div>
                   <div>
                     <div className="flex items-center justify-between">
-                      <Label htmlFor="name">Display name</Label>
+                      <Label htmlFor="name">显示名称</Label>
                       <span className="text-xs text-[color:var(--ink-soft)]">
-                        Shown in listings
+                        显示在列表中
                       </span>
                     </div>
                     <Input
@@ -379,7 +379,7 @@ export function ImportGitHub() {
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="version">Version</Label>
+                        <Label htmlFor="version">版本</Label>
                         <span className="text-xs text-[color:var(--ink-soft)]">Semver</span>
                       </div>
                       <Input
@@ -394,9 +394,9 @@ export function ImportGitHub() {
                     </div>
                     <div>
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="tags">Tags</Label>
+                        <Label htmlFor="tags">标签</Label>
                         <span className="text-xs text-[color:var(--ink-soft)]">
-                          Comma-separated
+                          逗号分隔
                         </span>
                       </div>
                       <Input
@@ -413,14 +413,14 @@ export function ImportGitHub() {
                 </div>
                 <aside className="flex flex-col gap-1 rounded-[var(--radius-sm)] border border-[color:var(--line)] bg-[color:var(--surface-muted)] px-4 py-3">
                   <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600">
-                    Commit pinned
+                    已锁定提交
                   </div>
                   <div className="text-sm text-[color:var(--ink-soft)]">
                     {preview.resolved.owner}/{preview.resolved.repo}@
                     {preview.resolved.commit.slice(0, 7)}
                   </div>
                   <div className="font-mono text-xs text-[color:var(--ink-soft)]">
-                    {preview.candidate.path || "repo root"}
+                    {preview.candidate.path || "仓库根目录"}
                   </div>
                 </aside>
               </div>
@@ -428,7 +428,7 @@ export function ImportGitHub() {
 
             <Card>
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <h2 className="font-display text-lg font-bold text-[color:var(--ink)]">Files</h2>
+                <h2 className="font-display text-lg font-bold text-[color:var(--ink)]">文件</h2>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
@@ -436,18 +436,18 @@ export function ImportGitHub() {
                     disabled={isBusy}
                     onClick={applyDefaultSelection}
                   >
-                    Select referenced
+                    选择引用项
                   </Button>
                   <Button variant="outline" size="sm" disabled={isBusy} onClick={selectAll}>
-                    Select all
+                    全选
                   </Button>
                   <Button variant="outline" size="sm" disabled={isBusy} onClick={clearAll}>
-                    Clear
+                    清空
                   </Button>
                 </div>
               </div>
               <p className="text-sm text-[color:var(--ink-soft)]">
-                Selected: {selectedCount}/{preview.files.length} &bull; {formatBytes(selectedBytes)}
+                已选 {selectedCount}/{preview.files.length} &bull; {formatBytes(selectedBytes)}
               </p>
               <div className="flex flex-col gap-1">
                 {preview.files.map((file) => (
@@ -483,7 +483,7 @@ export function ImportGitHub() {
                   }
                   onClick={() => void doImport()}
                 >
-                  Import + publish
+                  导入并发布
                 </Button>
                 {slugCollision ? (
                   <div className="text-sm text-[color:var(--ink-soft)]">
