@@ -6296,9 +6296,6 @@ async function publishPackageImpl(
   if (existingSkill) {
     throw new ConvexError(`Package name collides with existing skill slug "${name}"`);
   }
-  if (family === "code-plugin" && (!effectiveSource?.repo || !effectiveSource?.commit)) {
-    throw new ConvexError("Code plugins require source repo and commit metadata");
-  }
 
   const packageJsonEntry = await readOptionalTextFile(
     ctx,
