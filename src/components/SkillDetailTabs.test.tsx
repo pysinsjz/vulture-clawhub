@@ -37,10 +37,10 @@ describe("SkillDetailTabs README links", () => {
     renderReadme("# API Gateway");
 
     expect(screen.getByRole("tab", { name: "SKILL.md" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Files" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Versions" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "文件" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "版本" })).toBeTruthy();
     expect(screen.queryByRole("tab", { name: "Settings" })).toBeNull();
-    expect(screen.queryByRole("tab", { name: "Compare" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "对比" })).toBeNull();
   });
 
   it("hides archive-only tabs for source-backed skills", () => {
@@ -70,9 +70,9 @@ describe("SkillDetailTabs README links", () => {
 
     expect(screen.getByRole("tab", { name: "SKILL.md" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "Skill Card" })).toBeTruthy();
-    expect(screen.queryByRole("tab", { name: "Files" })).toBeNull();
-    expect(screen.queryByRole("tab", { name: "Versions" })).toBeNull();
-    expect(screen.queryByRole("tab", { name: "Compare" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "文件" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "版本" })).toBeNull();
+    expect(screen.queryByRole("tab", { name: "对比" })).toBeNull();
   });
 
   it("keeps relative skill README links inside the viewed skill", () => {
@@ -164,13 +164,13 @@ describe("SkillDetailTabs README links", () => {
 
     render(<TestSkillDetailTabs />);
 
-    expect(screen.getByRole("tab", { name: "Runtime" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Dependencies" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Install" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Links" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "运行环境" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "依赖" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "安装" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "链接" })).toBeTruthy();
     expect(screen.getByText("TODOIST_API_TOKEN")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Dependencies" }));
+    fireEvent.click(screen.getByRole("tab", { name: "依赖" }));
 
     expect(screen.getByText("ripgrep")).toBeTruthy();
     expect(screen.getByRole("link", { name: "https://example.com/rg" })).toBeTruthy();

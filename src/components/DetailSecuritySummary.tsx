@@ -48,7 +48,7 @@ export function DetailSecuritySummary({
   const auditVerdictInfo = getScanStatusInfo(auditVerdict);
   const meterLevel = auditVerdictMeterLevel(auditVerdict);
   return (
-    <a href={auditHref} className="security-audit-sidebar-value" aria-label="View Security Audit">
+    <a href={auditHref} className="security-audit-sidebar-value" aria-label="查看安全审计">
       <div className="security-audit-sidebar-value-row">
         <span className="security-audit-sidebar-verdict" data-status={auditVerdict}>
           {auditVerdictInfo.label}
@@ -67,7 +67,7 @@ export function DetailSecuritySummary({
 export function DetailSecuritySummaryLabel() {
   return (
     <span className="security-audit-sidebar-label">
-      <span>Security audit</span>
+      <span>安全审计</span>
       <TooltipProvider delayDuration={400}>
         <Tooltip>
           <TooltipTrigger asChild>

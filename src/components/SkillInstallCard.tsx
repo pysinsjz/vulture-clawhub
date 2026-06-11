@@ -70,44 +70,44 @@ export function buildSkillInstallTabs({
   if (hasRuntimeRequirements) {
     tabs.push({
       id: "runtime",
-      label: "Runtime",
+      label: "运行环境",
       panel: (
         <div className="skill-install-tab-panel runtime-requirements-panel">
           <SkillInstallMetadataPanel>
             {osLabels.length ? (
-              <SkillInstallMetadataRow title="OS" description={osLabels.join(" · ")} />
+              <SkillInstallMetadataRow title="操作系统" description={osLabels.join(" · ")} />
             ) : null}
             {requirements?.bins?.length ? (
-              <SkillInstallMetadataRow title="Bins" description={requirements.bins.join(", ")} />
+              <SkillInstallMetadataRow title="二进制" description={requirements.bins.join(", ")} />
             ) : null}
             {requirements?.anyBins?.length ? (
               <SkillInstallMetadataRow
-                title="Any bin"
+                title="任一二进制"
                 description={requirements.anyBins.join(", ")}
               />
             ) : null}
             {requirements?.env?.length ? (
-              <SkillInstallMetadataRow title="Env" description={requirements.env.join(", ")} />
+              <SkillInstallMetadataRow title="环境变量" description={requirements.env.join(", ")} />
             ) : null}
             {requirements?.config?.length ? (
               <SkillInstallMetadataRow
-                title="Config"
+                title="配置"
                 description={requirements.config.join(", ")}
               />
             ) : null}
             {clawdis?.primaryEnv ? (
-              <SkillInstallMetadataRow title="Primary env" description={clawdis.primaryEnv} />
+              <SkillInstallMetadataRow title="主环境变量" description={clawdis.primaryEnv} />
             ) : null}
             {envVars.length > 0 ? (
-              <SkillInstallMetadataRow title="Environment variables">
+              <SkillInstallMetadataRow title="环境变量明细">
                 <div className="skill-install-env-list">
                   {envVars.map((env, index) => (
                     <div key={`${env.name}-${index}`} className="skill-install-env-row">
                       <code>{env.name}</code>
                       {env.required === false ? (
-                        <span>optional</span>
+                        <span>可选</span>
                       ) : env.required === true ? (
-                        <span>required</span>
+                        <span>必填</span>
                       ) : null}
                       {env.description ? <p>{env.description}</p> : null}
                     </div>
@@ -124,7 +124,7 @@ export function buildSkillInstallTabs({
   if (hasDependencies) {
     tabs.push({
       id: "dependencies",
-      label: "Dependencies",
+      label: "依赖",
       panel: (
         <div className="skill-install-tab-panel">
           <SkillInstallMetadataPanel>
@@ -150,7 +150,7 @@ export function buildSkillInstallTabs({
                 </span>
                 {dep.repository && dep.repository !== dep.url ? (
                   <a href={dep.repository} target="_blank" rel="noopener noreferrer">
-                    Source
+                    源码
                   </a>
                 ) : null}
               </SkillInstallMetadataRow>
@@ -164,7 +164,7 @@ export function buildSkillInstallTabs({
   if (hasInstallSpecs) {
     tabs.push({
       id: "install",
-      label: "Install",
+      label: "安装",
       panel: (
         <div className="skill-install-tab-panel">
           <SkillInstallMetadataPanel>
@@ -174,7 +174,7 @@ export function buildSkillInstallTabs({
                 <SkillInstallMetadataRow
                   key={`${spec.id ?? spec.kind}-${index}`}
                   title={spec.label ?? formatInstallLabel(spec)}
-                  description={spec.bins?.length ? `Bins: ${spec.bins.join(", ")}` : undefined}
+                  description={spec.bins?.length ? `二进制：${spec.bins.join(", ")}` : undefined}
                 >
                   {command ? (
                     <pre className="hero-install-code skill-install-command">
@@ -193,12 +193,12 @@ export function buildSkillInstallTabs({
   if (hasLinks) {
     tabs.push({
       id: "links",
-      label: "Links",
+      label: "链接",
       panel: (
         <div className="skill-install-tab-panel">
           <SkillInstallMetadataPanel>
             {links?.homepage ? (
-              <SkillInstallMetadataRow title="Homepage">
+              <SkillInstallMetadataRow title="主页">
                 <a
                   href={links.homepage}
                   target="_blank"
@@ -210,7 +210,7 @@ export function buildSkillInstallTabs({
               </SkillInstallMetadataRow>
             ) : null}
             {links?.repository ? (
-              <SkillInstallMetadataRow title="Repository">
+              <SkillInstallMetadataRow title="仓库">
                 <a
                   href={links.repository}
                   target="_blank"
@@ -222,7 +222,7 @@ export function buildSkillInstallTabs({
               </SkillInstallMetadataRow>
             ) : null}
             {links?.documentation ? (
-              <SkillInstallMetadataRow title="Docs">
+              <SkillInstallMetadataRow title="文档">
                 <a href={links.documentation} target="_blank" rel="noopener noreferrer">
                   {links.documentation}
                 </a>

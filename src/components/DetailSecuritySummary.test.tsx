@@ -20,7 +20,7 @@ describe("DetailSecuritySummary", () => {
     );
 
     expect(screen.getByText("Pass")).toBeTruthy();
-    const auditLink = screen.getByRole("link", { name: "View Security Audit" });
+    const auditLink = screen.getByRole("link", { name: "查看安全审计" });
     expect(auditLink.getAttribute("href")).toBe("/steipete/weather/security-audit");
     expect(auditLink.getAttribute("target")).toBeNull();
     expect(auditLink.getAttribute("rel")).toBeNull();

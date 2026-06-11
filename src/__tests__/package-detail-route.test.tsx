@@ -403,9 +403,9 @@ describe("plugin detail route", () => {
 
     render(<Component />);
 
-    expect(screen.getByText("Security audit")).toBeTruthy();
+    expect(screen.getByText("安全审计")).toBeTruthy();
     expect(screen.getByText("Pass")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "View Security Audit" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "查看安全审计" }).getAttribute("href")).toBe(
       "/plugins/demo-plugin/security-audit",
     );
     expect(
@@ -422,7 +422,7 @@ describe("plugin detail route", () => {
       (label) => label.textContent?.trim(),
     );
     const securityAuditLabelIndex = sidebarLabels.findIndex((label) =>
-      label?.startsWith("Security audit"),
+      label?.startsWith("安全审计"),
     );
     expect(securityAuditLabelIndex).toBeGreaterThanOrEqual(0);
     expect(securityAuditLabelIndex).toBeGreaterThan(sidebarLabels.indexOf("Downloads"));

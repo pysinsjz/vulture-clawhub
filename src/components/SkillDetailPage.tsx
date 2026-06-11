@@ -87,39 +87,39 @@ function buildStaffVisibilityAlert({
   modInfo?: { isMalwareBlocked: boolean; isSuspicious: boolean } | null;
 }) {
   if (isRemoved) {
-    return `This ${artifactKind} was removed from public view by moderation.`;
+    return `该 ${artifactKind === "plugin" ? "Plugin" : "Skill"} 已被审核移出公开展示。`;
   }
 
-  let reason = "by moderation.";
+  let reason = "因审核处理。";
   if (isAutoHidden) {
-    reason = "because it was automatically hidden after multiple reports.";
+    reason = "因多次举报被自动隐藏。";
   } else if (moderationReason === "manual.report") {
-    reason = "because staff reviewed a report.";
+    reason = "因工作人员复核了举报。";
   } else if (moderationReason === "pending.scan" || moderationReason === "pending.scan.stale") {
-    reason = "while security checks finish.";
+    reason = "因安全检查尚未完成。";
   } else if (moderationReason === "quality.low") {
-    reason = "because it is on quality hold.";
+    reason = "因质量问题被暂缓。";
   } else if (moderationReason === "user.banned") {
-    reason = "because the publisher account is banned.";
+    reason = "因发布者账号已被封禁。";
   } else if (moderationReason === "user.moderation") {
-    reason = "because the publisher account is under moderation.";
+    reason = "因发布者账号正在接受审核。";
   } else if (moderationReason === "owner.merged") {
-    reason = "because it was merged into another skill.";
+    reason = "因已被合并到另一个 Skill。";
   } else if (moderationReason === "security.redaction") {
-    reason = "because it was hidden for security redaction.";
+    reason = "因安全脱敏处理被隐藏。";
   } else if (moderationReason?.startsWith("scanner.") && moderationReason.endsWith(".malicious")) {
-    reason = "because automated security checks found security warnings or malicious content.";
+    reason = "因自动安全检查发现安全警告或恶意内容。";
   } else if (moderationReason?.startsWith("scanner.") && moderationReason.endsWith(".suspicious")) {
-    reason = "because automated security checks found security warnings or malicious content.";
+    reason = "因自动安全检查发现安全警告或恶意内容。";
   } else if (modInfo?.isMalwareBlocked) {
-    reason = "because automated security checks found security warnings or malicious content.";
+    reason = "因自动安全检查发现安全警告或恶意内容。";
   } else if (modInfo?.isSuspicious) {
-    reason = "because automated security checks found security warnings or malicious content.";
+    reason = "因自动安全检查发现安全警告或恶意内容。";
   } else if (isSoftDeleted && !moderationReason) {
-    reason = "because it was unpublished.";
+    reason = "因已被取消发布。";
   }
 
-  const base = `This ${artifactKind} is hidden from public view ${reason}`;
+  const base = `该 ${artifactKind === "plugin" ? "Plugin" : "Skill"} 已被隐藏，不再公开展示，${reason}`;
   if (!moderationNote) return base;
 
   const normalizedNote = moderationNote.trim();
@@ -129,7 +129,7 @@ function buildStaffVisibilityAlert({
     "Hidden from public view.",
   ]);
   if (!normalizedNote || generatedNotes.has(normalizedNote)) return base;
-  return `${base} Moderator note: ${normalizedNote}`;
+  return `${base} 审核备注：${normalizedNote}`;
 }
 
 export function SkillDetailPage({
@@ -257,9 +257,9 @@ export function SkillDetailPage({
     !modInfo?.isMalwareBlocked &&
     !modInfo?.isSuspicious;
   const scanResultsSuppressedMessage = suppressVersionScanResults
-    ? "Security findings on these releases were reviewed by staff and cleared for public use."
+    ? "这些发布版本上的安全发现已由工作人员复核并确认可公开使用。"
     : null;
-  const forkOfLabel = forkOf?.kind === "duplicate" ? "duplicate of" : "fork of";
+  const forkOfLabel = forkOf?.kind === "duplicate" ? "复制自" : "fork 自";
   const forkOfOwnerHandle = forkOf?.owner?.handle ?? null;
   const forkOfOwnerId = forkOf?.owner?.userId ?? null;
   const canonicalOwnerHandle = canonical?.owner?.handle ?? null;
@@ -279,11 +279,11 @@ export function SkillDetailPage({
   const isRemoved = moderationStatus === "removed";
   const isAutoHidden = isHidden && staffSkill?.moderationReason === "auto.reports";
   const staffVisibilityTag = isRemoved
-    ? "Removed"
+    ? "已移除"
     : isAutoHidden
-      ? "Auto-hidden"
+      ? "自动隐藏"
       : isHidden
-        ? "Hidden"
+        ? "已隐藏"
         : null;
   const staffModerationNote = staffVisibilityTag
     ? buildStaffVisibilityAlert({
@@ -330,7 +330,7 @@ export function SkillDetailPage({
   const displayedReadme = isGitHubBackedSkill ? (githubReadme?.text ?? null) : readme;
   const displayedReadmeError = isGitHubBackedSkill
     ? githubReadme === null
-      ? "No SKILL.md available"
+      ? "暂无 SKILL.md"
       : null
     : readmeError;
 
@@ -348,7 +348,7 @@ export function SkillDetailPage({
   const displayedSkillCard = isGitHubBackedSkill ? (githubSkillCard?.text ?? null) : skillCard;
   const displayedSkillCardError = isGitHubBackedSkill
     ? githubSkillCard === null
-      ? "No Skill Card available"
+      ? "暂无 Skill Card"
       : null
     : skillCardError;
   const currentSkillCardKey = useMemo(
@@ -416,7 +416,7 @@ export function SkillDetailPage({
     }
     if (!latestVersionId) {
       setReadme(null);
-      setReadmeError(isGitHubBackedSkill ? null : "No SKILL.md available");
+      setReadmeError(isGitHubBackedSkill ? null : "暂无 SKILL.md");
       setLoadedReadmeVersionId(null);
       return () => {
         cancelled = true;
@@ -438,7 +438,7 @@ export function SkillDetailPage({
         })
         .catch((error) => {
           if (cancelled) return;
-          setReadmeError(error instanceof Error ? error.message : "Failed to load README");
+          setReadmeError(error instanceof Error ? error.message : "加载 README 失败");
           setReadme(null);
           setLoadedReadmeVersionId(latestVersionId);
         });
@@ -487,7 +487,7 @@ export function SkillDetailPage({
       })
       .catch((error) => {
         if (cancelled) return;
-        setSkillCardError(error instanceof Error ? error.message : "Failed to load Skill Card");
+        setSkillCardError(error instanceof Error ? error.message : "加载 Skill Card 失败");
         setSkillCard(null);
         setLoadedSkillCardKey(currentSkillCardKey);
       });
@@ -516,10 +516,10 @@ export function SkillDetailPage({
         skillId: skill._id,
         summary: nextSummary,
       });
-      toast.success("Summary updated.");
+      toast.success("简介已更新。");
     } catch (error) {
       console.error("Failed to update summary", error);
-      toast.error(getUserFacingConvexError(error, "Failed to update summary."));
+      toast.error(getUserFacingConvexError(error, "更新简介失败。"));
     }
   };
 
@@ -527,7 +527,7 @@ export function SkillDetailPage({
   if (isLoadingSkill || wantsCanonicalRedirect) {
     return (
       <main className="section detail-page-section" aria-busy="true">
-        <div role="status" aria-label="Loading skill details">
+        <div role="status" aria-label="正在加载 Skill 详情">
           <SkillDetailSkeleton />
         </div>
       </main>
@@ -582,15 +582,15 @@ export function SkillDetailPage({
           <div className="skill-settings-page-header">
             <a href={detailHref} className="skill-settings-back-link">
               <ArrowLeft size={16} aria-hidden="true" />
-              Back to {skill.displayName}
+              返回 {skill.displayName}
             </a>
             <div className="skill-settings-page-title-row">
-              <h1 className="skill-settings-page-title">Skill settings</h1>
+              <h1 className="skill-settings-page-title">Skill 设置</h1>
               {newVersionHref ? (
                 <Button asChild variant="outline" className="skill-settings-new-version-button">
                   <a href={newVersionHref}>
                     <Upload size={14} aria-hidden="true" />
-                    Update skill files
+                    更新 Skill 文件
                   </a>
                 </Button>
               ) : null}
@@ -602,10 +602,9 @@ export function SkillDetailPage({
               settingsPanel
             ) : (
               <Card>
-                <h2 className="section-title text-[1.2rem] m-0">Settings unavailable</h2>
+                <h2 className="section-title text-[1.2rem] m-0">设置不可用</h2>
                 <p className="section-subtitle mt-3 mb-0">
-                  Only the skill owner, an owner org admin, or platform staff can manage these
-                  settings.
+                  只有该 Skill 的所有者、所属组织管理员或平台工作人员可以管理这些设置。
                 </p>
               </Card>
             )}
@@ -649,14 +648,14 @@ export function SkillDetailPage({
         >
           {nixSnippet ? (
             <Card>
-              <h3 className="m-0 text-[length:var(--text-base)] font-semibold">Install via Nix</h3>
+              <h3 className="m-0 text-[length:var(--text-base)] font-semibold">通过 Nix 安装</h3>
               <pre className="hero-install-code mt-2">{nixSnippet}</pre>
             </Card>
           ) : null}
 
           {configExample ? (
             <Card>
-              <h3 className="m-0 text-[length:var(--text-base)] font-semibold">Config example</h3>
+              <h3 className="m-0 text-[length:var(--text-base)] font-semibold">配置示例</h3>
               <pre className="hero-install-code mt-2">{configExample}</pre>
             </Card>
           ) : null}

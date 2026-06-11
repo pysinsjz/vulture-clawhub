@@ -36,7 +36,7 @@ type SkillOwnershipPanelProps = {
 };
 
 function formatMutationError(error: unknown) {
-  return getUserFacingConvexError(error, "Request failed.");
+  return getUserFacingConvexError(error, "请求失败。");
 }
 
 function SummarySettingsEditor({
@@ -61,7 +61,7 @@ function SummarySettingsEditor({
     try {
       await onSaveSummary(value);
     } catch (saveError) {
-      setError(getUserFacingConvexError(saveError, "Could not save description."));
+      setError(getUserFacingConvexError(saveError, "无法保存简介。"));
     } finally {
       setIsSaving(false);
     }
@@ -70,12 +70,12 @@ function SummarySettingsEditor({
   return (
     <div className="summary-settings-editor">
       <Textarea
-        aria-label="Description"
+        aria-label="简介"
         rows={3}
         value={value}
         maxLength={500}
         onChange={(event) => setValue(event.target.value)}
-        placeholder="Enter a brief description..."
+        placeholder="输入简短的简介…"
       />
       <div className="summary-settings-footer">
         <span className="summary-settings-meta">{value.trim().length}/500</span>
@@ -85,7 +85,7 @@ function SummarySettingsEditor({
           loading={isSaving}
           onClick={() => void handleSave()}
         >
-          {isSaving ? "Saving" : "Save"}
+          {isSaving ? "保存中" : "保存"}
         </Button>
       </div>
       {error ? <p className="summary-settings-error">{error}</p> : null}
@@ -128,7 +128,7 @@ export function SkillOwnershipPanel({
     setError(null);
     try {
       await renameOwnedSkill({ slug, newSlug: nextSlug });
-      toast.success(`Renamed to ${nextSlug}. Old slug will redirect.`);
+      toast.success(`已重命名为 ${nextSlug}，旧 slug 将自动跳转。`);
       await navigate({
         to: "/$owner/$slug",
         params: {
@@ -154,7 +154,7 @@ export function SkillOwnershipPanel({
         sourceSlug: slug,
         targetSlug,
       });
-      toast.success(`Merged into ${targetSlug}. This slug will redirect.`);
+      toast.success(`已合并到 ${targetSlug}，此 slug 将自动跳转。`);
       await navigate({
         to: "/$owner/$slug",
         params: {
@@ -174,8 +174,8 @@ export function SkillOwnershipPanel({
     <>
       <div className="skill-admin-panel" data-skill-id={skillId}>
         <SettingsActionRow
-          title="Short summary"
-          description="Update the short summary used in cards, search, and previews."
+          title="简介"
+          description="更新用于卡片、搜索和预览的简短简介。"
         >
           {onSaveSummary ? (
             <SummarySettingsEditor summary={summary} onSaveSummary={onSaveSummary} />
@@ -183,13 +183,13 @@ export function SkillOwnershipPanel({
         </SettingsActionRow>
 
         <SettingsActionRow
-          title="Rename slug"
-          description="Change the canonical URL slug. Old slugs stay as redirects."
+          title="重命名 slug"
+          description="修改规范化的 URL slug，旧 slug 会保留为跳转。"
         >
           <div className="skill-admin-row-controls">
             <div className="skill-admin-control-line">
               <Input
-                aria-label="New slug"
+                aria-label="新 slug"
                 value={renameSlug}
                 onChange={(event) => setRenameSlug(event.target.value)}
                 placeholder="new-slug"
@@ -201,18 +201,17 @@ export function SkillOwnershipPanel({
                 onClick={() => setConfirmRename(true)}
                 disabled={isSubmitting || renameSlug.trim().toLowerCase() === slug}
               >
-                Update
+                更新
               </Button>
             </div>
           </div>
         </SettingsActionRow>
 
         <SettingsActionRow
-          title="Merge listing"
+          title="合并条目"
           description={
             <p>
-              Fold this listing into another skill you own. The target remains live and this row is
-              hidden from search and browse.
+              将此条目合并到你拥有的另一个 Skill。目标 Skill 保持上线，此条目将从搜索和浏览中隐藏。
             </p>
           }
         >
@@ -223,12 +222,12 @@ export function SkillOwnershipPanel({
                 onValueChange={setMergeTargetSlug}
                 disabled={ownedSkills.length === 0 || isSubmitting}
               >
-                <SelectTrigger aria-label="Merge into">
+                <SelectTrigger aria-label="合并到">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {ownedSkills.length === 0 ? (
-                    <SelectItem value="__none__">No other owned skills</SelectItem>
+                    <SelectItem value="__none__">没有其他你拥有的 Skill</SelectItem>
                   ) : null}
                   {ownedSkills.map((entry) => (
                     <SelectItem key={entry._id} value={entry.slug}>
@@ -242,7 +241,7 @@ export function SkillOwnershipPanel({
                 onClick={() => setConfirmMerge(true)}
                 disabled={isSubmitting || !mergeTargetSlug}
               >
-                Update
+                更新
               </Button>
             </div>
           </div>
@@ -257,16 +256,15 @@ export function SkillOwnershipPanel({
       <Dialog open={confirmRename} onOpenChange={setConfirmRename}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename skill slug?</DialogTitle>
+            <DialogTitle>重命名 Skill slug？</DialogTitle>
             <DialogDescription>
-              This will permanently rename <strong>{slug}</strong> to{" "}
-              <strong>{renameSlug.trim().toLowerCase()}</strong>. The old slug will become a
-              redirect. This cannot be undone without another rename.
+              此操作会将 <strong>{slug}</strong> 永久重命名为{" "}
+              <strong>{renameSlug.trim().toLowerCase()}</strong>。旧 slug 将变为跳转。除非再次重命名，否则无法撤销。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmRename(false)}>
-              Cancel
+              取消
             </Button>
             <Button
               variant="primary"
@@ -275,7 +273,7 @@ export function SkillOwnershipPanel({
                 void handleRename().finally(() => setConfirmRename(false));
               }}
             >
-              Rename
+              重命名
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -285,16 +283,15 @@ export function SkillOwnershipPanel({
       <Dialog open={confirmMerge} onOpenChange={setConfirmMerge}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Merge into another skill?</DialogTitle>
+            <DialogTitle>合并到另一个 Skill？</DialogTitle>
             <DialogDescription>
-              This will hide <strong>{slug}</strong> and redirect it to{" "}
-              <strong>{mergeTargetSlug.trim().toLowerCase()}</strong>. The listing row will be
-              removed from search and browse views. This is not easily reversible.
+              此操作会隐藏 <strong>{slug}</strong>，并将其跳转到{" "}
+              <strong>{mergeTargetSlug.trim().toLowerCase()}</strong>。该条目将从搜索和浏览视图中移除。此操作不易撤销。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmMerge(false)}>
-              Cancel
+              取消
             </Button>
             <Button
               variant="destructive"
@@ -303,7 +300,7 @@ export function SkillOwnershipPanel({
                 void handleMerge().finally(() => setConfirmMerge(false));
               }}
             >
-              Merge and hide
+              合并并隐藏
             </Button>
           </DialogFooter>
         </DialogContent>

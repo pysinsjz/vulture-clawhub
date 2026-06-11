@@ -34,10 +34,10 @@ export function SkillRelatedSection({
     <section className="related-skills-section" aria-labelledby="related-skills-heading">
       <div className="related-skills-header">
         <h2 id="related-skills-heading" className="related-skills-title">
-          Related skills
+          相关 Skill
         </h2>
         <a className="related-skills-category-link" href={buildSkillCategoryBrowseHref(category)}>
-          More in {category.label}
+          更多 {category.label}
         </a>
       </div>
       <div className="related-skills-list" aria-busy={isLoading}>

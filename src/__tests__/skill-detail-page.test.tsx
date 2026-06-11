@@ -89,7 +89,7 @@ describe("SkillDetailPage", () => {
     });
 
     render(<SkillDetailPage slug="weather" />);
-    expect(screen.getByRole("status", { name: /Loading skill details/i })).toBeTruthy();
+    expect(screen.getByRole("status", { name: /正在加载 Skill 详情/ })).toBeTruthy();
     expect(screen.queryByText(/Skill not found/i)).toBeNull();
   });
 
@@ -165,8 +165,8 @@ describe("SkillDetailPage", () => {
     expect(screen.queryByText(/Loading skill/i)).toBeNull();
     expect((await screen.findAllByRole("heading", { name: "Weather" })).length).toBeGreaterThan(0);
     expect(screen.getByText(/Get current weather\./i)).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Files" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "Compare" })).toBeNull();
+    expect(screen.getByRole("tab", { name: "文件" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "对比" })).toBeNull();
   });
 
   it("does not spin forever when a source-backed skill has no stored version", async () => {
@@ -223,7 +223,7 @@ describe("SkillDetailPage", () => {
     );
 
     expect(await screen.findByText("Pending")).toBeTruthy();
-    expect(screen.getByText("Security audit")).toBeTruthy();
+    expect(screen.getByText("安全审计")).toBeTruthy();
     expect(screen.queryByText("Loading README...")).toBeNull();
   });
 
@@ -342,7 +342,7 @@ describe("SkillDetailPage", () => {
       />,
     );
 
-    expect(await screen.findByText("No README available")).toBeTruthy();
+    expect(await screen.findByText("暂无 README")).toBeTruthy();
     expect(screen.queryByText("Only old body.")).toBeNull();
   });
 
@@ -497,7 +497,7 @@ describe("SkillDetailPage", () => {
       />,
     );
 
-    expect(await screen.findByRole("tab", { name: "Files" })).toBeTruthy();
+    expect(await screen.findByRole("tab", { name: "文件" })).toBeTruthy();
     expect(screen.queryByRole("tab", { name: "Skill Card" })).toBeNull();
   });
 
@@ -569,7 +569,7 @@ describe("SkillDetailPage", () => {
 
     const { rerender } = render(<SkillDetailPage slug="weather" initialData={baseInitialData} />);
 
-    expect(await screen.findByRole("tab", { name: "Files" })).toBeTruthy();
+    expect(await screen.findByRole("tab", { name: "文件" })).toBeTruthy();
     expect(screen.getByRole("tab", { name: "SKILL.md" }).getAttribute("aria-selected")).toBe(
       "true",
     );
@@ -711,11 +711,11 @@ describe("SkillDetailPage", () => {
       />,
     );
 
-    expect(await screen.findByRole("heading", { name: "Related skills" })).toBeTruthy();
+    expect(await screen.findByRole("heading", { name: "相关 Skill" })).toBeTruthy();
     expect(screen.getByRole("link", { name: "查看 Workflows 分类的 Skill" }).getAttribute("href")).toBe(
       "/skills?category=workflows",
     );
-    expect(screen.getByRole("link", { name: "More in Workflows" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "更多 Workflows" }).getAttribute("href")).toBe(
       "/skills?category=workflows",
     );
     expect(screen.getByRole("link", { name: /Pipeline Builder/i })).toBeTruthy();
@@ -805,8 +805,8 @@ describe("SkillDetailPage", () => {
     expect(screen.getByRole("tab", { name: "CLI" }).getAttribute("aria-selected")).toBe("true");
     expect(screen.getByRole("tab", { name: "提示词" })).toBeTruthy();
     expect(screen.queryByText(/After install, inspect the skill metadata/i)).toBeNull();
-    expect(screen.getByText("Security audit")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "View Security Audit" }).getAttribute("href")).toBe(
+    expect(screen.getByText("安全审计")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "查看安全审计" }).getAttribute("href")).toBe(
       "/steipete/weather/security-audit",
     );
     const sidebarLabels = Array.from(
@@ -814,7 +814,7 @@ describe("SkillDetailPage", () => {
       (label) => label.textContent?.trim(),
     );
     const securityAuditLabelIndex = sidebarLabels.findIndex((label) =>
-      label?.startsWith("Security audit"),
+      label?.startsWith("安全审计"),
     );
     expect(securityAuditLabelIndex).toBe(sidebarLabels.indexOf("发布者") + 1);
     expect(
@@ -827,7 +827,7 @@ describe("SkillDetailPage", () => {
     expect(screen.queryByRole("button", { name: "Rescan" })).toBeNull();
 
     const installHeading = screen.getAllByRole("heading", { name: "安装" })[0];
-    const filesTab = screen.getByRole("tab", { name: "Files" });
+    const filesTab = screen.getByRole("tab", { name: "文件" });
     expect(
       installHeading.compareDocumentPosition(filesTab) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
@@ -927,9 +927,9 @@ describe("SkillDetailPage", () => {
       />,
     );
 
-    await screen.findByText("Security audit");
+    await screen.findByText("安全审计");
     expect(screen.getByText("Cleared")).toBeTruthy();
-    expect(screen.getByRole("link", { name: "View Security Audit" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "查看安全审计" })).toBeTruthy();
     expect(screen.queryByText(/reviewed by staff and cleared/i)).toBeNull();
     expect(screen.queryByRole("link", { name: /Suspicious/i })).toBeNull();
   });
@@ -1003,7 +1003,7 @@ describe("SkillDetailPage", () => {
       />,
     );
 
-    await screen.findByText("Short summary");
+    await screen.findByText("简介");
     expect(screen.queryByText("Publish a new version")).toBeNull();
     expect(screen.queryByRole("link", { name: "New Version" })).toBeNull();
     expect(screen.queryByText(/request security/i)).toBeNull();
@@ -1126,7 +1126,7 @@ describe("SkillDetailPage", () => {
     });
 
     render(<SkillDetailPage slug="weather" redirectToCanonical />);
-    expect(screen.getByRole("status", { name: /Loading skill details/i })).toBeTruthy();
+    expect(screen.getByRole("status", { name: /正在加载 Skill 详情/ })).toBeTruthy();
 
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalled();
@@ -1183,7 +1183,7 @@ describe("SkillDetailPage", () => {
     });
 
     render(<SkillDetailPage slug="old-weather" canonicalOwner="steipete" />);
-    expect(screen.getByRole("status", { name: /Loading skill details/i })).toBeTruthy();
+    expect(screen.getByRole("status", { name: /正在加载 Skill 详情/ })).toBeTruthy();
 
     await waitFor(() => {
       expect(navigateMock).toHaveBeenCalled();
@@ -1350,13 +1350,13 @@ describe("SkillDetailPage", () => {
 
     render(<SkillDetailPage slug="weather" mode="settings" />);
 
-    expect(await screen.findByRole("heading", { name: /Skill settings/i })).toBeTruthy();
-    const newVersionLink = screen.getByRole("link", { name: /Update skill files/i });
+    expect(await screen.findByRole("heading", { name: /Skill 设置/ })).toBeTruthy();
+    const newVersionLink = screen.getByRole("link", { name: /更新 Skill 文件/ });
     expect(newVersionLink.getAttribute("href")).toBe(
       "/skills/publish?updateSlug=weather&ownerHandle=steipete",
     );
-    expect(screen.getByText("Rename slug")).toBeTruthy();
-    expect(screen.getByText("Merge listing")).toBeTruthy();
+    expect(screen.getByText("重命名 slug")).toBeTruthy();
+    expect(screen.getByText("合并条目")).toBeTruthy();
   });
 
   it("does not expose settings to publisher members without admin access", async () => {
@@ -1402,8 +1402,8 @@ describe("SkillDetailPage", () => {
     unmount();
 
     render(<SkillDetailPage slug="weather" mode="settings" />);
-    expect(await screen.findByRole("heading", { name: /Settings unavailable/i })).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /Update skill files/i })).toBeNull();
+    expect(await screen.findByRole("heading", { name: /设置不可用/ })).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /更新 Skill 文件/ })).toBeNull();
   });
 
   it("does not render version tag cards on the simplified public detail surface", async () => {
@@ -1576,7 +1576,7 @@ describe("SkillDetailPage", () => {
     render(<SkillDetailPage slug="weather" />);
     expect(await screen.findByText("Weather")).toBeTruthy();
     expect(screen.getByRole("tab", { name: "SKILL.md" })).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Files" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "文件" })).toBeTruthy();
     expect(screen.queryByRole("button", { name: /compare/i })).toBeNull();
 
     expect(

@@ -92,7 +92,7 @@ export function SkillDetailTabs({
 
   return (
     <div className="tab-card">
-      <div className="tab-header" role="tablist" aria-label="Skill detail tabs">
+      <div className="tab-header" role="tablist" aria-label="Skill 详情标签页">
         <button
           className={`tab-button${activeTab === "readme" ? " is-active" : ""}`}
           type="button"
@@ -121,7 +121,7 @@ export function SkillDetailTabs({
             aria-selected={activeTab === "files"}
             onClick={() => selectTab("files")}
           >
-            Files
+            文件
           </button>
         ) : null}
         {compareEnabled ? (
@@ -140,7 +140,7 @@ export function SkillDetailTabs({
               void import("./SkillDiffCard");
             }}
           >
-            Compare
+            对比
           </button>
         ) : null}
         {showArchiveTabs ? (
@@ -151,7 +151,7 @@ export function SkillDetailTabs({
             aria-selected={activeTab === "versions"}
             onClick={() => selectTab("versions")}
           >
-            Versions
+            版本
           </button>
         ) : null}
         {installTabs.map((tab) => (
@@ -184,11 +184,11 @@ export function SkillDetailTabs({
             </div>
           ) : readmeError ? (
             <div className="empty-state px-[var(--space-4)] py-[var(--space-6)]">
-              <p className="empty-state-title">No README available</p>
-              <p className="empty-state-body">This skill doesn't have a SKILL.md file yet.</p>
+              <p className="empty-state-title">暂无 README</p>
+              <p className="empty-state-body">该 Skill 还没有 SKILL.md 文件。</p>
             </div>
           ) : (
-            <div className="stat p-4">Loading README...</div>
+            <div className="stat p-4">正在加载 README…</div>
           )}
         </div>
       ) : null}
@@ -196,12 +196,11 @@ export function SkillDetailTabs({
       {activeTab === "skill-card" ? (
         <div className="tab-body">
           <p className="skill-card-info-callout">
-            Skill Cards follow{" "}
+            Skill Card 遵循{" "}
             <a href="https://docs.nvidia.com/skills/skill-cards" target="_blank" rel="noreferrer">
               NVIDIA&apos;s trust-card pattern for agent skills
             </a>
-            , giving a compact release record of what a skill does, who published it, and what risks
-            or limits to review before use.
+            ，以紧凑的发布记录说明该 Skill 的功能、发布者，以及使用前需关注的风险或限制。
           </p>
           {skillCardContent ? (
             <MarkdownPreview
@@ -214,24 +213,24 @@ export function SkillDetailTabs({
             </MarkdownPreview>
           ) : skillCardError ? (
             <div className="empty-state px-[var(--space-4)] py-[var(--space-6)]">
-              <p className="empty-state-title">No Skill Card available</p>
-              <p className="empty-state-body">The generated skill-card.md file is not available.</p>
+              <p className="empty-state-title">暂无 Skill Card</p>
+              <p className="empty-state-body">尚未生成 skill-card.md 文件。</p>
             </div>
           ) : (
-            <div className="stat p-4">Loading Skill Card...</div>
+            <div className="stat p-4">正在加载 Skill Card…</div>
           )}
         </div>
       ) : null}
 
       {showArchiveTabs && activeTab === "files" ? (
-        <Suspense fallback={<div className="tab-body stat">Loading file viewer...</div>}>
+        <Suspense fallback={<div className="tab-body stat">正在加载文件查看器…</div>}>
           <SkillFilesPanel versionId={latestVersionId} latestFiles={latestFiles} />
         </Suspense>
       ) : null}
 
       {showArchiveTabs && activeTab === "compare" ? (
         <div className="tab-body">
-          <Suspense fallback={<div className="stat">Loading diff viewer...</div>}>
+          <Suspense fallback={<div className="stat">正在加载差异查看器…</div>}>
             <SkillDiffCard skill={skill} versions={diffVersions ?? []} variant="embedded" />
           </Suspense>
         </div>
