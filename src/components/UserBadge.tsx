@@ -23,7 +23,7 @@ type UserBadgeProps = {
 export function UserBadge({
   user,
   fallbackHandle,
-  prefix = "by",
+  prefix = "作者",
   size = "sm",
   link = true,
   showName = false,

@@ -74,7 +74,7 @@ export function SkillsResults({
                     <UserBadge
                       user={entry.owner}
                       fallbackHandle={ownerHandle}
-                      prefix="by"
+                      prefix="作者"
                       link={false}
                     />
                     <div className="stat">
