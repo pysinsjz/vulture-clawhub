@@ -12,7 +12,7 @@ type PublisherListItemProps = {
 function PublishedRail({ items }: { items: PublicPublisherPublishedItem[] }) {
   if (items.length === 0) return null;
   return (
-    <span className="publisher-published-rail" aria-label="Published packages">
+    <span className="publisher-published-rail" aria-label="已发布的 Package">
       {items.slice(0, 3).map((item) => (
         <span className="publisher-published-rail-item" key={`${item.kind}:${item.displayName}`}>
           <MarketplaceIcon kind={item.kind} label={item.displayName} size="xs" />
@@ -29,14 +29,14 @@ export function PublisherListItem({ publisher, variant = "list" }: PublisherList
   const publishedCount = publisher.stats.packages + publisher.stats.skills;
   const summary =
     publisher.bio?.trim() ||
-    (publisher.kind === "org" ? "Org publisher on ClawHub." : "Publisher on ClawHub.");
+    (publisher.kind === "org" ? "ClawHub 上的组织发布者。" : "ClawHub 上的发布者。");
   const summaryInMain = variant !== "grid";
   const featuredItems = publisher.publishedItems.slice(0, 3);
 
   return (
     <div
       className={`publisher-card publisher-card-${variant}`}
-      aria-label={`Publisher: ${publisher.displayName}`}
+      aria-label={`发布者：${publisher.displayName}`}
     >
       <div className="publisher-card-main">
         <MarketplaceIcon
@@ -50,7 +50,7 @@ export function PublisherListItem({ publisher, variant = "list" }: PublisherList
             <span className="publisher-card-name">{publisher.displayName}</span>
             {publisher.official ? <OfficialBadge /> : null}
             {variant === "list" ? <span className="publisher-card-handle">@{handle}</span> : null}
-            {publisher.kind === "org" ? <span className="publisher-card-kind">Org</span> : null}
+            {publisher.kind === "org" ? <span className="publisher-card-kind">组织</span> : null}
           </span>
           {variant === "list" ? null : <span className="publisher-card-handle">@{handle}</span>}
           {summaryInMain ? <p className="publisher-card-summary">{summary}</p> : null}
@@ -75,12 +75,12 @@ export function PublisherListItem({ publisher, variant = "list" }: PublisherList
         <span className="publisher-card-stat">
           <PublishedRail items={publisher.publishedItems} />
           <strong>{formatCompactStat(publishedCount)}</strong>
-          published
+          已发布
         </span>
         <span className="publisher-card-stat is-primary">
           <Download size={14} aria-hidden="true" />
           <strong>{formatCompactStat(publisher.stats.downloads)}</strong>
-          downloads
+          下载
         </span>
       </div>
     </div>

@@ -126,8 +126,8 @@ describe("publishers route", () => {
 
     render(<Component />);
 
-    expect(screen.getByText("Publishers")).toBeTruthy();
-    expect(screen.getByText("No publishers found")).toBeTruthy();
+    expect(screen.getByText("发布者")).toBeTruthy();
+    expect(screen.getByText("未找到发布者")).toBeTruthy();
   });
 
   it("sets publisher-specific sharing metadata", async () => {
@@ -140,7 +140,7 @@ describe("publishers route", () => {
     });
     expect(head?.meta).toContainEqual({
       property: "og:title",
-      content: "Publishers · VultureHub",
+      content: "发布者 · VultureHub",
     });
   });
 });

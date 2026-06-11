@@ -36,19 +36,8 @@ type PublishersLoaderResult = {
 const PUBLISHER_PAGE_SIZE = 25;
 
 function listedCountLabel(value: number, total: number, kind?: PublisherKindSearch) {
-  const label =
-    kind === "orgs"
-      ? total === 1
-        ? "org"
-        : "orgs"
-      : kind === "builders"
-        ? total === 1
-          ? "builder"
-          : "builders"
-        : total === 1
-          ? "publisher"
-          : "publishers";
-  return total > value ? `Showing ${value} of ${total} ${label}` : `Showing all ${total} ${label}`;
+  const label = kind === "orgs" ? "组织" : kind === "builders" ? "开发者" : "发布者";
+  return total > value ? `显示 ${value}，共 ${total} 个${label}` : `全部 ${total} 个${label}`;
 }
 
 export const Route = createFileRoute("/publishers/")({
@@ -66,9 +55,9 @@ export const Route = createFileRoute("/publishers/")({
   head: () => {
     const siteName = getSiteName();
     const siteUrl = getSiteUrl();
-    const title = `Publishers · ${siteName}`;
+    const title = `发布者 · ${siteName}`;
     const description =
-      "Discover the people and organizations publishing skills, plugins, packages, and ecosystem tooling on ClawHub.";
+      "发现在 ClawHub 上发布 Skill、Plugin、Package 及生态工具的个人与组织。";
 
     return {
       links: [
@@ -204,7 +193,7 @@ function PublishersIndex() {
     <main className="browse-page">
       <div className="browse-page-header">
         <h1 className="browse-title">
-          Publishers
+          发布者
           <span className="browse-count">{globalCounts.all}</span>
         </h1>
       </div>
@@ -214,7 +203,7 @@ function PublishersIndex() {
           className="browse-search-input"
           value={query}
           onChange={(event) => handleQueryChange(event.target.value)}
-          placeholder="Search publishers..."
+          placeholder="搜索发布者…"
         />
       </div>
 
@@ -222,7 +211,7 @@ function PublishersIndex() {
         {highlightedPublishers.length > 0 ? (
           <section className="publisher-highlights" aria-labelledby="publisher-highlights-title">
             <div className="publisher-section-heading">
-              <h2 id="publisher-highlights-title">Popular publishers</h2>
+              <h2 id="publisher-highlights-title">热门发布者</h2>
             </div>
             <div className="publisher-highlight-grid">
               {highlightedPublishers.map((publisher) => (
@@ -237,40 +226,40 @@ function PublishersIndex() {
             {listedCountLabel(publishers.length, activeTotal, activeKind)}
             {hasQuery || activeKind ? (
               <button className="browse-clear-btn" type="button" onClick={handleClear}>
-                Clear
+                清除
               </button>
             ) : null}
           </span>
           <div className="publisher-toolbar-controls">
-            <nav className="publisher-filter-tabs" aria-label="Publisher type">
+            <nav className="publisher-filter-tabs" aria-label="发布者类型">
               <Link
                 to="/publishers"
                 search={{ q: search.q, view: search.view }}
                 className={`publisher-filter-tab${!activeKind ? " is-active" : ""}`}
               >
-                All <span>{counts.all}</span>
+                全部 <span>{counts.all}</span>
               </Link>
               <Link
                 to="/publishers"
                 search={{ q: search.q, kind: "orgs", view: search.view }}
                 className={`publisher-filter-tab${activeKind === "orgs" ? " is-active" : ""}`}
               >
-                Orgs <span>{counts.organizations}</span>
+                组织 <span>{counts.organizations}</span>
               </Link>
               <Link
                 to="/publishers"
                 search={{ q: search.q, kind: "builders", view: search.view }}
                 className={`publisher-filter-tab${activeKind === "builders" ? " is-active" : ""}`}
               >
-                Builders <span>{counts.individuals}</span>
+                开发者 <span>{counts.individuals}</span>
               </Link>
             </nav>
-            <nav className="publisher-filter-tabs publisher-view-tabs" aria-label="Publisher view">
+            <nav className="publisher-filter-tabs publisher-view-tabs" aria-label="发布者视图">
               <Link
                 to="/publishers"
                 search={{ q: search.q, kind: search.kind }}
                 resetScroll={false}
-                aria-label="List view"
+                aria-label="列表视图"
                 className={`publisher-filter-tab${activeView === "list" ? " is-active" : ""}`}
               >
                 <List size={14} aria-hidden="true" />
@@ -279,7 +268,7 @@ function PublishersIndex() {
                 to="/publishers"
                 search={{ q: search.q, kind: search.kind, view: "grid" }}
                 resetScroll={false}
-                aria-label="Grid view"
+                aria-label="网格视图"
                 className={`publisher-filter-tab${activeView === "grid" ? " is-active" : ""}`}
               >
                 <LayoutGrid size={14} aria-hidden="true" />
@@ -290,7 +279,7 @@ function PublishersIndex() {
 
         {publishers.length === 0 ? (
           <div className="empty-state">
-            <p className="empty-state-title">No publishers found</p>
+            <p className="empty-state-title">未找到发布者</p>
           </div>
         ) : (
           <div className={`publisher-directory-list publisher-directory-${activeView}`}>
@@ -306,7 +295,7 @@ function PublishersIndex() {
         {canLoadMore || isLoadingMore ? (
           <div ref={loadMoreRef} className="card mt-4 flex justify-center">
             <Button type="button" onClick={loadMore} disabled={isLoadingMore}>
-              {isLoadingMore ? "Loading..." : "Load more"}
+              {isLoadingMore ? "加载中…" : "加载更多"}
             </Button>
           </div>
         ) : null}
