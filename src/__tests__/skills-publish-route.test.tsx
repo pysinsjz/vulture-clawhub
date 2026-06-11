@@ -88,43 +88,43 @@ describe("Upload route", () => {
   it("links to the skill publishing guide", () => {
     render(<Upload />);
 
-    const guideLink = screen.getByRole("link", { name: /Skill publishing guide/i });
+    const guideLink = screen.getByRole("link", { name: /Skill 发布指南/ });
     expect(guideLink.getAttribute("href")).toBe("https://docs.openclaw.ai/clawhub/skill-format");
     expect(guideLink.getAttribute("target")).toBe("_blank");
   });
 
   it("keeps required validation quiet before submit", async () => {
     render(<Upload />);
-    const publishButton = screen.getByRole("button", { name: /publish/i });
+    const publishButton = screen.getByRole("button", { name: /发布/ });
     const slugInput = screen.getByPlaceholderText("skill-name");
-    const displayNameInput = screen.getByPlaceholderText("My skill");
+    const displayNameInput = screen.getByPlaceholderText("我的 Skill");
 
     expect(publishButton.getAttribute("disabled")).not.toBeNull();
-    expect(screen.queryByText(/Slug is required/i)).toBeNull();
-    expect(screen.queryByText(/Display name is required/i)).toBeNull();
+    expect(screen.queryByText(/slug 不能为空/)).toBeNull();
+    expect(screen.queryByText(/显示名称不能为空/)).toBeNull();
 
     fireEvent.focus(slugInput);
     fireEvent.blur(slugInput);
     fireEvent.focus(displayNameInput);
     fireEvent.blur(displayNameInput);
 
-    expect(screen.queryByText(/Slug is required/i)).toBeNull();
-    expect(screen.queryByText(/Display name is required/i)).toBeNull();
+    expect(screen.queryByText(/slug 不能为空/)).toBeNull();
+    expect(screen.queryByText(/显示名称不能为空/)).toBeNull();
 
     fireEvent.submit(publishButton.closest("form") as HTMLFormElement);
 
-    expect(await screen.findAllByText(/Slug is required/i)).not.toHaveLength(0);
-    expect(await screen.findAllByText(/Display name is required/i)).not.toHaveLength(0);
+    expect(await screen.findAllByText(/slug 不能为空/)).not.toHaveLength(0);
+    expect(await screen.findAllByText(/显示名称不能为空/)).not.toHaveLength(0);
   });
 
   it("does not duplicate inline required field errors in the metadata footer", () => {
     render(<Upload />);
-    const displayNameInput = screen.getByPlaceholderText("My skill");
+    const displayNameInput = screen.getByPlaceholderText("我的 Skill");
 
     fireEvent.change(displayNameInput, { target: { value: "Temporary skill" } });
     fireEvent.change(displayNameInput, { target: { value: "" } });
 
-    const messages = screen.getAllByText(/Display name is required\./i);
+    const messages = screen.getAllByText(/显示名称不能为空。/);
     expect(messages).toHaveLength(1);
     expect(messages[0]?.id).toBe("display-name-validation-error");
   });
@@ -143,7 +143,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "cool-skill" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "Cool Skill" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -156,7 +156,7 @@ describe("Upload route", () => {
     const input = screen.getByTestId("upload-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    const publishButton = screen.getByRole("button", { name: /publish/i }) as HTMLButtonElement;
+    const publishButton = screen.getByRole("button", { name: /发布/ }) as HTMLButtonElement;
     await waitFor(() => {
       expect(publishButton.getAttribute("disabled")).toBeNull();
     });
@@ -167,7 +167,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "cool-skill" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "Cool Skill" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -190,7 +190,7 @@ describe("Upload route", () => {
     expect(await screen.findByText("notes.txt", {}, { timeout: 3000 })).toBeTruthy();
     expect(screen.getByText("SKILL.md")).toBeTruthy();
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /publish/i }).getAttribute("disabled")).toBeNull();
+      expect(screen.getByRole("button", { name: /发布/ }).getAttribute("disabled")).toBeNull();
     });
   });
 
@@ -201,7 +201,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "ynab" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "YNAB" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -220,10 +220,10 @@ describe("Upload route", () => {
 
     expect(await screen.findByText("SKILL.md")).toBeTruthy();
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /publish/i }).getAttribute("disabled")).toBeNull();
+      expect(screen.getByRole("button", { name: /发布/ }).getAttribute("disabled")).toBeNull();
     });
 
-    fireEvent.click(screen.getByRole("button", { name: /publish/i }));
+    fireEvent.click(screen.getByRole("button", { name: /发布/ }));
     await waitFor(() => {
       expect(
         publishVersion.mock.calls.some((call) =>
@@ -243,7 +243,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "cool-skill" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "Cool Skill" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -262,11 +262,11 @@ describe("Upload route", () => {
 
     expect(await screen.findByText("screenshot.png")).toBeTruthy();
     expect(
-      (await screen.findAllByText(/Remove unsupported files: screenshot\.png/i)).length,
+      (await screen.findAllByText(/请移除不支持的文件：screenshot\.png/)).length,
     ).toBeGreaterThan(0);
     expect(screen.getByText("screenshot.png")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Remove unsupported" }));
+    fireEvent.click(screen.getByRole("button", { name: "移除不支持" }));
 
     await waitFor(() => {
       expect(screen.queryByText("screenshot.png")).toBeNull();
@@ -280,7 +280,7 @@ describe("Upload route", () => {
     const input = screen.getByTestId("upload-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [notes] } });
 
-    expect(await screen.findByText("Missing")).toBeTruthy();
+    expect(await screen.findByText("缺失")).toBeTruthy();
     expect(screen.getAllByText("SKILL.md").length).toBeGreaterThan(0);
   });
 
@@ -289,7 +289,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "cool-skill" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "Cool Skill" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -310,10 +310,10 @@ describe("Upload route", () => {
     fireEvent.change(input, { target: { files: [skill, huge] } });
 
     expect(
-      (await screen.findAllByText(/Each file must be 10MB or smaller: notes\.md/i)).length,
+      (await screen.findAllByText(/每个文件不得超过 10MB：notes\.md/)).length,
     ).toBeGreaterThan(0);
     expect(
-      screen.getByRole("button", { name: /publish skill/i }).getAttribute("disabled"),
+      screen.getByRole("button", { name: /发布 Skill/ }).getAttribute("disabled"),
     ).not.toBeNull();
   });
 
@@ -322,7 +322,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "cool-skill" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "Cool Skill" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -339,10 +339,10 @@ describe("Upload route", () => {
 
     expect(await screen.findByText("SKILL.md")).toBeTruthy();
     expect(screen.queryByText(".DS_Store")).toBeNull();
-    expect(await screen.findByText(/Ignored 1 local metadata file/i)).toBeTruthy();
+    expect(await screen.findByText(/已忽略 1 个本地元数据文件/)).toBeTruthy();
     await waitFor(() => {
       expect(
-        screen.getByRole("button", { name: /publish skill/i }).getAttribute("disabled"),
+        screen.getByRole("button", { name: /发布 Skill/ }).getAttribute("disabled"),
       ).toBeNull();
     });
   });
@@ -364,7 +364,7 @@ describe("Upload route", () => {
     expect(await screen.findByDisplayValue("codex-run-to-completion")).toBeTruthy();
     expect(await screen.findByDisplayValue("Codex Run To Completion")).toBeTruthy();
     expect(screen.queryByText(/\.git\/config/i)).toBeNull();
-    expect(await screen.findByText(/Ignored 1 local metadata file/i)).toBeTruthy();
+    expect(await screen.findByText(/已忽略 1 个本地元数据文件/)).toBeTruthy();
   });
 
   it("surfaces publish errors and stays on page", async () => {
@@ -374,7 +374,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "cool-skill" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "Cool Skill" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -386,7 +386,7 @@ describe("Upload route", () => {
     const file = new File(["hello"], "SKILL.md", { type: "text/markdown" });
     const input = screen.getByTestId("upload-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
-    const publishButton = screen.getByRole("button", { name: /publish/i }) as HTMLButtonElement;
+    const publishButton = screen.getByRole("button", { name: /发布/ }) as HTMLButtonElement;
     await waitFor(() => {
       expect(publishButton.getAttribute("disabled")).toBeNull();
     });
@@ -431,7 +431,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "taken-skill" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "Taken Skill" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -448,14 +448,14 @@ describe("Upload route", () => {
       (await screen.findAllByText(/Slug is already taken\. Choose a different slug\./i)).length,
     ).toBeGreaterThan(0);
     expect(screen.queryByText("Taken")).toBeNull();
-    expect(screen.getByLabelText("Slug unavailable")).toBeTruthy();
+    expect(screen.getByLabelText("slug 不可用")).toBeTruthy();
     const existingSkillLink = screen.getByRole("link", {
-      name: "Open existing skill in a new tab",
+      name: "在新标签页打开现有 Skill",
     });
     expect(existingSkillLink).toBeTruthy();
     expect(existingSkillLink.getAttribute("href")).toBe("/alice/taken-skill");
     expect(
-      screen.getByRole("button", { name: /publish skill/i }).getAttribute("disabled"),
+      screen.getByRole("button", { name: /发布 Skill/ }).getAttribute("disabled"),
     ).not.toBeNull();
   });
 
@@ -495,10 +495,10 @@ describe("Upload route", () => {
       target: { value: "org-skill" },
     });
 
-    expect(screen.getByLabelText("Owner").textContent).toContain("@clawkit · ClawKit · admin");
+    expect(screen.getByLabelText("所有者").textContent).toContain("@clawkit · ClawKit · admin");
     expect(document.querySelector('img[src="https://example.com/clawkit.png"]')).toBeTruthy();
     expect(screen.queryByText("Available")).toBeNull();
-    expect(await screen.findByLabelText("Slug available")).toBeTruthy();
+    expect(await screen.findByLabelText("slug 可用")).toBeTruthy();
     await waitFor(() => {
       expect(useQueryMock).toHaveBeenCalledWith(expect.anything(), {
         slug: "org-skill",
@@ -537,7 +537,7 @@ describe("Upload route", () => {
     const { rerender } = render(<Upload />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Owner").textContent).toContain("@local");
+      expect(screen.getByLabelText("所有者").textContent).toContain("@local");
     });
 
     memberships = [
@@ -554,7 +554,7 @@ describe("Upload route", () => {
     rerender(<Upload />);
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Owner").textContent).toContain("@local-owner");
+      expect(screen.getByLabelText("所有者").textContent).toContain("@local-owner");
     });
 
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
@@ -580,7 +580,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "with-icon" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "With Icon" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -596,7 +596,7 @@ describe("Upload route", () => {
     const input = screen.getByTestId("upload-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    const publishButton = screen.getByRole("button", { name: /publish skill/i });
+    const publishButton = screen.getByRole("button", { name: /发布 Skill/ });
     await waitFor(() => {
       expect(publishButton.getAttribute("disabled")).toBeNull();
     });
@@ -623,7 +623,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("skill-name"), {
       target: { value: "no-icon-skill" },
     });
-    fireEvent.change(screen.getByPlaceholderText("My skill"), {
+    fireEvent.change(screen.getByPlaceholderText("我的 Skill"), {
       target: { value: "No Icon Skill" },
     });
     fireEvent.change(screen.getByPlaceholderText("1.0.0"), {
@@ -641,7 +641,7 @@ describe("Upload route", () => {
     const input = screen.getByTestId("upload-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    const publishButton = screen.getByRole("button", { name: /publish skill/i });
+    const publishButton = screen.getByRole("button", { name: /发布 Skill/ });
     await waitFor(() => {
       expect(publishButton.getAttribute("disabled")).toBeNull();
     });
@@ -706,7 +706,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("latest, stable"), {
       target: { value: "latest" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Describe what changed in this skill..."), {
+    fireEvent.change(screen.getByPlaceholderText("描述此 Skill 的变更…"), {
       target: { value: "Routine bump." },
     });
 
@@ -714,7 +714,7 @@ describe("Upload route", () => {
     const input = screen.getByTestId("upload-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    const publishButton = screen.getByRole("button", { name: /publish skill/i });
+    const publishButton = screen.getByRole("button", { name: /发布 Skill/ });
     await waitFor(() => {
       expect(publishButton.getAttribute("disabled")).toBeNull();
     });
@@ -777,7 +777,7 @@ describe("Upload route", () => {
     fireEvent.change(screen.getByPlaceholderText("latest, stable"), {
       target: { value: "latest" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Describe what changed in this skill..."), {
+    fireEvent.change(screen.getByPlaceholderText("描述此 Skill 的变更…"), {
       target: { value: "Routine bump." },
     });
 
@@ -785,7 +785,7 @@ describe("Upload route", () => {
     const input = screen.getByTestId("upload-input") as HTMLInputElement;
     fireEvent.change(input, { target: { files: [file] } });
 
-    const publishButton = screen.getByRole("button", { name: /publish skill/i });
+    const publishButton = screen.getByRole("button", { name: /发布 Skill/ });
     await waitFor(() => {
       expect(publishButton.getAttribute("disabled")).toBeNull();
     });

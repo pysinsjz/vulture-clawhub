@@ -63,9 +63,8 @@ export function Upload() {
   const { isAuthenticated, isLoading: isAuthLoading, me } = useAuthStatus();
   const { updateSlug, ownerHandle: searchOwnerHandle } = useSearch({ from: "/skills/publish" });
   const requiredFileLabel = "SKILL.md";
-  const contentLabel = "skill";
   const publishingGuideUrl = SKILL_PUBLISHING_GUIDE_URL;
-  const publishingGuideLabel = "Skill publishing guide";
+  const publishingGuideLabel = "Skill 发布指南";
   const showChangelogField = Boolean(updateSlug);
 
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
@@ -221,7 +220,7 @@ export function Upload() {
     ).slice(0, 3);
     const suffix = ignoredLocalMetadataPaths.length > 3 ? ", ..." : "";
     const count = ignoredLocalMetadataPaths.length;
-    return `Ignored ${count} local metadata file${count === 1 ? "" : "s"} (${labels.join(", ")}${suffix})`;
+    return `已忽略 ${count} 个本地元数据文件（${labels.join(", ")}${suffix}）`;
   }, [ignoredLocalMetadataPaths]);
   const trimmedSlug = slug.trim();
   const trimmedName = displayName.trim();
@@ -385,43 +384,43 @@ export function Upload() {
   const validation = useMemo(() => {
     const issues: string[] = [];
     if (!trimmedSlug) {
-      issues.push("Slug is required.");
+      issues.push("slug 不能为空。");
     } else if (!SLUG_PATTERN.test(trimmedSlug)) {
-      issues.push("Slug must be lowercase and use dashes only.");
+      issues.push("slug 必须全小写且仅使用短横线。");
     }
     if (!trimmedName) {
-      issues.push("Display name is required.");
+      issues.push("显示名称不能为空。");
     }
     if (!semver.valid(trimmedVersion)) {
-      issues.push("Version must be valid semver (e.g. 1.0.0).");
+      issues.push("版本号必须是有效的 semver（如 1.0.0）。");
     }
     if (parsedTags.length === 0) {
-      issues.push("At least one tag is required.");
+      issues.push("至少需要一个标签。");
     }
     if (files.length === 0) {
-      issues.push("Add at least one file.");
+      issues.push("至少添加一个文件。");
     }
     if (!hasRequiredFile) {
-      issues.push(`${requiredFileLabel} is required.`);
+      issues.push(`${requiredFileLabel} 不能为空。`);
     }
     if (isOwnerMigration && !confirmMigrateOwner) {
       issues.push(
-        `Confirm the ownership move from @${existingOwnerHandle} to @${ownerHandle} to publish.`,
+        `请确认将所有权从 @${existingOwnerHandle} 转移到 @${ownerHandle} 后再发布。`,
       );
     }
     if (unsupportedFileEntries.length > 0) {
       issues.push(
-        `Remove unsupported files: ${unsupportedFileEntries
+        `请移除不支持的文件：${unsupportedFileEntries
           .slice(0, 3)
           .map((entry) => entry.path)
           .join(", ")}${unsupportedFileEntries.length > 3 ? ", ..." : ""}`,
       );
     }
     if (oversizedFiles.length > 0) {
-      issues.push(`Each file must be 10MB or smaller: ${oversizedFileNames.join(", ")}`);
+      issues.push(`每个文件不得超过 10MB：${oversizedFileNames.join(", ")}`);
     }
     if (totalBytes > MAX_PUBLISH_TOTAL_BYTES) {
-      issues.push("Total file size exceeds 50MB.");
+      issues.push("文件总大小超过 50MB。");
     }
     if (effectiveSlugCollision) {
       issues.push(effectiveSlugCollision.message);
@@ -457,8 +456,8 @@ export function Upload() {
   const slugIssue = shouldShowSlugIssue
     ? validation.issues.find(
         (issue) =>
-          issue === "Slug is required." ||
-          issue.startsWith("Slug must ") ||
+          issue === "slug 不能为空。" ||
+          issue.startsWith("slug 必须") ||
           issue === effectiveSlugCollision?.message,
       )
     : undefined;
@@ -474,26 +473,26 @@ export function Upload() {
   const showSlugUnavailableIcon = Boolean(slugCollisionIssue);
   const showSlugStatusIcon = showSlugAvailableIcon || showSlugUnavailableIcon;
   const displayNameIssue = shouldShowDisplayNameIssue
-    ? validation.issues.find((issue) => issue === "Display name is required.")
+    ? validation.issues.find((issue) => issue === "显示名称不能为空。")
     : undefined;
   const versionIssue = shouldShowVersionIssue
-    ? validation.issues.find((issue) => issue.startsWith("Version must "))
+    ? validation.issues.find((issue) => issue.startsWith("版本号必须"))
     : undefined;
-  const ownerIssue = validation.issues.find((issue) => issue.startsWith("Confirm the ownership "));
+  const ownerIssue = validation.issues.find((issue) => issue.startsWith("请确认将所有权"));
   const visibleMetadataIssues = validation.issues.filter((issue) => {
-    if (issue.startsWith("Slug")) return false;
-    if (issue.startsWith("Display name")) return false;
-    if (issue.startsWith("Version")) return false;
-    if (issue.startsWith("At least one tag")) return shouldShowTagsIssue;
+    if (issue.startsWith("slug")) return false;
+    if (issue.startsWith("显示名称")) return false;
+    if (issue.startsWith("版本号")) return false;
+    if (issue.startsWith("至少需要一个标签")) return shouldShowTagsIssue;
     if (issue === effectiveSlugCollision?.message) return false;
     return false;
   });
   const visibleFileIssues = validation.issues.filter((issue) => {
-    if (issue.startsWith("Add at least one file")) return hasAttempted;
-    if (issue === `${requiredFileLabel} is required.`) return false;
-    if (issue.startsWith("Remove unsupported files")) return shouldShowFileIssues;
-    if (issue.startsWith("Each file")) return shouldShowFileIssues;
-    if (issue.startsWith("Total file size")) return shouldShowFileIssues;
+    if (issue.startsWith("至少添加一个文件")) return hasAttempted;
+    if (issue === `${requiredFileLabel} 不能为空。`) return false;
+    if (issue.startsWith("请移除不支持的文件")) return shouldShowFileIssues;
+    if (issue.startsWith("每个文件")) return shouldShowFileIssues;
+    if (issue.startsWith("文件总大小")) return shouldShowFileIssues;
     return false;
   });
   const hasFilePanelFooter = Boolean(ignoredLocalMetadataNote || visibleFileIssues.length > 0);
@@ -514,8 +513,8 @@ export function Upload() {
       <main className="py-10">
         <Container size="narrow">
           <EmptyState
-            title={`Sign in to publish a ${contentLabel}`}
-            description="You need to be signed in to publish skills on ClawHub."
+            title={"登录后发布 Skill"}
+            description="你需要登录后才能在 ClawHub 上发布 Skill。"
           >
             <SignInButton />
           </EmptyState>
@@ -546,10 +545,10 @@ export function Upload() {
     }
     if (nextDisplayName && !dirtyFields.displayName && !trimmedName) {
       setDisplayName(nextDisplayName);
-      prefilled.push("display name");
+      prefilled.push("显示名称");
     }
     if (prefilled.length > 0) {
-      setMetadataPrefillNote(`Suggested ${prefilled.join(" and ")} from the selected folder.`);
+      setMetadataPrefillNote(`已根据所选文件夹推荐 ${prefilled.join("、")}。`);
     }
   }
 
@@ -589,7 +588,7 @@ export function Upload() {
     event.preventDefault();
     setHasAttempted(true);
     if (!validation.ready) {
-      const message = validation.issues[0] ?? "Fix validation issues to continue.";
+      const message = validation.issues[0] ?? "请修复校验问题后继续。";
       setError(message);
       toast.error(message);
       return;
@@ -601,24 +600,24 @@ export function Upload() {
     }
     setError(null);
     if (oversizedFiles.length > 0) {
-      const msg = `Each file must be 10MB or smaller: ${oversizedFileNames.join(", ")}`;
+      const msg = `每个文件不得超过 10MB：${oversizedFileNames.join(", ")}`;
       setError(msg);
       toast.error(msg);
       return;
     }
     if (totalBytes > MAX_PUBLISH_TOTAL_BYTES) {
-      const msg = "Total size exceeds 50MB per version.";
+      const msg = "单个版本的总大小超过 50MB。";
       setError(msg);
       toast.error(msg);
       return;
     }
     if (!hasRequiredFile) {
-      const msg = `${requiredFileLabel} is required.`;
+      const msg = `${requiredFileLabel} 不能为空。`;
       setError(msg);
       toast.error(msg);
       return;
     }
-    setStatus("Uploading files…");
+    setStatus("正在上传文件…");
 
     const uploaded = [] as Array<{
       path: string;
@@ -646,7 +645,7 @@ export function Upload() {
       });
     }
 
-    setStatus("Publishing…");
+    setStatus("正在发布…");
     try {
       // Forwards an `icon` field only when the picker has actually been
       // touched in this session, so the form is the single source of truth
@@ -689,7 +688,7 @@ export function Upload() {
       setHasAttempted(false);
       setChangelogSource("user");
       if (result) {
-        toast.success(`Published ${trimmedSlug}@${trimmedVersion}`);
+        toast.success(`已发布 ${trimmedSlug}@${trimmedVersion}`);
         const ownerParam = ownerHandle || me?.handle || (me?._id ? String(me._id) : "unknown");
         void navigate({
           to: "/$owner/$slug",
@@ -710,10 +709,10 @@ export function Upload() {
         <header className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="font-display text-2xl font-bold text-[color:var(--ink)]">
-              Publish a {contentLabel}
+              发布 Skill
             </h1>
             <p className="text-sm text-[color:var(--ink-soft)]">
-              Drop or select a {contentLabel} folder
+              拖入或选择 Skill 文件夹
             </p>
           </div>
           <Button asChild variant="outline" size="sm" className="w-fit">
@@ -764,16 +763,16 @@ export function Upload() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                       <strong className="text-sm text-[color:var(--ink)]">
-                        Skill folder selected
+                        已选择 Skill 文件夹
                       </strong>
                       <span className="text-xs text-[color:var(--ink-soft)]">
-                        {files.length} files · {sizeLabel}
+                        {files.length} 个文件 · {sizeLabel}
                       </span>
                     </div>
                     {unsupportedFileEntries.length > 0 ? (
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         <Badge variant="warning" size="sm">
-                          {unsupportedFileEntries.length} unsupported
+                          {unsupportedFileEntries.length} 个不支持
                         </Badge>
                       </div>
                     ) : null}
@@ -787,7 +786,7 @@ export function Upload() {
                       type="button"
                       onClick={removeUnsupportedFiles}
                     >
-                      Remove unsupported
+                      移除不支持
                     </Button>
                   ) : null}
                   <Button
@@ -796,14 +795,14 @@ export function Upload() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    Replace folder
+                    替换文件夹
                   </Button>
                   <button
                     type="button"
                     className="cursor-pointer text-xs font-medium text-[color:var(--ink-soft)] transition-colors hover:text-[color:var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--accent)]/35 focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--bg)]"
                     onClick={clearSelectedFiles}
                   >
-                    Clear files
+                    清空文件
                   </button>
                 </div>
               </div>
@@ -813,7 +812,7 @@ export function Upload() {
                     <div className="flex items-center gap-2 rounded-[var(--radius-sm)] border border-status-error-fg/35 bg-status-error-bg px-3 py-1.5 text-sm text-status-error-fg">
                       <span className="min-w-0 flex-1 truncate font-mono">{requiredFileLabel}</span>
                       <Badge variant="destructive" size="sm">
-                        Missing
+                        缺失
                       </Badge>
                     </div>
                   ) : null}
@@ -833,17 +832,17 @@ export function Upload() {
                         </span>
                         {isUnsupported ? (
                           <Badge variant="warning" size="sm">
-                            Unsupported
+                            不支持
                           </Badge>
                         ) : null}
                         {isConfirmingRemoval ? (
                           <div className="flex shrink-0 items-center gap-1">
                             <span className="text-xs font-medium text-status-error-fg">
-                              Remove?
+                              移除？
                             </span>
                             <Button
-                              aria-label={`Cancel removing ${path}`}
-                              title={`Cancel removing ${path}`}
+                              aria-label={`取消移除 ${path}`}
+                              title={`取消移除 ${path}`}
                               variant="ghost"
                               size="icon-xs"
                               type="button"
@@ -853,8 +852,8 @@ export function Upload() {
                               <X className="h-3.5 w-3.5" aria-hidden="true" />
                             </Button>
                             <Button
-                              aria-label={`Confirm removing ${path}`}
-                              title={`Confirm removing ${path}`}
+                              aria-label={`确认移除 ${path}`}
+                              title={`确认移除 ${path}`}
                               variant="ghost"
                               size="icon-xs"
                               type="button"
@@ -866,8 +865,8 @@ export function Upload() {
                           </div>
                         ) : (
                           <Button
-                            aria-label={`Remove ${path}`}
-                            title={`Remove ${path}`}
+                            aria-label={`移除 ${path}`}
+                            title={`移除 ${path}`}
                             variant="ghost"
                             size="icon-xs"
                             type="button"
@@ -888,7 +887,7 @@ export function Upload() {
                         <p
                           key={issue}
                           className={
-                            issue.startsWith("Remove unsupported files")
+                            issue.startsWith("请移除不支持的文件")
                               ? "text-status-error-fg"
                               : undefined
                           }
@@ -921,10 +920,10 @@ export function Upload() {
                   <div className="relative z-[1] flex flex-col items-center gap-2 text-center">
                     <div className="flex items-center gap-3">
                       <UploadIcon className="h-5 w-5 text-[color:var(--ink-soft)]" />
-                      <strong>Drop a skill folder</strong>
+                      <strong>拖入一个 Skill 文件夹</strong>
                     </div>
                     <span className="text-xs text-[color:var(--ink-soft)]">
-                      We keep inner paths and remove the top-level folder automatically.
+                      我们会保留内部路径并自动移除顶层文件夹。
                     </span>
                     <Button
                       variant="outline"
@@ -932,7 +931,7 @@ export function Upload() {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                     >
-                      Choose folder
+                      选择文件夹
                     </Button>
                   </div>
                 </div>
@@ -945,7 +944,7 @@ export function Upload() {
             <CardContent className="gap-5">
               <div className="grid gap-x-4 gap-y-4 md:grid-cols-2">
                 <div className="flex flex-col gap-2">
-                  <Label htmlFor="displayName">Display name</Label>
+                  <Label htmlFor="displayName">显示名称</Label>
                   <Input
                     id="displayName"
                     value={displayName}
@@ -958,7 +957,7 @@ export function Upload() {
                       setMetadataPrefillNote(null);
                       setDisplayName(event.target.value);
                     }}
-                    placeholder={`My ${contentLabel}`}
+                    placeholder="我的 Skill"
                   />
                   <InlineValidationMessage
                     id="display-name-validation-error"
@@ -980,17 +979,17 @@ export function Upload() {
                         setMetadataPrefillNote(null);
                         setSlug(event.target.value);
                       }}
-                      placeholder={`${contentLabel}-name`}
+                      placeholder="skill-name"
                     />
                     {showSlugAvailableIcon ? (
                       <Check
-                        aria-label="Slug available"
+                        aria-label="slug 可用"
                         className="pointer-events-none absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-status-success-fg"
                       />
                     ) : null}
                     {showSlugUnavailableIcon ? (
                       <CircleX
-                        aria-label="Slug unavailable"
+                        aria-label="slug 不可用"
                         className="pointer-events-none absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-status-error-fg"
                       />
                     ) : null}
@@ -1001,10 +1000,10 @@ export function Upload() {
                       href={slugCollisionIssue.url}
                       target="_blank"
                       rel="noreferrer"
-                      aria-label="Open existing skill in a new tab"
+                      aria-label="在新标签页打开现有 Skill"
                       className="inline-flex w-fit items-center gap-1 text-sm text-[color:var(--ink-soft)] hover:text-[color:var(--accent)] hover:underline"
                     >
-                      View existing skill
+                      查看现有 Skill
                       <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                     </a>
                   ) : null}
@@ -1024,7 +1023,7 @@ export function Upload() {
                 {/* The picker is a custom radiogroup; the visible "Icon"
                     heading is decorative and does not need `htmlFor` —
                     `SkillIconPicker` exposes its own `aria-label`. */}
-                <Label>Icon</Label>
+                <Label>图标</Label>
                 <SkillIconPicker
                   value={iconName}
                   onChange={(next) => {
@@ -1039,7 +1038,7 @@ export function Upload() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="ownerHandle">Owner</Label>
+                <Label htmlFor="ownerHandle">所有者</Label>
                   <PublisherOwnerSelect
                     id="ownerHandle"
                     value={ownerHandle}
@@ -1063,10 +1062,9 @@ export function Upload() {
                         onChange={(event) => setConfirmMigrateOwner(event.target.checked)}
                       />
                       <span>
-                        Move ownership of <strong>{trimmedSlug || "this skill"}</strong> from{" "}
-                        <strong>@{existingOwnerHandle}</strong> to <strong>@{ownerHandle}</strong>.
-                        Versions, tags, stats, comments and stars are preserved; the old URL
-                        redirects to the new one.
+                        将 <strong>{trimmedSlug || "此 Skill"}</strong> 的所有权从{" "}
+                        <strong>@{existingOwnerHandle}</strong> 转移到 <strong>@{ownerHandle}</strong>。
+                        版本、标签、统计、评论和星标都会保留；旧 URL 会跳转到新地址。
                       </span>
                     </label>
                   ) : null}
@@ -1074,7 +1072,7 @@ export function Upload() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="version">Version</Label>
+                <Label htmlFor="version">版本</Label>
                 <VersionInput
                   id="version"
                   value={version}
@@ -1090,7 +1088,7 @@ export function Upload() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="tags">Tags</Label>
+                <Label htmlFor="tags">标签</Label>
                 <Input
                   id="tags"
                   value={tags}
@@ -1116,13 +1114,13 @@ export function Upload() {
             <Card>
               <CardContent>
                 <div>
-                  <CardTitle>Changelog</CardTitle>
+                  <CardTitle>更新日志</CardTitle>
                   <p className="text-sm text-[color:var(--ink-soft)]">
-                    Summarize what changed in this version.
+                    概述此版本的变更。
                   </p>
                 </div>
                 <Label htmlFor="changelog" className="sr-only">
-                  Changelog
+                  更新日志
                 </Label>
                 <Textarea
                   id="changelog"
@@ -1133,19 +1131,19 @@ export function Upload() {
                     setChangelogSource("user");
                     setChangelog(event.target.value);
                   }}
-                  placeholder={`Describe what changed in this ${contentLabel}...`}
+                  placeholder="描述此 Skill 的变更…"
                 />
                 {changelogStatus === "loading" ? (
-                  <div className="text-sm text-[color:var(--ink-soft)]">Generating changelog…</div>
+                  <div className="text-sm text-[color:var(--ink-soft)]">正在生成更新日志…</div>
                 ) : null}
                 {changelogStatus === "error" ? (
                   <div className="text-sm text-[color:var(--ink-soft)]">
-                    Could not auto-generate changelog.
+                    无法自动生成更新日志。
                   </div>
                 ) : null}
                 {changelogSource === "auto" && changelog ? (
                   <div className="text-sm text-[color:var(--ink-soft)]">
-                    Auto-generated changelog (edit as needed).
+                    已自动生成更新日志（可按需编辑）。
                   </div>
                 ) : null}
               </CardContent>
@@ -1177,7 +1175,7 @@ export function Upload() {
               {!validation.ready && !isSubmitting ? (
                 <Lock className="h-4 w-4" aria-hidden="true" />
               ) : null}
-              Publish {contentLabel}
+              发布 Skill
             </Button>
           </div>
         </form>
@@ -1199,23 +1197,23 @@ function summarizePublishBlockers(issues: string[], requiredFileLabel: string) {
   const missing = issues.flatMap((issue) => missingPublishLabel(issue, requiredFileLabel));
   const uniqueMissing = [...new Set(missing)];
   if (uniqueMissing.length > 0) {
-    return `Complete ${formatInlineList(uniqueMissing)} to publish.`;
+    return `补全 ${formatInlineList(uniqueMissing)} 后再发布。`;
   }
-  return `Fix: ${issues[0] ?? "validation issues"}`;
+  return `请修复：${issues[0] ?? "校验问题"}`;
 }
 
 function formatInlineList(items: string[]) {
   if (items.length <= 1) return items[0] ?? "";
-  if (items.length === 2) return `${items[0]} and ${items[1]}`;
-  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
+  if (items.length === 2) return `${items[0]}和${items[1]}`;
+  return `${items.slice(0, -1).join("、")}和${items.at(-1)}`;
 }
 
 function missingPublishLabel(issue: string, requiredFileLabel: string) {
-  if (issue === "Slug is required.") return ["slug"];
-  if (issue === "Display name is required.") return ["display name"];
-  if (issue === "At least one tag is required.") return ["tags"];
-  if (issue === "Add at least one file.") return ["files"];
-  if (issue === `${requiredFileLabel} is required.`) return [requiredFileLabel];
+  if (issue === "slug 不能为空。") return ["slug"];
+  if (issue === "显示名称不能为空。") return ["显示名称"];
+  if (issue === "至少需要一个标签。") return ["标签"];
+  if (issue === "至少添加一个文件。") return ["文件"];
+  if (issue === `${requiredFileLabel} 不能为空。`) return [requiredFileLabel];
   return [];
 }
 
