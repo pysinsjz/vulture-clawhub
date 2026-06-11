@@ -3,6 +3,7 @@ import {
   ArrowRight,
   ChevronRight,
   Code2,
+  LayoutDashboard,
   Package,
   Search,
   Users,
@@ -13,7 +14,9 @@ import { convexHttp } from "../convex/client";
 import { fetchFeaturedPlugins } from "../lib/featuredCatalog";
 import type { PackageListItem } from "../lib/packageApi";
 import type { PublicSkill, PublicUser } from "../lib/publicUser";
+import { isModerator } from "../lib/roles";
 import { getSiteName } from "../lib/site";
+import { useAuthStatus } from "../lib/useAuthStatus";
 
 export const Route = createFileRoute("/")({
   component: SkillsHome,
@@ -31,6 +34,8 @@ function SkillsHome() {
   const [latestPlugins, setLatestPlugins] = useState<PackageListItem[]>([]);
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const { me } = useAuthStatus();
+  const isStaff = isModerator(me);
 
   useEffect(() => {
     let cancelled = false;
@@ -140,7 +145,11 @@ function SkillsHome() {
       </section>
 
       <section className="home-v2-categories">
-        <div className="home-v2-categories-grid" data-count={3} data-layout="1-3">
+        <div
+          className="home-v2-categories-grid"
+          data-count={isStaff ? 4 : 3}
+          data-layout="1-3"
+        >
           <Link
             to="/skills"
             search={{
@@ -188,6 +197,24 @@ function SkillsHome() {
               <ChevronRight size={16} />
             </span>
           </Link>
+          {isStaff ? (
+            <Link
+              to="/management"
+              search={{ view: undefined, skill: undefined, plugin: undefined }}
+              className="home-v2-cat-item"
+            >
+              <div className="home-v2-cat-icon">
+                <LayoutDashboard size={20} />
+              </div>
+              <div className="home-v2-cat-text">
+                <div className="home-v2-cat-name">管理后台</div>
+                <div className="home-v2-cat-desc">审核与运营</div>
+              </div>
+              <span className="home-v2-cat-arrow">
+                <ChevronRight size={16} />
+              </span>
+            </Link>
+          ) : null}
         </div>
       </section>
 

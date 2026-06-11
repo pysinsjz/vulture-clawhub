@@ -45,6 +45,10 @@ vi.mock("../lib/featuredCatalog", () => ({
   fetchFeaturedPlugins: fetchFeaturedPluginsMock,
 }));
 
+vi.mock("../lib/useAuthStatus", () => ({
+  useAuthStatus: () => ({ me: undefined, isAuthenticated: false, isLoading: false }),
+}));
+
 describe("home route", () => {
   beforeEach(() => {
     convexQueryMock.mockResolvedValue({ page: [] });
