@@ -24,13 +24,13 @@ const PROMPT_OPTIONS: Array<{
 }> = [
   {
     mode: "install-only",
-    label: "Install Only",
-    description: "Install the skill and stop there.",
+    label: "仅安装",
+    description: "只安装 Skill，不做其他。",
   },
   {
     mode: "install-and-setup",
-    label: "Install & Setup",
-    description: "Install first, then help finish setup from skill metadata.",
+    label: "安装并配置",
+    description: "先安装，再根据 Skill 元数据协助完成配置。",
   },
 ];
 
@@ -90,10 +90,10 @@ export function SkillInstallSurface({
 
   const promptFeedback =
     promptCopyState === "copied"
-      ? `${selectedPrompt.label} prompt copied.`
+      ? `已复制${selectedPrompt.label}提示词。`
       : promptCopyState === "failed"
-        ? "Copy failed. Try again."
-        : `Previewing ${selectedPrompt.label}.`;
+        ? "复制失败，请重试。"
+        : `正在预览${selectedPrompt.label}。`;
 
   const selectPromptMode = (mode: SkillPromptMode) => {
     const promptText = formatOpenClawPrompt({
@@ -121,15 +121,15 @@ export function SkillInstallSurface({
   return (
     <section className="skill-install-surface" aria-labelledby={headingId}>
       <h2 id={headingId} className="sr-only">
-        Install
+        安装
       </h2>
 
       <article className="skill-install-panel">
         <div className="skill-install-panel-header">
-          <p className="skill-install-kicker">OpenClaw Prompt Flow</p>
-          <h3 className="skill-install-panel-title">Install with OpenClaw</h3>
+          <p className="skill-install-kicker">OpenClaw 提示词流程</p>
+          <h3 className="skill-install-panel-title">用 OpenClaw 安装</h3>
           <p className="skill-install-panel-copy">
-            Best for remote or guided setup. Copy the exact prompt, then paste it into OpenClaw for{" "}
+            适合远程或引导式安装。复制下面的提示词，粘贴到 OpenClaw，用于{" "}
             <code translate="no">{installTarget}</code>.
           </p>
         </div>
@@ -138,7 +138,7 @@ export function SkillInstallSurface({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button type="button" className="skill-install-prompt-trigger">
-                <span>Copy Prompt</span>
+                <span>复制提示词</span>
                 <ChevronDown className="h-4 w-4" aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
@@ -159,7 +159,7 @@ export function SkillInstallSurface({
         </div>
 
         <div className="skill-install-preview-meta">
-          <span className="skill-install-preview-label">Prompt Preview</span>
+          <span className="skill-install-preview-label">提示词预览</span>
           <span className="skill-install-preview-mode">{selectedPrompt.label}</span>
         </div>
 
@@ -193,8 +193,8 @@ export function SkillCommandLineCard({
   return (
     <article className="skill-install-command-card">
       <div className="skill-install-command-header">
-        <h3 className="skill-install-panel-title">Install</h3>
-        <div className="install-switcher-toggle" role="tablist" aria-label="Install option">
+        <h3 className="skill-install-panel-title">安装</h3>
+        <div className="install-switcher-toggle" role="tablist" aria-label="安装方式">
           <button
             type="button"
             role="tab"
@@ -211,7 +211,7 @@ export function SkillCommandLineCard({
             className={`install-switcher-pill${activeInstallTab === "prompt" ? " is-active" : ""}`}
             onClick={() => setActiveInstallTab("prompt")}
           >
-            Prompt
+            提示词
           </button>
         </div>
       </div>
@@ -229,7 +229,7 @@ export function SkillCommandLineCard({
           <InstallCopyButton
             text={activeInstallText}
             ariaLabel={
-              activeInstallTab === "prompt" ? "Copy OpenClaw prompt" : "Copy OpenClaw CLI command"
+              activeInstallTab === "prompt" ? "复制 OpenClaw 提示词" : "复制 OpenClaw CLI 命令"
             }
             className="skill-install-command-inline-button"
             showLabel={false}

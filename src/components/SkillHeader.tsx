@@ -153,33 +153,31 @@ export function SkillHeader({
   const showHeroMeta = Boolean((forkOf && forkOfHref) || canonicalHref);
   const showTitleBadges = titleBadges.length > 0;
   const headerDescription =
-    getLatestVersionDescription(latestVersion) ?? skill.summary ?? "No summary provided.";
+    getLatestVersionDescription(latestVersion) ?? skill.summary ?? "暂无摘要";
 
   return (
     <>
       {modInfo?.isPendingScan ? (
         <div className="pending-banner">
           <div className="pending-banner-content">
-            <strong>Security scan in progress</strong>
+            <strong>安全扫描进行中</strong>
             <p>
-              Your skill is being scanned by VirusTotal. It will be visible to others once the scan
-              completes. This usually takes up to 5 minutes — grab a coffee or exfoliate your shell
-              while you wait.
+              你的 Skill 正在由 VirusTotal 扫描，扫描完成后才会对他人可见，通常最多需要 5 分钟。
             </p>
           </div>
         </div>
       ) : modInfo?.isRemoved ? (
         <div className="pending-banner pending-banner-blocked">
           <div className="pending-banner-content">
-            <strong>Skill removed by moderator</strong>
-            <p>This skill has been removed and is not visible to others.</p>
+            <strong>Skill 已被管理员移除</strong>
+            <p>该 Skill 已被移除，对他人不可见。</p>
           </div>
         </div>
       ) : modInfo?.isHiddenByMod ? (
         <div className="pending-banner pending-banner-blocked">
           <div className="pending-banner-content">
-            <strong>Skill hidden</strong>
-            <p>This skill is currently hidden and not visible to others.</p>
+            <strong>Skill 已隐藏</strong>
+            <p>该 Skill 当前已隐藏，对他人不可见。</p>
           </div>
         </div>
       ) : null}
@@ -203,7 +201,7 @@ export function SkillHeader({
                   <Button asChild variant="outline" className="skill-sidebar-action-button">
                     <a href={downloadHref}>
                       <Download size={14} aria-hidden="true" />
-                      Download
+                      下载
                     </a>
                   </Button>
                 ) : null}
@@ -211,7 +209,7 @@ export function SkillHeader({
                   <Button asChild variant="outline" className="skill-sidebar-action-button">
                     <a href={newVersionHref}>
                       <Upload size={14} aria-hidden="true" />
-                      New version
+                      新版本
                     </a>
                   </Button>
                 ) : null}
@@ -219,7 +217,7 @@ export function SkillHeader({
                   <Button asChild variant="outline" className="skill-sidebar-action-button">
                     <a href={settingsHref}>
                       <Settings size={14} aria-hidden="true" />
-                      Settings
+                      设置
                     </a>
                   </Button>
                 ) : null}
@@ -229,7 +227,7 @@ export function SkillHeader({
                       <Button asChild variant="outline" className="skill-sidebar-action-button">
                         <Link to="/management" search={{ skill: skill.slug, plugin: undefined }}>
                           <ShieldCheck size={14} aria-hidden="true" />
-                          Manage
+                          管理
                         </Link>
                       </Button>
                     ) : null}
@@ -242,11 +240,11 @@ export function SkillHeader({
         main={
           <>
             <div className="skill-hero-title">
-              <nav className="skill-hero-breadcrumbs" aria-label="Skill breadcrumbs">
+              <nav className="skill-hero-breadcrumbs" aria-label="Skill 面包屑">
                 <a href="/skills">skills</a>
                 <span aria-hidden="true">/</span>
                 <a href={ownerHandle ? `/user/${encodeURIComponent(ownerHandle)}` : "#"}>
-                  {ownerHandle ?? owner?.displayName ?? owner?._id ?? "unknown"}
+                  {ownerHandle ?? owner?.displayName ?? owner?._id ?? "未知"}
                 </a>
                 <span aria-hidden="true">/</span>
                 <a href={buildSkillHref(ownerHandle, owner?._id ?? null, skill.slug)}>
@@ -266,14 +264,14 @@ export function SkillHeader({
                       ))}
                     </div>
                   ) : null}
-                  {nixPlugin ? <Badge variant="accent">Plugin bundle (nix)</Badge> : null}
+                  {nixPlugin ? <Badge variant="accent">Plugin 包 (nix)</Badge> : null}
                   <ApiKeyRequiredBadge apiKeyRequired={latestVersion?.apiKeyRequired} />
                 </div>
                 {category ? (
                   <a
                     className="skill-category-chip"
                     href={buildSkillCategoryBrowseHref(category)}
-                    aria-label={`View ${category.label} skills`}
+                    aria-label={`查看 ${category.label} 分类的 Skill`}
                   >
                     {category.label}
                   </a>
@@ -285,7 +283,7 @@ export function SkillHeader({
 
               {nixPlugin ? (
                 <div className="skill-hero-note">
-                  Bundles the skill pack, CLI binary, and config requirements in one Nix install.
+                  用一次 Nix 安装打包 Skill 包、CLI 二进制与配置要求。
                 </div>
               ) : null}
 
@@ -307,7 +305,7 @@ export function SkillHeader({
                         <span className="text-ink-soft opacity-40">·</span>
                       ) : null}
                       <span className="stat">
-                        canonical:{" "}
+                        规范版本：{" "}
                         <a href={canonicalHref}>
                           {canonicalOwnerHandle ? `@${canonicalOwnerHandle}/` : ""}
                           {canonical?.skill?.slug}
@@ -338,27 +336,27 @@ export function SkillHeader({
         {hasPluginBundle ? (
           <div className="skill-panel bundle-card">
             <div className="bundle-header">
-              <div className="bundle-title">Plugin bundle (nix)</div>
-              <div className="bundle-subtitle">Skill pack · CLI binary · Config</div>
+              <div className="bundle-title">Plugin 包 (nix)</div>
+              <div className="bundle-subtitle">Skill 包 · CLI 二进制 · 配置</div>
             </div>
             <div className="bundle-includes">
               <span>SKILL.md</span>
               <span>CLI</span>
-              <span>Config</span>
+              <span>配置</span>
             </div>
             {configRequirements ? (
               <div className="bundle-section">
-                <div className="bundle-section-title">Config requirements</div>
+                <div className="bundle-section-title">配置要求</div>
                 <div className="bundle-meta">
                   {configRequirements.requiredEnv?.length ? (
                     <div className="stat">
-                      <strong>Required env</strong>
+                      <strong>必需环境变量</strong>
                       <span>{configRequirements.requiredEnv.join(", ")}</span>
                     </div>
                   ) : null}
                   {configRequirements.stateDirs?.length ? (
                     <div className="stat">
-                      <strong>State dirs</strong>
+                      <strong>状态目录</strong>
                       <span>{configRequirements.stateDirs.join(", ")}</span>
                     </div>
                   ) : null}
@@ -367,7 +365,7 @@ export function SkillHeader({
             ) : null}
             {cliHelp ? (
               <details className="bundle-section bundle-details">
-                <summary>CLI help (from plugin)</summary>
+                <summary>CLI 帮助（来自 plugin）</summary>
                 <pre className="hero-install-code mono">{cliHelp}</pre>
               </details>
             ) : null}
@@ -399,13 +397,13 @@ function SkillSidebarStats({
 
   return (
     <SidebarMetadata
-      ariaLabel="Skill metadata"
+      ariaLabel="Skill 元数据"
       density="compact"
       blocks={[
-        { label: "Downloads", value: formattedStats.downloads, large: true },
-        { label: "Repository", value: githubRepositoryLink },
+        { label: "下载量", value: formattedStats.downloads, large: true },
+        { label: "仓库", value: githubRepositoryLink },
         {
-          label: "Owner",
+          label: "发布者",
           value: (
             <UserBadge
               user={owner}
@@ -425,16 +423,16 @@ function SkillSidebarStats({
               value: securityAuditSummary,
             }
           : { label: "", value: null },
-        { label: "Last updated", value: timeAgo(skill.updatedAt) },
+        { label: "最近更新", value: timeAgo(skill.updatedAt) },
         ...(showArchiveMetadata
           ? [
               {
                 grid: [
                   {
-                    label: "Current version",
-                    value: latestVersion?.version ? `v${latestVersion.version}` : "None",
+                    label: "当前版本",
+                    value: latestVersion?.version ? `v${latestVersion.version}` : "无",
                   },
-                  { label: "License", value: PLATFORM_SKILL_LICENSE },
+                  { label: "许可证", value: PLATFORM_SKILL_LICENSE },
                 ],
               },
             ]

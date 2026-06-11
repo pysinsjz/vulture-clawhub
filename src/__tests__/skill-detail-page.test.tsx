@@ -712,7 +712,7 @@ describe("SkillDetailPage", () => {
     );
 
     expect(await screen.findByRole("heading", { name: "Related skills" })).toBeTruthy();
-    expect(screen.getByRole("link", { name: "View Workflows skills" }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: "查看 Workflows 分类的 Skill" }).getAttribute("href")).toBe(
       "/skills?category=workflows",
     );
     expect(screen.getByRole("link", { name: "More in Workflows" }).getAttribute("href")).toBe(
@@ -794,16 +794,16 @@ describe("SkillDetailPage", () => {
       />,
     );
 
-    await screen.findByRole("heading", { name: "Install" });
-    const sidebarMetadata = document.querySelector('dl[aria-label="Skill metadata"]');
+    await screen.findByRole("heading", { name: "安装" });
+    const sidebarMetadata = document.querySelector('dl[aria-label="Skill 元数据"]');
     expect(sidebarMetadata).toBeTruthy();
 
-    expect(screen.getAllByRole("heading", { name: "Install" }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole("heading", { name: "安装" }).length).toBeGreaterThan(0);
     expect(screen.getAllByText("openclaw skills install weather").length).toBeGreaterThan(0);
     expect(screen.queryByText("npx clawhub@latest install weather")).toBeNull();
     expect(screen.queryByRole("tab", { name: "ClawHub" })).toBeNull();
     expect(screen.getByRole("tab", { name: "CLI" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByRole("tab", { name: "Prompt" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "提示词" })).toBeTruthy();
     expect(screen.queryByText(/After install, inspect the skill metadata/i)).toBeNull();
     expect(screen.getByText("Security audit")).toBeTruthy();
     expect(screen.getByRole("link", { name: "View Security Audit" }).getAttribute("href")).toBe(
@@ -816,7 +816,7 @@ describe("SkillDetailPage", () => {
     const securityAuditLabelIndex = sidebarLabels.findIndex((label) =>
       label?.startsWith("Security audit"),
     );
-    expect(securityAuditLabelIndex).toBe(sidebarLabels.indexOf("Owner") + 1);
+    expect(securityAuditLabelIndex).toBe(sidebarLabels.indexOf("发布者") + 1);
     expect(
       screen.getByRole("button", {
         name: "Security checks across malware telemetry and agentic risk",
@@ -826,7 +826,7 @@ describe("SkillDetailPage", () => {
     expect(screen.queryByText(/Like a lobster shell, security has layers/i)).toBeNull();
     expect(screen.queryByRole("button", { name: "Rescan" })).toBeNull();
 
-    const installHeading = screen.getAllByRole("heading", { name: "Install" })[0];
+    const installHeading = screen.getAllByRole("heading", { name: "安装" })[0];
     const filesTab = screen.getByRole("tab", { name: "Files" });
     expect(
       installHeading.compareDocumentPosition(filesTab) & Node.DOCUMENT_POSITION_FOLLOWING,
@@ -1290,7 +1290,7 @@ describe("SkillDetailPage", () => {
 
     expect(screen.queryByText(/Loading skill/i)).toBeNull();
     expect(screen.getAllByText("Weather").length).toBeGreaterThan(0);
-    expect(screen.getByRole("link", { name: /settings/i }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: /设置/ }).getAttribute("href")).toBe(
       "/SteiPete/weather/settings",
     );
     expect(navigateMock).not.toHaveBeenCalled();
@@ -1343,7 +1343,7 @@ describe("SkillDetailPage", () => {
 
     const { unmount } = render(<SkillDetailPage slug="weather" />);
 
-    const settingsLink = await screen.findByRole("link", { name: /settings/i });
+    const settingsLink = await screen.findByRole("link", { name: /设置/ });
     expect(settingsLink.getAttribute("href")).toBe("/steipete/weather/settings");
     expect(screen.queryByText(/Owner tools/i)).toBeNull();
     unmount();
@@ -1398,7 +1398,7 @@ describe("SkillDetailPage", () => {
 
     const { unmount } = render(<SkillDetailPage slug="weather" />);
     expect(await screen.findByText("Weather")).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /settings/i })).toBeNull();
+    expect(screen.queryByRole("link", { name: /设置/ })).toBeNull();
     unmount();
 
     render(<SkillDetailPage slug="weather" mode="settings" />);

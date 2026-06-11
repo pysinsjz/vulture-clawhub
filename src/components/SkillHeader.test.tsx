@@ -119,8 +119,8 @@ describe("SkillHeader", () => {
       newVersionHref: "/skills/publish?updateSlug=demo&ownerHandle=local",
     } as Partial<Parameters<typeof SkillHeader>[0]>);
 
-    const newVersionLink = screen.getByRole("link", { name: "New version" });
-    const settingsLink = screen.getByRole("link", { name: "Settings" });
+    const newVersionLink = screen.getByRole("link", { name: "新版本" });
+    const settingsLink = screen.getByRole("link", { name: "设置" });
 
     expect(newVersionLink.getAttribute("href")).toBe(
       "/skills/publish?updateSlug=demo&ownerHandle=local",
@@ -136,17 +136,17 @@ describe("SkillHeader", () => {
       newVersionHref: null,
     });
 
-    expect(screen.queryByRole("link", { name: "New version" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "新版本" })).toBeNull();
   });
 
   it("hides archive-only metadata for source-backed skills", () => {
     renderHeader({ showArchiveMetadata: false });
 
-    expect(screen.getByText("Downloads")).toBeTruthy();
-    expect(screen.getByText("Owner")).toBeTruthy();
-    expect(screen.getByText("Last updated")).toBeTruthy();
-    expect(screen.queryByText("Current version")).toBeNull();
-    expect(screen.queryByText("License")).toBeNull();
+    expect(screen.getByText("下载量")).toBeTruthy();
+    expect(screen.getByText("发布者")).toBeTruthy();
+    expect(screen.getByText("最近更新")).toBeTruthy();
+    expect(screen.queryByText("当前版本")).toBeNull();
+    expect(screen.queryByText("许可证")).toBeNull();
     expect(screen.queryByText("MIT-0")).toBeNull();
   });
 
@@ -162,7 +162,7 @@ describe("SkillHeader", () => {
       showArchiveMetadata: false,
     });
 
-    expect(screen.getByText("Repository")).toBeTruthy();
+    expect(screen.getByText("仓库")).toBeTruthy();
     const repoLink = screen.getByRole("link", { name: "NVIDIA/skills" });
     expect(repoLink.getAttribute("href")).toBe("https://github.com/NVIDIA/skills");
   });

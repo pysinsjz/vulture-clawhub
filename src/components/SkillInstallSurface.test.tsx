@@ -51,12 +51,12 @@ describe("SkillInstallSurface", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Install with OpenClaw" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "用 OpenClaw 安装" })).toBeTruthy();
     expect(screen.queryByRole("heading", { name: "CLI Commands" })).toBeNull();
     expect(screen.getByText(/Before installing anything/i)).toBeTruthy();
-    expect(screen.getAllByText("Install & Setup").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("安装并配置").length).toBeGreaterThan(0);
 
-    fireEvent.click(screen.getByRole("button", { name: /Install Only/i }));
+    fireEvent.click(screen.getByRole("button", { name: /仅安装/ }));
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledWith(
@@ -64,7 +64,7 @@ describe("SkillInstallSurface", () => {
       );
     });
     expect(screen.getByText(/Stop after the skill is installed\./i)).toBeTruthy();
-    expect(screen.getAllByText("Install Only").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("仅安装").length).toBeGreaterThan(0);
   });
 
   it("defaults to CLI install and can copy the compact prompt tab", async () => {
@@ -82,20 +82,20 @@ describe("SkillInstallSurface", () => {
     expect(screen.getByText("openclaw skills install weather")).toBeTruthy();
     expect(screen.queryByText("npx clawhub@latest install weather")).toBeNull();
     expect(screen.getByRole("tab", { name: "CLI" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getByRole("tab", { name: "Prompt" }).getAttribute("aria-selected")).toBe("false");
+    expect(screen.getByRole("tab", { name: "提示词" }).getAttribute("aria-selected")).toBe("false");
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy OpenClaw CLI command" }));
+    fireEvent.click(screen.getByRole("button", { name: "复制 OpenClaw CLI 命令" }));
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledWith("openclaw skills install weather");
     });
 
-    fireEvent.click(screen.getByRole("tab", { name: "Prompt" }));
+    fireEvent.click(screen.getByRole("tab", { name: "提示词" }));
 
     expect(screen.getByText(/Install the skill "Weather"/i)).toBeTruthy();
-    expect(screen.getByRole("tab", { name: "Prompt" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getByRole("tab", { name: "提示词" }).getAttribute("aria-selected")).toBe("true");
 
-    fireEvent.click(screen.getByRole("button", { name: "Copy OpenClaw prompt" }));
+    fireEvent.click(screen.getByRole("button", { name: "复制 OpenClaw 提示词" }));
 
     await waitFor(() => {
       expect(writeTextMock).toHaveBeenCalledWith(
