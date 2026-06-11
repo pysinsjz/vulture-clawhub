@@ -70,9 +70,9 @@ describe("home route", () => {
 
     expect(screen.getByText("VultureHub")).toBeTruthy();
     expect(
-      screen.getByText("Internal registry — search and install skills and plugins."),
+      screen.getByText("内网注册中心：搜索并安装 Skill 与 Plugin"),
     ).toBeTruthy();
-    expect(screen.getByPlaceholderText("Search skills or plugins")).toBeTruthy();
+    expect(screen.getByPlaceholderText("搜索 Skill 或 Plugin")).toBeTruthy();
   });
 
   it("marks the three home category options for one-or-three-column breakpoints", async () => {
@@ -84,13 +84,13 @@ describe("home route", () => {
     expect(grid?.getAttribute("data-layout")).toBe("1-3");
     expect(screen.getByText("Skills")).toBeTruthy();
     expect(screen.getByText("Plugins")).toBeTruthy();
-    expect(screen.getByText("Publishers")).toBeTruthy();
+    expect(screen.getByText("发布者")).toBeTruthy();
   });
 
   it("submits the hero search form by navigating to /search with the trimmed query", async () => {
     await renderHome();
 
-    const input = screen.getByPlaceholderText("Search skills or plugins") as HTMLInputElement;
+    const input = screen.getByPlaceholderText("搜索 Skill 或 Plugin") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "  agent  " } });
     fireEvent.submit(input.closest("form") as HTMLFormElement);
 
@@ -117,10 +117,10 @@ describe("home route", () => {
 
     await renderHome();
 
-    expect(await screen.findByText("Latest skills")).toBeTruthy();
+    expect(await screen.findByText("最新 Skill")).toBeTruthy();
     expect(document.querySelectorAll(".home-v2-trending-grid .home-v2-trend-card")).toHaveLength(6);
     expect(document.querySelector(".home-v2-trend-title")?.textContent).toBe("Latest Skill 1");
-    expect(document.querySelector(".home-v2-trend-creator")?.textContent).toBe("by creator1");
+    expect(document.querySelector(".home-v2-trend-creator")?.textContent).toBe("作者 creator1");
 
     const listArgs = getListPublicPageArgs();
     expect(listArgs).toEqual(
@@ -146,10 +146,10 @@ describe("home route", () => {
 
     await renderHome();
 
-    expect(await screen.findByText("Latest plugins")).toBeTruthy();
+    expect(await screen.findByText("最新 Plugin")).toBeTruthy();
     expect(screen.getByText("Demo Plugin")).toBeTruthy();
-    expect(screen.getByText("by @openclaw")).toBeTruthy();
-    expect(screen.getByText("Official")).toBeTruthy();
+    expect(screen.getByText("作者 @openclaw")).toBeTruthy();
+    expect(screen.getByText("官方")).toBeTruthy();
     expect(screen.getByText("v1.0.1")).toBeTruthy();
   });
 });

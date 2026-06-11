@@ -15,22 +15,22 @@ import {
 } from "./-useSkillsBrowseModel";
 
 const BROWSE_SORT_OPTIONS = [
-  { value: "recommended", label: "Recommended" },
-  { value: "downloads", label: "Most downloaded" },
-  { value: "stars", label: "Most starred" },
-  { value: "installs", label: "Most installed" },
-  { value: "updated", label: "Recently updated" },
-  { value: "newest", label: "Newest" },
-  { value: "name", label: "Name" },
+  { value: "recommended", label: "推荐" },
+  { value: "downloads", label: "下载最多" },
+  { value: "stars", label: "收藏最多" },
+  { value: "installs", label: "安装最多" },
+  { value: "updated", label: "最近更新" },
+  { value: "newest", label: "最新" },
+  { value: "name", label: "名称" },
 ];
 
 const SEARCH_SORT_OPTIONS = [
-  { value: "downloads", label: "Most downloaded" },
-  { value: "stars", label: "Most starred" },
-  { value: "installs", label: "Most installed" },
-  { value: "updated", label: "Recently updated" },
-  { value: "newest", label: "Newest" },
-  { value: "name", label: "Name" },
+  { value: "downloads", label: "下载最多" },
+  { value: "stars", label: "收藏最多" },
+  { value: "installs", label: "安装最多" },
+  { value: "updated", label: "最近更新" },
+  { value: "newest", label: "最新" },
+  { value: "name", label: "名称" },
 ];
 
 const SKILL_CATEGORY_SLUGS = new Set(SKILL_CATEGORIES.map((category) => category.slug));
@@ -76,7 +76,7 @@ export function SkillsIndex() {
   });
 
   const sortOptionsWithRelevance = model.hasQuery
-    ? [{ value: "relevance", label: "Relevance" }, ...SEARCH_SORT_OPTIONS]
+    ? [{ value: "relevance", label: "相关性" }, ...SEARCH_SORT_OPTIONS]
     : BROWSE_SORT_OPTIONS;
 
   const handleSortChange = useCallback(
@@ -143,9 +143,9 @@ export function SkillsIndex() {
           className="browse-sidebar-toggle"
           type="button"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label="Toggle filters"
+          aria-label="切换筛选器"
         >
-          Filters
+          筛选
         </button>
         <h1 className="browse-title">
           Skills
@@ -159,7 +159,7 @@ export function SkillsIndex() {
           className="browse-search-input"
           value={model.query}
           onChange={(event) => model.onQueryChange(event.target.value)}
-          placeholder="Search skills..."
+          placeholder="搜索 Skill…"
         />
       </div>
       <div className={`browse-layout${sidebarOpen ? " sidebar-open" : ""}`}>
@@ -167,17 +167,17 @@ export function SkillsIndex() {
           categories={SKILL_CATEGORIES}
           activeCategory={model.activeCategory}
           onCategoryChange={handleCategoryChange}
-          sortOptions={[{ value: "featured", label: "Featured" }, ...sortOptionsWithRelevance]}
+          sortOptions={[{ value: "featured", label: "精选" }, ...sortOptionsWithRelevance]}
           activeSort={model.featuredOnly ? "featured" : model.sort}
           onSortChange={handleSortChange}
         />
         <div className="browse-results">
           <div className="browse-results-toolbar">
             <span className="browse-results-count">
-              {model.isLoadingSkills ? "\u2014" : `${model.sorted.length} results`}
+              {model.isLoadingSkills ? "\u2014" : `${model.sorted.length} 个结果`}
               {model.hasQuery || model.activeCategory || model.featuredOnly ? (
                 <button className="browse-clear-btn" type="button" onClick={handleClear}>
-                  Clear
+                  清除
                 </button>
               ) : null}
             </span>
@@ -188,14 +188,14 @@ export function SkillsIndex() {
                   type="button"
                   onClick={model.view === "grid" ? model.onToggleView : undefined}
                 >
-                  List
+                  列表
                 </button>
                 <button
                   className={`browse-view-btn${model.view === "grid" ? " is-active" : ""}`}
                   type="button"
                   onClick={model.view === "list" ? model.onToggleView : undefined}
                 >
-                  Grid
+                  网格
                 </button>
               </div>
             </div>

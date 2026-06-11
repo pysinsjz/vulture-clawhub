@@ -89,7 +89,7 @@ function SkillsHome() {
           </span>
         </h1>
 
-        <p className="home-v2-sub">Internal registry — search and install skills and plugins.</p>
+        <p className="home-v2-sub">内网注册中心：搜索并安装 Skill 与 Plugin</p>
 
         <div className="home-v2-search-container">
           <form className="home-v2-search-bar" onSubmit={handleSearch}>
@@ -97,12 +97,12 @@ function SkillsHome() {
             <input
               autoFocus
               type="text"
-              placeholder="Search skills or plugins"
+              placeholder="搜索 Skill 或 Plugin"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
-            <button type="submit" className="home-v2-search-go" aria-label="Search">
-              <span className="home-v2-search-go-label">Search</span> <ArrowRight size={16} />
+            <button type="submit" className="home-v2-search-go" aria-label="搜索">
+              <span className="home-v2-search-go-label">搜索</span> <ArrowRight size={16} />
             </button>
           </form>
         </div>
@@ -158,7 +158,7 @@ function SkillsHome() {
             </div>
             <div className="home-v2-cat-text">
               <div className="home-v2-cat-name">Skills</div>
-              <div className="home-v2-cat-desc">Agent skill bundles</div>
+              <div className="home-v2-cat-desc">Agent Skill 包</div>
             </div>
             <span className="home-v2-cat-arrow">
               <ChevronRight size={16} />
@@ -170,7 +170,7 @@ function SkillsHome() {
             </div>
             <div className="home-v2-cat-text">
               <div className="home-v2-cat-name">Plugins</div>
-              <div className="home-v2-cat-desc">Gateway plugins</div>
+              <div className="home-v2-cat-desc">网关 Plugin</div>
             </div>
             <span className="home-v2-cat-arrow">
               <ChevronRight size={16} />
@@ -181,8 +181,8 @@ function SkillsHome() {
               <Users size={20} />
             </div>
             <div className="home-v2-cat-text">
-              <div className="home-v2-cat-name">Publishers</div>
-              <div className="home-v2-cat-desc">Builders and orgs</div>
+              <div className="home-v2-cat-name">发布者</div>
+              <div className="home-v2-cat-desc">构建者与组织</div>
             </div>
             <span className="home-v2-cat-arrow">
               <ChevronRight size={16} />
@@ -194,7 +194,7 @@ function SkillsHome() {
       {latestSkills.length > 0 && (
         <section className="home-v2-trending-section">
           <div className="home-v2-section-header">
-            <h2>Latest skills</h2>
+            <h2>最新 Skill</h2>
             <Link
               to="/skills"
               search={{
@@ -208,7 +208,7 @@ function SkillsHome() {
               }}
               className="home-v2-section-link"
             >
-              View all <ArrowRight size={14} />
+              查看全部 <ArrowRight size={14} />
             </Link>
           </div>
           <div className="home-v2-trending-grid">
@@ -219,11 +219,11 @@ function SkillsHome() {
                     {entry.skill.displayName || entry.skill.slug}
                   </div>
                   <div className="home-v2-trend-creator">
-                    by {entry.ownerHandle || entry.owner?.handle || "unknown"}
+                    作者 {entry.ownerHandle || entry.owner?.handle || "未知"}
                   </div>
                 </div>
                 <div className="home-v2-trend-desc">
-                  {entry.skill.summary || "Agent skill bundle."}
+                  {entry.skill.summary || "Agent Skill 包"}
                 </div>
               </Link>
             ))}
@@ -234,7 +234,7 @@ function SkillsHome() {
       {latestPlugins.length > 0 && (
         <section className="home-v2-trending-section">
           <div className="home-v2-section-header">
-            <h2>Latest plugins</h2>
+            <h2>最新 Plugin</h2>
             <Link
               to="/plugins"
               search={{
@@ -247,7 +247,7 @@ function SkillsHome() {
               }}
               className="home-v2-section-link"
             >
-              View all <ArrowRight size={14} />
+              查看全部 <ArrowRight size={14} />
             </Link>
           </div>
           <div className="home-v2-trending-grid">
@@ -261,15 +261,15 @@ function SkillsHome() {
                 <div className="home-v2-trend-head">
                   <div className="home-v2-trend-title">{plugin.displayName || plugin.name}</div>
                   <div className="home-v2-trend-creator">
-                    {plugin.ownerHandle ? `by @${plugin.ownerHandle}` : "community plugin"}
+                    {plugin.ownerHandle ? `作者 @${plugin.ownerHandle}` : "社区 Plugin"}
                   </div>
                 </div>
                 <div className="home-v2-trend-desc">
-                  {plugin.summary || "Gateway plugin."}
+                  {plugin.summary || "网关 Plugin"}
                 </div>
                 <div className="home-v2-trend-bottom">
                   <div className="home-v2-trend-signals">
-                    {plugin.isOfficial ? <span>Official</span> : null}
+                    {plugin.isOfficial ? <span>官方</span> : null}
                     {plugin.latestVersion ? <span>v{plugin.latestVersion}</span> : null}
                   </div>
                 </div>

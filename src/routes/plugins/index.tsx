@@ -47,12 +47,12 @@ type PluginsLoaderData = {
 };
 
 function formatRetryDelay(retryAfterSeconds: number | null) {
-  if (!retryAfterSeconds || retryAfterSeconds <= 0) return "in a moment";
+  if (!retryAfterSeconds || retryAfterSeconds <= 0) return "稍后";
   if (retryAfterSeconds < 60) {
-    return `in about ${retryAfterSeconds} second${retryAfterSeconds === 1 ? "" : "s"}`;
+    return `约 ${retryAfterSeconds} 秒后`;
   }
   const minutes = Math.ceil(retryAfterSeconds / 60);
-  return `in about ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  return `约 ${minutes} 分钟后`;
 }
 
 function parsePluginSort(value: unknown): PluginSort | undefined {
@@ -105,15 +105,15 @@ function sortPluginSearchItems(items: PackageListItem[], sort: PluginSort) {
 }
 
 function formatPluginHeadingCount(count: number, hasNextPage: boolean, hasPreviousPage: boolean) {
-  if (hasPreviousPage) return `${count} shown`;
+  if (hasPreviousPage) return `已显示 ${count}`;
   if (hasNextPage) return `${count}+`;
   return String(count);
 }
 
 function formatPluginResultsCount(count: number, hasNextPage: boolean, hasPreviousPage: boolean) {
-  if (hasPreviousPage) return `${count} result${count === 1 ? "" : "s"} shown`;
-  if (hasNextPage) return `${count}+ results`;
-  return `${count} result${count === 1 ? "" : "s"}`;
+  if (hasPreviousPage) return `已显示 ${count} 个结果`;
+  if (hasNextPage) return `${count}+ 个结果`;
+  return `${count} 个结果`;
 }
 
 export const Route = createFileRoute("/plugins/")({
@@ -221,13 +221,13 @@ function PluginsIndexPending() {
     <main className="browse-page">
       <div className="browse-page-header">
         <button className="browse-sidebar-toggle" type="button" disabled>
-          Filters
+          筛选
         </button>
         <h1 className="browse-title">Plugins</h1>
       </div>
       <div className="browse-page-search">
         <Search size={15} className="navbar-search-icon" aria-hidden="true" />
-        <input className="browse-search-input" placeholder="Search plugins..." disabled />
+        <input className="browse-search-input" placeholder="搜索 Plugin…" disabled />
       </div>
       <div className="browse-layout">
         <BrowseSidebar
@@ -235,27 +235,27 @@ function PluginsIndexPending() {
           activeCategory={undefined}
           onCategoryChange={() => {}}
           sortOptions={[
-            { value: "featured", label: "Featured" },
-            { value: "downloads", label: "Most downloaded" },
-            { value: "updated", label: "Recently updated" },
+            { value: "featured", label: "精选" },
+            { value: "downloads", label: "下载最多" },
+            { value: "updated", label: "最近更新" },
           ]}
           activeSort="updated"
           onSortChange={() => {}}
           filters={[
-            { key: "official", label: "Official only", active: false },
-            { key: "executesCode", label: "Executes code", active: false },
+            { key: "official", label: "仅官方", active: false },
+            { key: "executesCode", label: "执行代码", active: false },
           ]}
           onFilterToggle={() => {}}
         />
         <div className="browse-results">
           <div className="browse-results-toolbar">
-            <span className="browse-results-count">Loading results</span>
+            <span className="browse-results-count">加载中</span>
             <div className="browse-view-toggle">
               <button className="browse-view-btn is-active" type="button" disabled>
-                List
+                列表
               </button>
               <button className="browse-view-btn" type="button" disabled>
-                Grid
+                网格
               </button>
             </div>
           </div>
@@ -307,17 +307,17 @@ function PluginsIndex() {
   const sortOptions = useMemo(() => {
     if (hasQuery) {
       return [
-        { value: "relevance", label: "Relevance" },
-        { value: "downloads", label: "Most downloaded" },
-        { value: "updated", label: "Recently updated" },
-        { value: "newest", label: "Newest" },
-        { value: "name", label: "Name" },
+        { value: "relevance", label: "相关性" },
+        { value: "downloads", label: "下载最多" },
+        { value: "updated", label: "最近更新" },
+        { value: "newest", label: "最新" },
+        { value: "name", label: "名称" },
       ];
     }
     return [
-      { value: "featured", label: "Featured" },
-      { value: "downloads", label: "Most downloaded" },
-      { value: "updated", label: "Recently updated" },
+      { value: "featured", label: "精选" },
+      { value: "downloads", label: "下载最多" },
+      { value: "updated", label: "最近更新" },
     ];
   }, [hasQuery]);
 
@@ -446,9 +446,9 @@ function PluginsIndex() {
           className="browse-sidebar-toggle"
           type="button"
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          aria-label="Toggle filters"
+          aria-label="切换筛选器"
         >
-          Filters
+          筛选
         </button>
         <h1 className="browse-title">
           Plugins <span className="browse-count">{headingCount}</span>
@@ -458,7 +458,7 @@ function PluginsIndex() {
         <Search size={15} className="navbar-search-icon" aria-hidden="true" />
         <input
           className="browse-search-input"
-          placeholder="Search plugins..."
+          placeholder="搜索 Plugin…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
         />
@@ -472,8 +472,8 @@ function PluginsIndex() {
           activeSort={activeSort}
           onSortChange={handleSortChange}
           filters={[
-            { key: "official", label: "Official only", active: search.official ?? false },
-            { key: "executesCode", label: "Executes code", active: search.executesCode ?? false },
+            { key: "official", label: "仅官方", active: search.official ?? false },
+            { key: "executesCode", label: "执行代码", active: search.executesCode ?? false },
           ]}
           onFilterToggle={handleFilterToggle}
         />
@@ -487,7 +487,7 @@ function PluginsIndex() {
               search.executesCode ||
               search.featured ? (
                 <button className="browse-clear-btn" type="button" onClick={handleClear}>
-                  Clear
+                  清除
                 </button>
               ) : null}
             </span>
@@ -497,14 +497,14 @@ function PluginsIndex() {
                 type="button"
                 onClick={view === "grid" ? handleToggleView : undefined}
               >
-                List
+                列表
               </button>
               <button
                 className={`browse-view-btn${view === "grid" ? " is-active" : ""}`}
                 type="button"
                 onClick={view === "list" ? handleToggleView : undefined}
               >
-                Grid
+                网格
               </button>
             </div>
           </div>
@@ -512,21 +512,21 @@ function PluginsIndex() {
           {apiError ? (
             <div className="empty-state">
               <PackageSearch size={22} className="empty-state-icon" aria-hidden="true" />
-              <p className="empty-state-title">Unable to load plugins</p>
+              <p className="empty-state-title">无法加载 Plugin</p>
               <p className="empty-state-body">
-                The plugin catalog is temporarily unavailable. Please try again later.
+                Plugin 目录暂时不可用，请稍后重试
               </p>
             </div>
           ) : rateLimited ? (
             <div className="empty-state">
               <PackageSearch size={22} className="empty-state-icon" aria-hidden="true" />
-              <p className="empty-state-title">Plugin catalog is temporarily unavailable</p>
-              <p className="empty-state-body">Try again {formatRetryDelay(retryAfterSeconds)}.</p>
+              <p className="empty-state-title">Plugin 目录暂时不可用</p>
+              <p className="empty-state-body">{formatRetryDelay(retryAfterSeconds)}重试</p>
             </div>
           ) : visibleItems.length === 0 ? (
             <div className="empty-state">
-              <p className="empty-state-title">No plugins found</p>
-              <p className="empty-state-body">Try a different search term or remove filters.</p>
+              <p className="empty-state-title">没有找到 Plugin</p>
+              <p className="empty-state-body">换个搜索词或清除筛选</p>
             </div>
           ) : (
             <div className={view === "grid" ? "grid" : "results-list"}>
@@ -551,7 +551,7 @@ function PluginsIndex() {
                     });
                   }}
                 >
-                  First page
+                  第一页
                 </Button>
               ) : null}
               {nextCursor ? (
@@ -564,7 +564,7 @@ function PluginsIndex() {
                     });
                   }}
                 >
-                  Next page
+                  下一页
                 </Button>
               ) : null}
             </div>

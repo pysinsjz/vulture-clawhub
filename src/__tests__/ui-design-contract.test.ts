@@ -116,11 +116,11 @@ describe("restored UI design contract", () => {
     // search/latest entry point. Public-marketplace marketing copy and the
     // slot-machine/confetti easter egg are intentionally absent.
     expect(homeSource).toContain("getSiteName()");
-    expect(homeSource).toContain("Internal registry");
+    expect(homeSource).toContain("内网注册中心");
     expect(homeSource).toContain("api.skills.listPublicPageV4");
     expect(homeSource).toContain("fetchFeaturedPlugins");
-    expect(homeSource).toContain("Latest skills");
-    expect(homeSource).toContain("Latest plugins");
+    expect(homeSource).toContain("最新 Skill");
+    expect(homeSource).toContain("最新 Plugin");
     expect(homeSource).toContain('data-layout="1-3"');
     expect(homeSource).toContain('className="home-v2-trending-grid"');
 

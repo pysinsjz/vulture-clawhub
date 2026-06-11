@@ -67,7 +67,7 @@ describe("search route", () => {
     const Component = route.__config.component as ComponentType;
     const rendered = render(<Component />);
 
-    const input = screen.getByPlaceholderText("Search skills and plugins...") as HTMLInputElement;
+    const input = screen.getByPlaceholderText("搜索 Skill 和 Plugin…") as HTMLInputElement;
     expect(input.value).toBe("first");
 
     fireEvent.change(input, { target: { value: "draft" } });
@@ -77,7 +77,7 @@ describe("search route", () => {
     rendered.rerender(<Component />);
 
     expect(
-      (screen.getByPlaceholderText("Search skills and plugins...") as HTMLInputElement).value,
+      (screen.getByPlaceholderText("搜索 Skill 和 Plugin…") as HTMLInputElement).value,
     ).toBe("second");
   });
 
@@ -124,7 +124,7 @@ describe("search route", () => {
 
     render(<Component />);
 
-    expect(screen.getByRole("button", { name: "All 3" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "全部 3" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Skills 0" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Plugins 3" })).toBeTruthy();
   });
@@ -135,7 +135,7 @@ describe("search route", () => {
 
     render(<Component />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    fireEvent.click(screen.getByRole("button", { name: "清除搜索" }));
 
     expect(navigateMock).toHaveBeenCalledWith({
       to: "/search",
@@ -179,7 +179,7 @@ describe("search route", () => {
       limits: { skills: 25, plugins: 25 },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Load more" }));
+    fireEvent.click(screen.getByRole("button", { name: "加载更多" }));
 
     expect(useUnifiedSearchMock).toHaveBeenCalledWith("weather", "all", {
       limits: { skills: 50, plugins: 50 },
@@ -234,7 +234,7 @@ describe("search route", () => {
 
     render(<Component />);
 
-    expect(screen.getByRole("button", { name: "All 2" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "全部 2" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Plugins 1" })).toBeTruthy();
     expect(screen.getByText("weather")).toBeTruthy();
     expect(screen.queryByText("weather-plugin")).toBeNull();
@@ -256,7 +256,7 @@ describe("search route", () => {
 
     render(<Component />);
 
-    expect(screen.getByRole("button", { name: "All 25+" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "全部 25+" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Plugins 25+" })).toBeTruthy();
   });
 
@@ -290,7 +290,7 @@ describe("search route", () => {
 
     render(<Component />);
 
-    expect(screen.queryByRole("button", { name: "Load more" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "加载更多" })).toBeNull();
   });
 
   it("links to skills browse when search has no matches", async () => {
@@ -300,12 +300,12 @@ describe("search route", () => {
 
     render(<Component />);
 
-    expect(screen.getByText('No matches for "zzzz"')).toBeTruthy();
-    expect(screen.getByRole("link", { name: "Show all skills" }).getAttribute("href")).toBe(
+    expect(screen.getByText('没有找到匹配 "zzzz" 的结果')).toBeTruthy();
+    expect(screen.getByRole("link", { name: "显示全部 Skill" }).getAttribute("href")).toBe(
       "/skills",
     );
-    expect(screen.queryByRole("link", { name: "Show all plugins" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Search all types" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "显示全部 Plugin" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "搜索全部类型" })).toBeNull();
   });
 
   it("offers all-types recovery when the active type is empty but another type matched", async () => {
@@ -325,7 +325,7 @@ describe("search route", () => {
 
     render(<Component />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Search all types" }));
+    fireEvent.click(screen.getByRole("button", { name: "搜索全部类型" }));
     expect(navigateMock).toHaveBeenCalledWith(
       expect.objectContaining({
         to: "/search",

@@ -61,7 +61,7 @@ describe("SkillsIndex", () => {
       }),
     );
     expect(args).not.toHaveProperty("sort");
-    expect(screen.getByRole("radio", { name: "Recommended" }).getAttribute("aria-checked")).toBe(
+    expect(screen.getByRole("radio", { name: "推荐" }).getAttribute("aria-checked")).toBe(
       "true",
     );
   });
@@ -85,7 +85,7 @@ describe("SkillsIndex", () => {
   it("renders an empty state when no skills are returned", async () => {
     render(<SkillsIndex />);
     await act(async () => {});
-    expect(screen.getByText("No skills found")).toBeTruthy();
+    expect(screen.getByText("没有找到 Skill")).toBeTruthy();
   });
 
   it("does not render the publish CTA on the skills browse page", async () => {
@@ -104,13 +104,13 @@ describe("SkillsIndex", () => {
     // Results area shows skeleton or dash while loading
     expect(screen.getByText("\u2014")).toBeTruthy();
     expect(screen.getByRole("status", { name: "Loading results" })).toBeTruthy();
-    expect(screen.queryByText("No skills found")).toBeNull();
+    expect(screen.queryByText("没有找到 Skill")).toBeNull();
   });
 
   it("uses grid as the canonical browse view URL value", async () => {
     render(<SkillsIndex />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Grid" }));
+    fireEvent.click(screen.getByRole("button", { name: "网格" }));
 
     const lastCall = navigateMock.mock.calls.at(-1)?.[0] as {
       replace?: boolean;
@@ -124,10 +124,10 @@ describe("SkillsIndex", () => {
     searchMock = { view: "cards" };
     render(<SkillsIndex />);
 
-    const gridButton = screen.getByRole("button", { name: "Grid" });
+    const gridButton = screen.getByRole("button", { name: "网格" });
     expect(gridButton.className).toContain("is-active");
 
-    fireEvent.click(screen.getByRole("button", { name: "List" }));
+    fireEvent.click(screen.getByRole("button", { name: "列表" }));
 
     const lastCall = navigateMock.mock.calls.at(-1)?.[0] as {
       replace?: boolean;
@@ -149,7 +149,7 @@ describe("SkillsIndex", () => {
     });
 
     // Should show empty state, not loading
-    expect(screen.getByText("No skills found")).toBeTruthy();
+    expect(screen.getByText("没有找到 Skill")).toBeTruthy();
     expect(screen.queryByText(/Loading skills/)).toBeNull();
   });
 
@@ -192,7 +192,7 @@ describe("SkillsIndex", () => {
 
     render(<SkillsIndex />);
 
-    const input = screen.getByPlaceholderText("Search skills...");
+    const input = screen.getByPlaceholderText("搜索 Skill…");
     await act(async () => {
       fireEvent.change(input, { target: { value: "cli-design-framework" } });
       await vi.runAllTimersAsync();
@@ -217,7 +217,7 @@ describe("SkillsIndex", () => {
 
     render(<SkillsIndex />);
 
-    const input = screen.getByPlaceholderText("Search skills...");
+    const input = screen.getByPlaceholderText("搜索 Skill…");
     await act(async () => {
       fireEvent.change(input, { target: { value: "cli-design-framework" } });
       await vi.runAllTimersAsync();
@@ -242,7 +242,7 @@ describe("SkillsIndex", () => {
 
     render(<SkillsIndex />);
 
-    const input = screen.getByPlaceholderText("Search skills...");
+    const input = screen.getByPlaceholderText("搜索 Skill…");
     await act(async () => {
       fireEvent.change(input, { target: { value: "cli-design-framework" } });
       await vi.runAllTimersAsync();
@@ -261,7 +261,7 @@ describe("SkillsIndex", () => {
     searchMock = { sort: "recommended", dir: "asc" };
     render(<SkillsIndex />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Most downloaded" }));
+    fireEvent.click(screen.getByRole("radio", { name: "下载最多" }));
 
     const lastCall = getLastNavigateCall();
     expect(lastCall.replace).toBe(true);
@@ -275,7 +275,7 @@ describe("SkillsIndex", () => {
     searchMock = { q: "notion", sort: "relevance", dir: "asc" };
     render(<SkillsIndex />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Most downloaded" }));
+    fireEvent.click(screen.getByRole("radio", { name: "下载最多" }));
 
     const lastCall = getLastNavigateCall();
     expect(lastCall.replace).toBe(true);
@@ -290,7 +290,7 @@ describe("SkillsIndex", () => {
     searchMock = { sort: "downloads", dir: "asc" };
     render(<SkillsIndex />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Recommended" }));
+    fireEvent.click(screen.getByRole("radio", { name: "推荐" }));
 
     const lastCall = getLastNavigateCall();
     expect(lastCall.replace).toBe(true);
@@ -315,7 +315,7 @@ describe("SkillsIndex", () => {
       await vi.runAllTimersAsync();
     });
 
-    const loadMoreButton = screen.getByRole("button", { name: "Load more" });
+    const loadMoreButton = screen.getByRole("button", { name: "加载更多" });
     await act(async () => {
       fireEvent.click(loadMoreButton);
       await vi.runAllTimersAsync();
@@ -447,7 +447,7 @@ describe("SkillsIndex", () => {
     render(<SkillsIndex />);
     await act(async () => {});
 
-    expect(screen.getByRole("button", { name: "Load more" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "加载更多" })).toBeTruthy();
   });
 
   it("shows skeletons during load-more", async () => {
@@ -464,7 +464,7 @@ describe("SkillsIndex", () => {
     render(<SkillsIndex />);
     await act(async () => {});
 
-    const loadMoreButton = screen.getByRole("button", { name: "Load more" });
+    const loadMoreButton = screen.getByRole("button", { name: "加载更多" });
     await act(async () => {
       fireEvent.click(loadMoreButton);
     });

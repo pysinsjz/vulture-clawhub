@@ -42,11 +42,11 @@ export function SkillsResults({
         <BrowseResultsSkeleton variant={view} />
       ) : sorted.length === 0 ? (
         <div className="empty-state">
-          <p className="empty-state-title">No skills found</p>
+          <p className="empty-state-title">没有找到 Skill</p>
           <p className="empty-state-body">
             {hasQuery
-              ? "Try a different search term or remove filters."
-              : "No skills have been published yet."}
+              ? "换个搜索词或清除筛选"
+              : "还没有发布任何 Skill"}
           </p>
         </div>
       ) : view === "grid" ? (
@@ -65,9 +65,9 @@ export function SkillsResults({
                 href={skillHref}
                 className="skill-card-spaced-footer"
                 badge={getSkillBadges(skill)}
-                chip={isPlugin ? "Plugin bundle (nix)" : undefined}
+                chip={isPlugin ? "Plugin 包 (nix)" : undefined}
                 platformLabels={platforms.length ? platforms : undefined}
-                summaryFallback="Agent-ready skill pack."
+                summaryFallback="开箱即用的 Skill 包"
                 apiKeyRequired={entry.latestVersion?.apiKeyRequired}
                 meta={
                   <div className="skill-card-footer-rows">
@@ -80,7 +80,7 @@ export function SkillsResults({
                     <div className="stat">
                       <div className="skill-card-statline">
                         <span className="skill-card-updated">
-                          Updated {timeAgo(skill.updatedAt)}
+                          更新于 {timeAgo(skill.updatedAt)}
                         </span>
                         <SkillStatsTripletLine stats={skill.stats} />
                       </div>
@@ -116,10 +116,10 @@ export function SkillsResults({
       ) : canLoadMore ? (
         <div ref={canAutoLoad ? loadMoreRef : null} className="card mt-4 flex justify-center">
           {canAutoLoad ? (
-            "Scroll to load more"
+            "滚动以加载更多"
           ) : (
             <Button type="button" onClick={loadMore} disabled={isLoadingMore}>
-              Load more
+              加载更多
             </Button>
           )}
         </div>

@@ -369,9 +369,9 @@ describe("plugins route", () => {
     render(<Component />);
 
     expect(screen.getByRole("heading", { name: "Plugins 1+" })).toBeTruthy();
-    expect(screen.getByText("1+ results")).toBeTruthy();
+    expect(screen.getByText("1+ 个结果")).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Next page" }));
+    fireEvent.click(screen.getByRole("button", { name: "下一页" }));
 
     expect(navigateMock).toHaveBeenCalled();
     const lastCall = navigateMock.mock.calls.at(-1)?.[0] as {
@@ -433,8 +433,8 @@ describe("plugins route", () => {
 
     render(<Component />);
 
-    expect(screen.getByRole("heading", { name: "Plugins 1 shown" })).toBeTruthy();
-    expect(screen.getByText("1 result shown")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Plugins 已显示 1" })).toBeTruthy();
+    expect(screen.getByText("已显示 1 个结果")).toBeTruthy();
   });
 
   it("renders a title count and switches to grid view", async () => {
@@ -462,7 +462,7 @@ describe("plugins route", () => {
 
     expect(screen.getByRole("heading", { name: "Plugins 1" })).toBeTruthy();
 
-    fireEvent.click(screen.getByRole("button", { name: "Grid" }));
+    fireEvent.click(screen.getByRole("button", { name: "网格" }));
 
     expect(navigateMock).toHaveBeenCalled();
     const lastCall = navigateMock.mock.calls.at(-1)?.[0] as {
@@ -492,7 +492,7 @@ describe("plugins route", () => {
     render(<PendingComponent />);
 
     expect(screen.getByRole("status", { name: "Loading results" })).toBeTruthy();
-    expect(screen.queryByText("Unable to load plugins")).toBeNull();
+    expect(screen.queryByText("无法加载 Plugin")).toBeNull();
   });
 
   it("switches legacy cards URLs back to list view", async () => {
@@ -519,10 +519,10 @@ describe("plugins route", () => {
 
     render(<Component />);
 
-    const gridButton = screen.getByRole("button", { name: "Grid" });
+    const gridButton = screen.getByRole("button", { name: "网格" });
     expect(gridButton.className).toContain("is-active");
 
-    fireEvent.click(screen.getByRole("button", { name: "List" }));
+    fireEvent.click(screen.getByRole("button", { name: "列表" }));
 
     const lastCall = navigateMock.mock.calls.at(-1)?.[0] as {
       replace?: boolean;
@@ -594,7 +594,7 @@ describe("plugins route", () => {
 
     render(<Component />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Featured" }));
+    fireEvent.click(screen.getByRole("radio", { name: "精选" }));
 
     expect(navigateMock).toHaveBeenCalled();
     const lastCall = navigateMock.mock.calls.at(-1)?.[0] as {
@@ -669,8 +669,8 @@ describe("plugins route", () => {
 
     render(<Component />);
 
-    expect(screen.getByText("Plugin catalog is temporarily unavailable")).toBeTruthy();
-    expect(screen.getByText(/Try again in about 22 seconds/i)).toBeTruthy();
+    expect(screen.getByText("Plugin 目录暂时不可用")).toBeTruthy();
+    expect(screen.getByText(/约 22 秒后重试/i)).toBeTruthy();
   });
 
   it("parses supported sort values without inventing a URL default", async () => {
@@ -738,7 +738,7 @@ describe("plugins route", () => {
 
     render(<Component />);
 
-    const input = screen.getByPlaceholderText("Search plugins...");
+    const input = screen.getByPlaceholderText("搜索 Plugin…");
     fireEvent.change(input, { target: { value: "security" } });
     fireEvent.submit(input.closest("form") as HTMLFormElement);
 
@@ -786,9 +786,9 @@ describe("plugins route", () => {
 
     render(<Component />);
 
-    expect(screen.getByRole("radio", { name: "Featured" })).toBeTruthy();
-    expect(screen.getByRole("radio", { name: "Recently updated" })).toBeTruthy();
-    expect(screen.queryByRole("radio", { name: "Relevance" })).toBeNull();
+    expect(screen.getByRole("radio", { name: "精选" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "最近更新" })).toBeTruthy();
+    expect(screen.queryByRole("radio", { name: "相关性" })).toBeNull();
   });
 
   it("selects loaded-result search sort without changing the query", async () => {
@@ -798,7 +798,7 @@ describe("plugins route", () => {
 
     render(<Component />);
 
-    fireEvent.click(screen.getByRole("radio", { name: "Name" }));
+    fireEvent.click(screen.getByRole("radio", { name: "名称" }));
 
     const lastCall = navigateMock.mock.calls.at(-1)?.[0] as {
       search: (prev: Record<string, unknown>) => Record<string, unknown>;
@@ -858,9 +858,9 @@ describe("plugins route", () => {
 
     render(<Component />);
 
-    expect(screen.getByRole("radio", { name: "Relevance" }).getAttribute("aria-checked")).toBe(
+    expect(screen.getByRole("radio", { name: "相关性" }).getAttribute("aria-checked")).toBe(
       "true",
     );
-    expect(screen.queryByRole("radio", { name: "Featured" })).toBeNull();
+    expect(screen.queryByRole("radio", { name: "精选" })).toBeNull();
   });
 });

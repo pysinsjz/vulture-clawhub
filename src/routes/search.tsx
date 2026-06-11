@@ -107,10 +107,10 @@ function UnifiedSearchPage() {
       <h1 className="browse-title mb-4">
         {search.q ? (
           <>
-            Search results for <span className="text-[color:var(--accent)]">"{search.q}"</span>
+            搜索结果：<span className="text-[color:var(--accent)]">"{search.q}"</span>
           </>
         ) : (
-          "Search"
+          "搜索"
         )}
       </h1>
 
@@ -120,7 +120,7 @@ function UnifiedSearchPage() {
           <input
             className="browse-search-input"
             type="text"
-            placeholder="Search skills and plugins..."
+            placeholder="搜索 Skill 和 Plugin…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
@@ -129,7 +129,7 @@ function UnifiedSearchPage() {
             <button
               className="search-clear-button"
               type="button"
-              aria-label="Clear search"
+              aria-label="清除搜索"
               onClick={clearSearch}
             >
               <X size={15} aria-hidden="true" />
@@ -144,7 +144,7 @@ function UnifiedSearchPage() {
           type="button"
           onClick={() => setType("all")}
         >
-          All{" "}
+          全部{" "}
           {showSearchCounts ? (
             <span className="search-tab-count">{formatSearchCount(allCount, allHasMore)}</span>
           ) : null}
@@ -177,7 +177,7 @@ function UnifiedSearchPage() {
         <BrowseResultsSkeleton count={activeType === "all" ? 8 : 6} />
       ) : !search.q ? (
         <Card className="text-center p-10">
-          <p className="text-ink-soft">Enter a search term to find skills and plugins</p>
+          <p className="text-ink-soft">输入搜索词以查找 Skill 与 Plugin</p>
         </Card>
       ) : results.length === 0 ? (
         <SearchEmptyState
@@ -229,7 +229,7 @@ function UnifiedSearchPage() {
                 className="search-load-more-button"
                 onClick={() => setResultLimit((limit) => limit + SEARCH_PAGE_SIZE)}
               >
-                Load more
+                加载更多
               </button>
             </div>
           ) : null}
@@ -251,15 +251,15 @@ function SearchEmptyState({
   query: string;
 }) {
   const browseHref = activeType === "plugins" ? "/plugins" : "/skills";
-  const browseLabel = activeType === "plugins" ? "Show all plugins" : "Show all skills";
+  const browseLabel = activeType === "plugins" ? "显示全部 Plugin" : "显示全部 Skill";
 
   return (
     <Card className="search-empty-state">
-      <p className="search-empty-title">No matches for "{query}"</p>
+      <p className="search-empty-title">没有找到匹配 "{query}" 的结果</p>
       <div className="search-empty-actions">
         {hasOtherTypeMatches ? (
           <button type="button" className="search-empty-action" onClick={onSearchAllTypes}>
-            Search all types
+            搜索全部类型
           </button>
         ) : null}
         <a className="search-empty-action" href={browseHref}>
