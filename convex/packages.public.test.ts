@@ -5988,7 +5988,7 @@ describe("packages public queries", () => {
         actorUserId: "users:admin",
         payload: {
           name: "@openclaw/discord",
-          family: "bundle-plugin",
+          family: "code-plugin",
           version: "2026.5.3-beta.2",
           changelog: "tag publish",
           bundle: { hostTargets: ["desktop"] },
@@ -7259,7 +7259,7 @@ describe("packages public queries", () => {
         payload: {
           name: "@openclaw/discord",
           displayName: "Discord",
-          family: "bundle-plugin",
+          family: "code-plugin",
           version: "2026.5.3-beta.2",
           changelog: "beta",
           bundle: { hostTargets: ["desktop"] },
@@ -7315,7 +7315,7 @@ describe("packages public queries", () => {
           name: "@opik/opik-openclaw",
           ownerHandle: "   ",
           displayName: "Opik",
-          family: "bundle-plugin",
+          family: "code-plugin",
           version: "0.2.15",
           changelog: "beta",
           bundle: { hostTargets: ["desktop"] },

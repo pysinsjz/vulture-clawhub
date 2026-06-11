@@ -410,7 +410,7 @@ export function extractCodePluginArtifacts(params: {
 export function extractBundlePluginArtifacts(params: {
   packageName: string;
   packageJson?: JsonRecord;
-  pluginManifest: JsonRecord;
+  pluginManifest?: JsonRecord;
   bundleManifest?: JsonRecord;
   bundleMetadata?: BundlePublishMetadata;
   source?: SourceInfo;
@@ -418,8 +418,9 @@ export function extractBundlePluginArtifacts(params: {
   const openclaw = isRecord(params.packageJson?.openclaw) ? params.packageJson.openclaw : undefined;
   const environment = isRecord(openclaw?.environment) ? openclaw.environment : undefined;
   const manifest = params.bundleManifest;
+  const manifestId = params.pluginManifest?.id;
   const runtimeId =
-    (typeof params.pluginManifest.id === "string" && params.pluginManifest.id.trim()) ||
+    (typeof manifestId === "string" && manifestId.trim()) ||
     params.bundleMetadata?.id?.trim() ||
     params.packageName;
   const hostTargets = uniq([

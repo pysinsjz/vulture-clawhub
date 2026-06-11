@@ -6336,7 +6336,7 @@ async function publishPackageImpl(
     maxDepth: MAX_STORED_PACKAGE_METADATA_DEPTH,
   });
   if (packageJson) ensurePluginNameMatchesPackage(name, packageJson);
-  if (!pluginManifest) {
+  if (family === "code-plugin" && !pluginManifest) {
     throw new ConvexError("openclaw.plugin.json is required for plugin packages");
   }
   if (family === "code-plugin") {
@@ -6384,7 +6384,11 @@ async function publishPackageImpl(
             (() => {
               throw new ConvexError("package.json is required for code plugins");
             })(),
-          pluginManifest,
+          pluginManifest:
+            pluginManifest ??
+            (() => {
+              throw new ConvexError("openclaw.plugin.json is required for plugin packages");
+            })(),
           source: effectiveSource,
         })
       : null;
