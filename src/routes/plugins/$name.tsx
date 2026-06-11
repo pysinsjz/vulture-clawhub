@@ -199,10 +199,10 @@ export const Route = createFileRoute("/plugins/$name")({
 });
 
 function formatCapabilityValue(value: unknown): string {
-  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (typeof value === "boolean") return value ? "是" : "否";
   if (typeof value === "number") return String(value);
   if (typeof value === "string") return value;
-  if (Array.isArray(value)) return value.length === 0 ? "None" : value.join(", ");
+  if (Array.isArray(value)) return value.length === 0 ? "无" : value.join(", ");
   return JSON.stringify(value);
 }
 
@@ -267,7 +267,7 @@ function PluginDetailTabs({
 
   return (
     <div className="tab-card">
-      <div className="tab-header" role="tablist" aria-label="Plugin detail tabs">
+      <div className="tab-header" role="tablist" aria-label="Plugin 详情标签页">
         <button
           className={`tab-button${effectiveActiveTab === "readme" ? " is-active" : ""}`}
           type="button"
@@ -285,7 +285,7 @@ function PluginDetailTabs({
             aria-selected={effectiveActiveTab === "compatibility"}
             onClick={() => selectTab("compatibility")}
           >
-            Compatibility
+            兼容性
           </button>
         ) : null}
         {validationPanel ? (
@@ -296,7 +296,7 @@ function PluginDetailTabs({
             aria-selected={effectiveActiveTab === "validation"}
             onClick={() => selectTab("validation")}
           >
-            Validation ({validationCount})
+            验证 ({validationCount})
           </button>
         ) : null}
       </div>
@@ -317,7 +317,7 @@ function PluginDetailRoute() {
 export function PluginDetailPending() {
   return (
     <main className="section detail-page-section" aria-busy="true">
-      <div role="status" aria-label="Loading plugin details">
+      <div role="status" aria-label="正在加载 Plugin 详情">
         <SkillDetailSkeleton kind="plugin" />
       </div>
     </main>
@@ -372,12 +372,12 @@ export function PluginDetailPage({
         <Container size="narrow">
           <EmptyState
             icon={AlertTriangle}
-            title="Plugin details are temporarily unavailable"
-            description={`The public plugin API is rate-limited right now. Try again ${formatRetryDelay(
+            title="Plugin 详情暂时不可用"
+            description={`公共 Plugin API 当前被限流，请${formatRetryDelay(
               rateLimited.retryAfterSeconds,
-            )}.`}
+            )}重试。`}
             action={{
-              label: "Try again",
+              label: "重试",
               onClick: () => window.location.reload(),
             }}
           />
@@ -391,8 +391,8 @@ export function PluginDetailPage({
       <main className="py-10">
         <Container size="narrow">
           <EmptyState
-            title="Plugin not found"
-            description="This plugin does not exist or has been removed."
+            title="未找到该 Plugin"
+            description="该 Plugin 不存在或已被移除"
           />
         </Container>
       </main>
@@ -442,8 +442,8 @@ export function PluginDetailPage({
     <MarkdownPreview assetBaseUrl={readmeAssetBaseUrl}>{readme}</MarkdownPreview>
   ) : (
     <div className="empty-state px-[var(--space-4)] py-[var(--space-6)]">
-      <p className="empty-state-title">No README available</p>
-      <p className="empty-state-body">This plugin doesn't have a README yet.</p>
+      <p className="empty-state-title">暂无 README</p>
+      <p className="empty-state-body">该 Plugin 还没有 README</p>
     </div>
   );
   const compatibilityPanel =
@@ -453,41 +453,40 @@ export function PluginDetailPage({
           {artifact ? (
             <>
               <div className="plugin-kv-row">
-                <dt className="plugin-kv-label">Artifact</dt>
+                <dt className="plugin-kv-label">制品</dt>
                 <dd className="plugin-kv-value">
-                  {artifact.kind === "npm-pack" ? "ClawPack" : "Legacy ZIP"}
+                  {artifact.kind === "npm-pack" ? "ClawPack" : "旧版 ZIP"}
                 </dd>
               </div>
               {artifact.kind === "legacy-zip" ? (
                 <div className="plugin-kv-row">
-                  <dt className="plugin-kv-label">Compatibility note</dt>
+                  <dt className="plugin-kv-label">兼容性说明</dt>
                   <dd className="plugin-kv-value">
-                    This plugin uses the legacy ZIP path and may have compatibility issues until the
-                    publisher uploads a ClawPack.
+                    该 Plugin 使用旧版 ZIP 方式，在发布者上传 ClawPack 之前可能存在兼容性问题
                   </dd>
                 </div>
               ) : null}
               {artifact.kind === "npm-pack" && artifact.npmTarballName ? (
                 <div className="plugin-kv-row">
-                  <dt className="plugin-kv-label">Tarball</dt>
+                  <dt className="plugin-kv-label">压缩包</dt>
                   <dd className="plugin-kv-value font-mono text-xs">{artifact.npmTarballName}</dd>
                 </div>
               ) : null}
               {artifact.kind === "npm-pack" && formatArtifactSize(artifact.size) ? (
                 <div className="plugin-kv-row">
-                  <dt className="plugin-kv-label">Size</dt>
+                  <dt className="plugin-kv-label">大小</dt>
                   <dd className="plugin-kv-value">{formatArtifactSize(artifact.size)}</dd>
                 </div>
               ) : null}
               {artifact.kind === "npm-pack" && typeof artifact.npmFileCount === "number" ? (
                 <div className="plugin-kv-row">
-                  <dt className="plugin-kv-label">Files</dt>
+                  <dt className="plugin-kv-label">文件数</dt>
                   <dd className="plugin-kv-value">{artifact.npmFileCount}</dd>
                 </div>
               ) : null}
               {artifact.kind === "npm-pack" && artifact.npmIntegrity ? (
                 <div className="plugin-kv-row">
-                  <dt className="plugin-kv-label">Integrity</dt>
+                  <dt className="plugin-kv-label">完整性</dt>
                   <dd className="plugin-kv-value font-mono text-xs">{artifact.npmIntegrity}</dd>
                 </div>
               ) : null}
@@ -512,8 +511,8 @@ export function PluginDetailPage({
       <Alert variant="destructive" className="plugin-validation-alert">
         <AlertTriangle size={16} aria-hidden="true" />
         <AlertDescription>
-          This plugin is incompatible with OpenClaw versions greater than{" "}
-          {validationSummary.incompatibleAfterOpenClawVersion}.
+          该 Plugin 与高于{" "}
+          {validationSummary.incompatibleAfterOpenClawVersion} 的 OpenClaw 版本不兼容
         </AlertDescription>
       </Alert>
     ) : null;
@@ -523,8 +522,7 @@ export function PluginDetailPage({
         <Alert variant="info" role="status">
           <Info size={16} aria-hidden="true" />
           <AlertDescription>
-            Validation outputs are only visible to plugin owners and admins. Run locally using the
-            CLI: <code>clawhub package validate &lt;path-to-plugin&gt;</code>
+            验证结果仅对 plugin 发布者与管理员可见。用 CLI 在本地运行：<code>clawhub package validate &lt;path-to-plugin&gt;</code>
           </AlertDescription>
         </Alert>
         <div className="plugin-warning-list">
@@ -535,7 +533,7 @@ export function PluginDetailPage({
             >
               <div className="plugin-warning-item-header">
                 <Badge variant={finding.findingKind === "error" ? "destructive" : "warning"}>
-                  {finding.findingKind === "error" ? "Error" : "Warning"}
+                  {finding.findingKind === "error" ? "错误" : "警告"}
                 </Badge>
                 <code>{finding.code}</code>
                 {finding.issueClass ? <span>{finding.issueClass}</span> : null}
@@ -544,24 +542,24 @@ export function PluginDetailPage({
               <p>{finding.message}</p>
               <dl className="plugin-warning-meta">
                 <div>
-                  <dt>Plugin version</dt>
+                  <dt>Plugin 版本</dt>
                   <dd>v{finding.version}</dd>
                 </div>
                 {finding.targetOpenClawVersion ? (
                   <div>
-                    <dt>Target</dt>
+                    <dt>目标</dt>
                     <dd>OpenClaw {finding.targetOpenClawVersion}</dd>
                   </div>
                 ) : null}
                 {finding.inspectorVersion ? (
                   <div>
-                    <dt>Inspector</dt>
+                    <dt>检查器</dt>
                     <dd>{finding.inspectorVersion}</dd>
                   </div>
                 ) : null}
                 {finding.scanSource ? (
                   <div>
-                    <dt>Scan</dt>
+                    <dt>扫描</dt>
                     <dd>{finding.scanSource}</dd>
                   </div>
                 ) : null}
@@ -619,7 +617,7 @@ export function PluginDetailPage({
           {owner.displayName ?? owner.handle}
         </a>
       ) : (
-        <span className="user-name">{owner.displayName ?? "unknown"}</span>
+        <span className="user-name">{owner.displayName ?? "未知"}</span>
       )}
     </span>
   ) : null;
@@ -645,11 +643,11 @@ export function PluginDetailPage({
         <DetailHero
           main={
             <div className="skill-hero-title">
-              <nav className="skill-hero-breadcrumbs" aria-label="Plugin breadcrumbs">
+              <nav className="skill-hero-breadcrumbs" aria-label="Plugin 面包屑">
                 <a href="/plugins">plugins</a>
                 <span aria-hidden="true">/</span>
                 <a href={owner?.handle ? `/user/${encodeURIComponent(owner.handle)}` : "#"}>
-                  {owner?.handle ?? owner?.displayName ?? "unknown"}
+                  {owner?.handle ?? owner?.displayName ?? "未知"}
                 </a>
                 <span aria-hidden="true">/</span>
                 <a href="/plugins">plugins</a>
@@ -665,15 +663,15 @@ export function PluginDetailPage({
                 ) : null}
                 {isDownloadBlocked ? (
                   <div className="skill-title-actions">
-                    <Badge variant="destructive">Download blocked</Badge>
+                    <Badge variant="destructive">下载已封禁</Badge>
                   </div>
                 ) : null}
               </div>
-              <p className="section-subtitle">{pkg.summary ?? "No summary provided."}</p>
+              <p className="section-subtitle">{pkg.summary ?? "暂无摘要"}</p>
 
               {rateLimited?.scope === "metadata" ? (
                 <div className="skill-hero-badges">
-                  <Badge variant="compact">Some metadata is temporarily unavailable</Badge>
+                  <Badge variant="compact">部分元数据暂时不可用</Badge>
                 </div>
               ) : null}
             </div>
@@ -682,16 +680,16 @@ export function PluginDetailPage({
             <div className="plugin-sidebar-stack">
               {hasSourceMetadata ? (
                 <SidebarMetadata
-                  ariaLabel="Plugin metadata"
+                  ariaLabel="Plugin 元数据"
                   density="compact"
                   blocks={[
                     {
-                      label: "Downloads",
+                      label: "下载量",
                       value: formatCompactStat(pkg.stats?.downloads ?? 0),
                       large: true,
                     },
-                    { label: "Repository", value: sourceRepoLink },
-                    { label: "Owner", value: ownerMetadataValue },
+                    { label: "仓库", value: sourceRepoLink },
+                    { label: "发布者", value: ownerMetadataValue },
                     securitySummary
                       ? {
                           key: "security-audit",
@@ -699,17 +697,17 @@ export function PluginDetailPage({
                           value: securitySummary,
                         }
                       : { label: "", value: null },
-                    { label: "Executes code", value: executesCodeValue },
+                    { label: "执行代码", value: executesCodeValue },
                     {
                       grid: [
                         {
-                          label: "Current version",
+                          label: "当前版本",
                           value: pkg.latestVersion ? `v${pkg.latestVersion}` : null,
                         },
-                        { label: "Type", value: familyLabel(pkg.family) },
+                        { label: "类型", value: familyLabel(pkg.family) },
                       ],
                     },
-                    { label: "Tags", value: tagMetadataValue },
+                    { label: "标签", value: tagMetadataValue },
                   ]}
                 />
               ) : null}
@@ -720,7 +718,7 @@ export function PluginDetailPage({
                     <Button asChild variant="outline" className="skill-sidebar-action-button">
                       <a href={downloadPath}>
                         <Download size={14} aria-hidden="true" />
-                        Download
+                        下载
                       </a>
                     </Button>
                   ) : null}
@@ -728,7 +726,7 @@ export function PluginDetailPage({
                     <Button asChild variant="outline" className="skill-sidebar-action-button">
                       <a href={newVersionHref}>
                         <Upload size={14} aria-hidden="true" />
-                        New version
+                        新版本
                       </a>
                     </Button>
                   ) : null}
@@ -741,7 +739,7 @@ export function PluginDetailPage({
             {incompatibilityAlert}
             <Card className="skill-install-command-card">
               <CardHeader>
-                <CardTitle>Install</CardTitle>
+                <CardTitle>安装</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="skill-install-command-wrap">
@@ -751,7 +749,7 @@ export function PluginDetailPage({
                     </pre>
                     <InstallCopyButton
                       text={installSnippet}
-                      ariaLabel="Copy plugin install command"
+                      ariaLabel="复制 Plugin 安装命令"
                       showLabel={false}
                       className="skill-install-command-inline-button"
                     />

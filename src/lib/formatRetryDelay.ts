@@ -1,8 +1,8 @@
 export function formatRetryDelay(retryAfterSeconds: number | null) {
-  if (!retryAfterSeconds || retryAfterSeconds <= 0) return "in a moment";
+  if (!retryAfterSeconds || retryAfterSeconds <= 0) return "稍后";
   if (retryAfterSeconds < 60) {
-    return `in about ${retryAfterSeconds} second${retryAfterSeconds === 1 ? "" : "s"}`;
+    return `约 ${retryAfterSeconds} 秒后`;
   }
   const minutes = Math.ceil(retryAfterSeconds / 60);
-  return `in about ${minutes} minute${minutes === 1 ? "" : "s"}`;
+  return `约 ${minutes} 分钟后`;
 }

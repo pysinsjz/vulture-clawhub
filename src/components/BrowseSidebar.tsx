@@ -67,8 +67,8 @@ export function BrowseSidebar({
 }: BrowseSidebarProps) {
   const filterSection =
     filters.length && onFilterToggle ? (
-      <fieldset className="sidebar-section" aria-label="Toggle filters">
-        <legend className="sidebar-title">Filters</legend>
+      <fieldset className="sidebar-section" aria-label="切换筛选器">
+        <legend className="sidebar-title">筛选</legend>
         {filters.map((f) => (
           <label key={f.key} className="sidebar-checkbox">
             <input
@@ -84,9 +84,9 @@ export function BrowseSidebar({
     ) : null;
 
   return (
-    <aside className="browse-sidebar" aria-label="Browse filters">
-      <fieldset className="sidebar-section" role="radiogroup" aria-label="Sort order">
-        <legend className="sidebar-title">Sort by</legend>
+    <aside className="browse-sidebar" aria-label="浏览筛选">
+      <fieldset className="sidebar-section" role="radiogroup" aria-label="排序方式">
+        <legend className="sidebar-title">排序</legend>
         {sortOptions.map((opt) => (
           <button
             key={opt.value}
@@ -102,8 +102,8 @@ export function BrowseSidebar({
       </fieldset>
 
       {categories && onCategoryChange ? (
-        <fieldset className="sidebar-section" role="radiogroup" aria-label="Category filter">
-          <legend className="sidebar-title">Categories</legend>
+        <fieldset className="sidebar-section" role="radiogroup" aria-label="分类筛选">
+          <legend className="sidebar-title">分类</legend>
           <button
             className={`sidebar-option${!activeCategory ? " is-active" : ""}`}
             type="button"
@@ -111,7 +111,7 @@ export function BrowseSidebar({
             aria-checked={!activeCategory}
             onClick={() => onCategoryChange(undefined)}
           >
-            All
+            全部
           </button>
           {categories.map((cat) => (
             <button

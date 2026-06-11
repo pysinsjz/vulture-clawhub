@@ -191,7 +191,7 @@ describe("plugin detail route", () => {
     const { container } = render(<Component />);
 
     expect(
-      container.querySelector('nav[aria-label="Plugin breadcrumbs"] a[href="/user/openclaw"]'),
+      container.querySelector('nav[aria-label="Plugin 面包屑"] a[href="/user/openclaw"]'),
     ).toBeTruthy();
   });
 
@@ -234,8 +234,8 @@ describe("plugin detail route", () => {
 
     render(<Component />);
 
-    const downloadsLabel = screen.getByText("Downloads");
-    const currentVersionLabel = screen.getByText("Current version");
+    const downloadsLabel = screen.getByText("下载量");
+    const currentVersionLabel = screen.getByText("当前版本");
     expect(downloadsLabel.compareDocumentPosition(currentVersionLabel)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
@@ -289,8 +289,8 @@ describe("plugin detail route", () => {
 
     render(<Component />);
 
-    const downloadLink = screen.getByRole("link", { name: /download/i });
-    const newVersionLink = screen.getByRole("link", { name: "New version" });
+    const downloadLink = screen.getByRole("link", { name: /下载/ });
+    const newVersionLink = screen.getByRole("link", { name: "新版本" });
     expect(newVersionLink.getAttribute("href")).toBe(
       "/plugins/publish?ownerHandle=demo-owner&name=demo-plugin&displayName=Demo+Plugin",
     );
@@ -316,7 +316,7 @@ describe("plugin detail route", () => {
 
     render(<Component />);
 
-    expect(screen.queryByRole("link", { name: "New version" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "新版本" })).toBeNull();
     expect(screen.queryByRole("link", { name: /settings/i })).toBeNull();
   });
 
@@ -351,7 +351,7 @@ describe("plugin detail route", () => {
       name: "demo-plugin",
       candidateNames: ["@openclaw/demo-plugin", "demo-plugin"],
     });
-    expect(screen.getByRole("link", { name: "New version" })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "新版本" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: /settings/i })).toBeNull();
   });
 
@@ -415,7 +415,7 @@ describe("plugin detail route", () => {
     ).toBeTruthy();
     expect(screen.queryByText("Looks safe.")).toBeNull();
 
-    const sidebarMetadata = document.querySelector('dl[aria-label="Plugin metadata"]');
+    const sidebarMetadata = document.querySelector('dl[aria-label="Plugin 元数据"]');
     expect(sidebarMetadata).toBeTruthy();
     const sidebarLabels = Array.from(
       sidebarMetadata?.querySelectorAll(".sidebar-metadata-label") ?? [],
@@ -531,12 +531,12 @@ describe("plugin detail route", () => {
 
     render(<Component />);
 
-    fireEvent.click(screen.getByRole("tab", { name: "Compatibility" }));
+    fireEvent.click(screen.getByRole("tab", { name: "兼容性" }));
     expect(screen.getByText("ClawPack")).toBeTruthy();
     expect(screen.getByText("demo-plugin-1.0.0.tgz")).toBeTruthy();
     expect(screen.getByText("sha512-demo")).toBeTruthy();
     expect(screen.getByText("openclaw plugins install clawhub:demo-plugin")).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Download/i }).getAttribute("href")).toBe(
+    expect(screen.getByRole("link", { name: /下载/ }).getAttribute("href")).toBe(
       "/api/v1/packages/demo-plugin/versions/1.0.0/artifact/download",
     );
   });
@@ -589,10 +589,10 @@ describe("plugin detail route", () => {
 
     render(<Component />);
 
-    fireEvent.click(screen.getByRole("tab", { name: "Compatibility" }));
-    expect(screen.getByText("Legacy ZIP")).toBeTruthy();
-    expect(screen.getByText(/legacy ZIP path/i)).toBeTruthy();
-    expect(screen.getByRole("link", { name: /Download/i }).getAttribute("href")).toBe(
+    fireEvent.click(screen.getByRole("tab", { name: "兼容性" }));
+    expect(screen.getByText("旧版 ZIP")).toBeTruthy();
+    expect(screen.getByText(/旧版 ZIP 方式/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: /下载/ }).getAttribute("href")).toBe(
       "/api/v1/packages/demo-plugin/download?version=1.0.0",
     );
   });
@@ -654,9 +654,9 @@ describe("plugin detail route", () => {
     render(<Component />);
 
     expect(
-      screen.getByText("This plugin is incompatible with OpenClaw versions greater than 0.9.0."),
+      screen.getByText("该 Plugin 与高于 0.9.0 的 OpenClaw 版本不兼容"),
     ).toBeTruthy();
-    expect(screen.queryByRole("tab", { name: /Validation/ })).toBeNull();
+    expect(screen.queryByRole("tab", { name: /验证/ })).toBeNull();
     expect(screen.queryByText("missing-expected-seam")).toBeNull();
   });
 
@@ -755,11 +755,11 @@ describe("plugin detail route", () => {
 
     render(<Component />);
 
-    expect(screen.getByRole("tab", { name: "Validation (2)" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "验证 (2)" })).toBeTruthy();
     expect(screen.queryByRole("link", { name: "2 warnings" })).toBeNull();
     expect(
       screen.getByText(
-        /Validation outputs are only visible to plugin owners and admins. Run locally using the CLI:/,
+        /验证结果仅对 plugin 发布者与管理员可见/,
       ),
     ).toBeTruthy();
     expect(screen.getByText("clawhub package validate <path-to-plugin>")).toBeTruthy();
@@ -811,8 +811,8 @@ describe("plugin detail route", () => {
 
     render(<Component />);
 
-    expect(screen.getByText("Plugin details are temporarily unavailable")).toBeTruthy();
-    expect(screen.getByText(/Try again in about 15 seconds/i)).toBeTruthy();
+    expect(screen.getByText("Plugin 详情暂时不可用")).toBeTruthy();
+    expect(screen.getByText(/约 15 秒后重试/)).toBeTruthy();
   });
 
   it("downgrades rate-limited README/version fetches into partial detail data", async () => {
