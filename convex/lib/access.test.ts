@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@convex-dev/auth/server", () => ({
   getAuthUserId: vi.fn(),
@@ -6,8 +6,15 @@ vi.mock("@convex-dev/auth/server", () => ({
 }));
 
 const { getAuthUserId } = await import("@convex-dev/auth/server");
-const { assertAdmin, assertModerator, assertRole, requireUser, requireUserFromAction } =
-  await import("./access");
+const {
+  assertAdmin,
+  assertModerator,
+  assertRole,
+  getOptionalActiveAuthUserId,
+  getOptionalActiveAuthUserIdFromAction,
+  requireUser,
+  requireUserFromAction,
+} = await import("./access");
 
 beforeEach(() => {
   vi.mocked(getAuthUserId).mockReset();
@@ -223,5 +230,127 @@ describe("access role assertions", () => {
     expect(() => assertModerator({ role: "admin" } as never)).not.toThrow();
     expect(() => assertModerator({ role: "moderator" } as never)).not.toThrow();
     expect(() => assertModerator({ role: "user" } as never)).toThrow("Forbidden");
+  });
+});
+
+describe("access default system user fallback", () => {
+  const ENV = "VULTURE_DEFAULT_SYSTEM_USER";
+  let previous: string | undefined;
+
+  beforeEach(() => {
+    previous = process.env[ENV];
+  });
+
+  afterEach(() => {
+    if (previous === undefined) delete process.env[ENV];
+    else process.env[ENV] = previous;
+  });
+
+  function systemUserDb(systemUser: unknown) {
+    const unique = vi.fn().mockResolvedValue(systemUser as never);
+    const withIndex = vi.fn().mockReturnValue({ unique });
+    const query = vi.fn().mockReturnValue({ withIndex });
+    const get = vi.fn().mockResolvedValue(systemUser as never);
+    return { query, withIndex, unique, get };
+  }
+
+  const systemUser = { _id: "users:system", handle: "system", role: "admin" };
+
+  it("getOptionalActiveAuthUserId returns the system user when enabled and no auth", async () => {
+    process.env[ENV] = "1";
+    vi.mocked(getAuthUserId).mockResolvedValue(null);
+    const db = systemUserDb(systemUser);
+
+    const result = await getOptionalActiveAuthUserId({ db } as never);
+
+    expect(db.query).toHaveBeenCalledWith("users");
+    expect(db.withIndex).toHaveBeenCalledWith("handle", expect.any(Function));
+    expect(result).toBe("users:system");
+  });
+
+  it("getOptionalActiveAuthUserId ignores the system fallback when disabled", async () => {
+    delete process.env[ENV];
+    vi.mocked(getAuthUserId).mockResolvedValue(null);
+    const query = vi.fn();
+
+    const result = await getOptionalActiveAuthUserId({ db: { get: vi.fn(), query } } as never);
+
+    expect(query).not.toHaveBeenCalled();
+    expect(result).toBeUndefined();
+  });
+
+  it("getOptionalActiveAuthUserId prefers an active auth user over the system fallback", async () => {
+    process.env[ENV] = "1";
+    vi.mocked(getAuthUserId).mockResolvedValue("users:real" as never);
+    const authUser = { _id: "users:real", role: "user" };
+    const query = vi.fn();
+    const get = vi.fn().mockResolvedValue(authUser as never);
+
+    const result = await getOptionalActiveAuthUserId({ db: { get, query } } as never);
+
+    expect(result).toBe("users:real");
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("getOptionalActiveAuthUserId returns undefined when the system user is missing", async () => {
+    process.env[ENV] = "1";
+    vi.mocked(getAuthUserId).mockResolvedValue(null);
+    const db = systemUserDb(null);
+
+    const result = await getOptionalActiveAuthUserId({ db } as never);
+
+    expect(result).toBeUndefined();
+  });
+
+  it("getOptionalActiveAuthUserId skips a deleted system user", async () => {
+    process.env[ENV] = "1";
+    vi.mocked(getAuthUserId).mockResolvedValue(null);
+    const db = systemUserDb({ ...systemUser, deletedAt: Date.now() });
+
+    const result = await getOptionalActiveAuthUserId({ db } as never);
+
+    expect(result).toBeUndefined();
+  });
+
+  it("requireUser returns the system user when enabled and no auth", async () => {
+    process.env[ENV] = "1";
+    vi.mocked(getAuthUserId).mockResolvedValue(null);
+    const db = systemUserDb(systemUser);
+
+    const result = await requireUser({ db } as never);
+
+    expect(result).toEqual({ userId: "users:system", user: systemUser });
+  });
+
+  it("requireUser still throws Unauthorized when disabled and no auth", async () => {
+    delete process.env[ENV];
+    vi.mocked(getAuthUserId).mockResolvedValue(null);
+
+    await expect(requireUser({ db: { get: vi.fn() } } as never)).rejects.toThrow("Unauthorized");
+  });
+
+  it("getOptionalActiveAuthUserIdFromAction returns the system user when enabled and no auth", async () => {
+    process.env[ENV] = "1";
+    vi.mocked(getAuthUserId).mockResolvedValue(null);
+    const runQuery = vi.fn(async (_ref: unknown, args: { handle?: string }) =>
+      args.handle === "system" ? systemUser : null,
+    );
+
+    const result = await getOptionalActiveAuthUserIdFromAction({ runQuery } as never);
+
+    expect(runQuery).toHaveBeenCalledWith(expect.anything(), { handle: "system" });
+    expect(result).toBe("users:system");
+  });
+
+  it("requireUserFromAction returns the system user when enabled and no auth", async () => {
+    process.env[ENV] = "1";
+    vi.mocked(getAuthUserId).mockResolvedValue(null);
+    const runQuery = vi.fn(async (_ref: unknown, args: { handle?: string }) =>
+      args.handle === "system" ? systemUser : null,
+    );
+
+    const result = await requireUserFromAction({ runQuery } as never);
+
+    expect(result).toEqual({ userId: "users:system", user: systemUser });
   });
 });

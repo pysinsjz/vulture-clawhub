@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@convex-dev/auth/server", () => ({
   getAuthUserId: vi.fn(),
@@ -36,6 +36,7 @@ const {
   updateProfile,
   deleteAccount,
   upsertDevPersonaInternal,
+  ensureSystemUser,
 } = await import("./users");
 
 type WrappedHandler<TArgs, TResult> = {
@@ -4000,5 +4001,42 @@ describe("users.liftModerationHoldInternal", () => {
         { actorUserId: "users:mod", targetUserId: "users:target" },
       ),
     ).rejects.toThrow();
+  });
+});
+
+describe("ensureSystemUser", () => {
+  const ENV = "VULTURE_DEFAULT_SYSTEM_USER";
+  let previous: string | undefined;
+
+  beforeEach(() => {
+    previous = process.env[ENV];
+  });
+
+  afterEach(() => {
+    if (previous === undefined) delete process.env[ENV];
+    else process.env[ENV] = previous;
+  });
+
+  it("returns null and writes nothing when the flag is disabled", async () => {
+    delete process.env[ENV];
+    const insert = vi.fn();
+    const patch = vi.fn();
+
+    const handler = (
+      ensureSystemUser as unknown as WrappedHandler<
+        Record<string, never>,
+        { userId: string } | null
+      >
+    )._handler;
+    const result = await handler(
+      {
+        db: { insert, patch, get: vi.fn(), query: vi.fn(), normalizeId: vi.fn() },
+      },
+      {},
+    );
+
+    expect(result).toBeNull();
+    expect(insert).not.toHaveBeenCalled();
+    expect(patch).not.toHaveBeenCalled();
   });
 });

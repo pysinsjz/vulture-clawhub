@@ -6,7 +6,11 @@ import { getRuntimeEnv } from "./runtimeEnv";
 export function useAuthStatus() {
   const auth = useConvexAuth();
   const devAuthEnabled = getRuntimeEnv("VITE_ENABLE_DEV_AUTH") === "1";
-  const shouldLoadUser = auth.isAuthenticated || devAuthEnabled;
+  // Internal-registry mode: with no login flow, default to the fixed "system"
+  // user. The backend resolves users.me to the system identity (see
+  // convex/lib/access.ts getDefaultSystemUser) once it has been bootstrapped.
+  const defaultSystemUser = getRuntimeEnv("VITE_DEFAULT_SYSTEM_USER") === "1";
+  const shouldLoadUser = auth.isAuthenticated || devAuthEnabled || defaultSystemUser;
   const userResult = useQuery(api.users.me, shouldLoadUser ? {} : "skip") as
     | Doc<"users">
     | null

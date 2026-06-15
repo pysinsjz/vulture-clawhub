@@ -62,6 +62,39 @@ async function getDevImpersonatedUserIdFromAction(
   return user._id;
 }
 
+// Internal-registry default identity. When `VULTURE_DEFAULT_SYSTEM_USER=1`,
+// requests that resolve to no authenticated user fall back to the fixed
+// "system" admin account — mirroring the HTTP API's tokenless system fallback
+// so the reactive web UI is usable on a trusted internal network without a
+// login flow. The fallback only reads an existing system user; bootstrap is
+// handled by users.ensureSystemUser. See docs/vulture-trim/TRIM-SPEC.md.
+const SYSTEM_USER_HANDLE = "system";
+
+function isDefaultSystemUserEnabled() {
+  return process.env.VULTURE_DEFAULT_SYSTEM_USER === "1";
+}
+
+async function getDefaultSystemUser(
+  ctx: Pick<MutationCtx | QueryCtx, "db">,
+): Promise<Doc<"users"> | undefined> {
+  if (!isDefaultSystemUserEnabled()) return undefined;
+  const user = await ctx.db
+    .query("users")
+    .withIndex("handle", (q) => q.eq("handle", SYSTEM_USER_HANDLE))
+    .unique();
+  if (!user || user.deletedAt || user.deactivatedAt) return undefined;
+  return user;
+}
+
+async function getDefaultSystemUserFromAction(ctx: ActionCtx): Promise<Doc<"users"> | undefined> {
+  if (!isDefaultSystemUserEnabled()) return undefined;
+  const user = await ctx.runQuery(internal.users.getByHandleInternal, {
+    handle: SYSTEM_USER_HANDLE,
+  });
+  if (!user || user.deletedAt || user.deactivatedAt) return undefined;
+  return user as Doc<"users">;
+}
+
 export async function getOptionalActiveAuthUserId(
   ctx: MutationCtx | QueryCtx,
 ): Promise<Id<"users"> | undefined> {
@@ -69,13 +102,14 @@ export async function getOptionalActiveAuthUserId(
   if (devUserId) return devUserId;
   try {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return undefined;
-    const user = await ctx.db.get(userId);
-    if (!user || user.deletedAt || user.deactivatedAt) return undefined;
-    return userId;
+    if (userId) {
+      const user = await ctx.db.get(userId);
+      if (user && !user.deletedAt && !user.deactivatedAt) return userId;
+    }
   } catch {
-    return undefined;
+    // Fall through to the internal-registry system fallback below.
   }
+  return (await getDefaultSystemUser(ctx))?._id;
 }
 
 export async function getOptionalActiveAuthUserIdFromAction(
@@ -85,13 +119,14 @@ export async function getOptionalActiveAuthUserIdFromAction(
   if (devUserId) return devUserId;
   try {
     const userId = await getAuthUserId(ctx);
-    if (!userId) return undefined;
-    const user = await ctx.runQuery(internal.users.getByIdInternal, { userId });
-    if (!user || user.deletedAt || user.deactivatedAt) return undefined;
-    return userId;
+    if (userId) {
+      const user = await ctx.runQuery(internal.users.getByIdInternal, { userId });
+      if (user && !user.deletedAt && !user.deactivatedAt) return userId;
+    }
   } catch {
-    return undefined;
+    // Fall through to the internal-registry system fallback below.
   }
+  return (await getDefaultSystemUserFromAction(ctx))?._id;
 }
 
 export async function requireUser(ctx: MutationCtx | QueryCtx) {
@@ -108,7 +143,11 @@ export async function requireUser(ctx: MutationCtx | QueryCtx) {
   } catch {
     userId = null;
   }
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) {
+    const systemUser = await getDefaultSystemUser(ctx);
+    if (systemUser) return { userId: systemUser._id, user: systemUser };
+    throw new Error("Unauthorized");
+  }
   let user: Doc<"users"> | null;
   try {
     user = await ctx.db.get(userId);
@@ -135,7 +174,11 @@ export async function requireUserFromAction(
   } catch {
     userId = null;
   }
-  if (!userId) throw new Error("Unauthorized");
+  if (!userId) {
+    const systemUser = await getDefaultSystemUserFromAction(ctx);
+    if (systemUser) return { userId: systemUser._id, user: systemUser };
+    throw new Error("Unauthorized");
+  }
   let user: Doc<"users"> | null;
   try {
     user = await ctx.runQuery(internal.users.getByIdInternal, { userId });

@@ -418,38 +418,54 @@ export const getByIdInternal = internalQuery({
 // own/attribute publish + maintenance operations. See docs/vulture-trim/TRIM-SPEC.md.
 const SYSTEM_USER_HANDLE = "system";
 
+export async function getOrCreateSystemUser(ctx: MutationCtx): Promise<Doc<"users">> {
+  const now = Date.now();
+  const existing = await getUserByHandleOrPersonalPublisher(ctx, SYSTEM_USER_HANDLE);
+  const patch = {
+    handle: SYSTEM_USER_HANDLE,
+    displayName: "System",
+    name: SYSTEM_USER_HANDLE,
+    role: "admin" as const,
+    deletedAt: undefined,
+    deactivatedAt: undefined,
+    purgedAt: undefined,
+    banReason: undefined,
+    updatedAt: now,
+  };
+  const userId =
+    existing?._id ??
+    (await ctx.db.insert("users", {
+      ...patch,
+      createdAt: now,
+    }));
+  if (existing) {
+    await ctx.db.patch(existing._id, patch);
+  }
+  const user = await ctx.db.get(userId);
+  if (!user) throw new Error("System user was not created");
+  await ensurePersonalPublisherForUser(ctx, user, {
+    actorUserId: user._id,
+    source: "system.bootstrap",
+  });
+  return (await ctx.db.get(userId)) ?? user;
+}
+
 export const getOrCreateSystemUserInternal = internalMutation({
   args: {},
-  handler: async (ctx): Promise<Doc<"users">> => {
-    const now = Date.now();
-    const existing = await getUserByHandleOrPersonalPublisher(ctx, SYSTEM_USER_HANDLE);
-    const patch = {
-      handle: SYSTEM_USER_HANDLE,
-      displayName: "System",
-      name: SYSTEM_USER_HANDLE,
-      role: "admin" as const,
-      deletedAt: undefined,
-      deactivatedAt: undefined,
-      purgedAt: undefined,
-      banReason: undefined,
-      updatedAt: now,
-    };
-    const userId =
-      existing?._id ??
-      (await ctx.db.insert("users", {
-        ...patch,
-        createdAt: now,
-      }));
-    if (existing) {
-      await ctx.db.patch(existing._id, patch);
-    }
-    const user = await ctx.db.get(userId);
-    if (!user) throw new Error("System user was not created");
-    await ensurePersonalPublisherForUser(ctx, user, {
-      actorUserId: user._id,
-      source: "system.bootstrap",
-    });
-    return (await ctx.db.get(userId)) ?? user;
+  handler: async (ctx): Promise<Doc<"users">> => getOrCreateSystemUser(ctx),
+});
+
+// Public bootstrap for the internal-registry default identity. Only does
+// anything when VULTURE_DEFAULT_SYSTEM_USER=1; the reactive web UI calls this
+// once on mount so the fixed "system" admin exists before users.me resolves it
+// (see convex/lib/access.ts getDefaultSystemUser). No-op (returns null) when the
+// flag is off, so it is inert on authenticated deployments.
+export const ensureSystemUser = mutation({
+  args: {},
+  handler: async (ctx): Promise<{ userId: Id<"users"> } | null> => {
+    if (process.env.VULTURE_DEFAULT_SYSTEM_USER !== "1") return null;
+    const user = await getOrCreateSystemUser(ctx);
+    return { userId: user._id };
   },
 });
 

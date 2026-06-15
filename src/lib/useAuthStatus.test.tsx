@@ -7,6 +7,7 @@ import { useAuthStatus } from "./useAuthStatus";
 const useConvexAuthMock = vi.fn();
 const useQueryMock = vi.fn();
 const originalDevAuth = process.env.VITE_ENABLE_DEV_AUTH;
+const originalDefaultSystemUser = process.env.VITE_DEFAULT_SYSTEM_USER;
 
 vi.mock("convex/react", () => ({
   useConvexAuth: () => useConvexAuthMock(),
@@ -31,6 +32,7 @@ describe("useAuthStatus", () => {
     useConvexAuthMock.mockReset();
     useQueryMock.mockReset();
     delete process.env.VITE_ENABLE_DEV_AUTH;
+    delete process.env.VITE_DEFAULT_SYSTEM_USER;
   });
 
   afterAll(() => {
@@ -38,6 +40,11 @@ describe("useAuthStatus", () => {
       delete process.env.VITE_ENABLE_DEV_AUTH;
     } else {
       process.env.VITE_ENABLE_DEV_AUTH = originalDevAuth;
+    }
+    if (originalDefaultSystemUser === undefined) {
+      delete process.env.VITE_DEFAULT_SYSTEM_USER;
+    } else {
+      process.env.VITE_DEFAULT_SYSTEM_USER = originalDefaultSystemUser;
     }
   });
 
@@ -130,6 +137,23 @@ describe("useAuthStatus", () => {
       screen.getByText(
         '{"isAuthenticated":true,"isLoading":false,"me":{"_id":"users:local-admin","handle":"local-admin","role":"admin"}}',
       ),
+    ).toBeTruthy();
+  });
+
+  it("loads the current user when the default-system-user flag is enabled", () => {
+    const me = { _id: "users:system", handle: "system", role: "admin" };
+    process.env.VITE_DEFAULT_SYSTEM_USER = "1";
+    useConvexAuthMock.mockReturnValue({
+      isAuthenticated: false,
+      isLoading: false,
+    });
+    useQueryMock.mockReturnValue(me);
+
+    render(<Probe />);
+
+    expect(useQueryMock.mock.calls[0]?.[1]).toEqual({});
+    expect(
+      screen.getByText(JSON.stringify({ isAuthenticated: true, isLoading: false, me })),
     ).toBeTruthy();
   });
 });

@@ -13,6 +13,7 @@ import { clearAuthError, setAuthError, useAuthError } from "../lib/useAuthError"
 import { AuthErrorMessage } from "./AuthErrorMessage";
 import { ClientOnly } from "./ClientOnly";
 import { DevPersonaFab } from "./DevPersonaFab";
+import { SystemUserBootstrap } from "./SystemUserBootstrap";
 import { TooltipProvider } from "./ui/tooltip";
 import { UserBootstrap } from "./UserBootstrap";
 
@@ -184,6 +185,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         <AuthCodeHandler />
         <AuthErrorHandler />
         <AuthErrorToast />
+        <SystemUserBootstrap />
         <UserBootstrap />
         {children}
         <ClientOnly>

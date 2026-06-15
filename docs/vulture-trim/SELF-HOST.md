@@ -63,6 +63,17 @@ VITE_SITE_URL=https://registry.vulture.local       # 站点自身 URL（OG/绝�
 
 > 内网部署天然为 **skills 模式**（不设 `VITE_SITE_MODE=souls`、不用 onlycrabs host），SoulHub 配置失活、无需任何 soul 相关变量。
 
+### 2.3 默认 system 登录（可选，Web UI 无登录流程）
+
+网关已上移鉴权，且 Phase 1 摘除了 OAuth 登录路由，内网部署的 Web UI 没有可用的登录入口。开启下列**两个**开关后，前端 reactive 查询会像 v1 HTTP API 那样回退到固定的 `system`（admin）用户，打开即登录、无需也无法手动登录：
+
+```sh
+VULTURE_DEFAULT_SYSTEM_USER=1   # Convex backend env（npx convex env set …）
+VITE_DEFAULT_SYSTEM_USER=1      # 前端构建期注入
+```
+
+> ⚠️ 这等于 **Web UI 全功能 admin 无认证可达**（含管理后台的封禁/硬删/改角色），与 v1 HTTP API 的内网信任级别一致——仅在隔离内网暴露。两个开关须同开：只开后端则前端不发起 `users.me` 查询；只开前端则后端不回退身份。`system` 用户由前端挂载时的 `users.ensureSystemUser` 自动 bootstrap（幂等，flag 关闭时为 no-op）。
+
 ### 2.3 CLI 客户端（`packages/clawhub`，Phase 7b 品牌化）
 
 ```sh
