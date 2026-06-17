@@ -57,3 +57,7 @@ skills/*
 .crabbox/
 /.comux-hooks
 /.comux
+.gitnexus
+
+# Self-hosted convex-backend: R2 storage credentials — never commit
+self-host/.env

@@ -1,0 +1,42 @@
+services:
+  backend:
+    image: ghcr.io/get-convex/convex-backend:latest
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    ports:
+      - "3210:3210" # Convex API（函数/同步协议）
+      - "3211:3211" # HTTP Action 站点（v1 API）
+    volumes:
+      - data:/convex/data
+    # Cloudflare R2 (S3-compatible) storage creds live in the gitignored
+    # self-host/.env. R2 is on convex's verified-compatible list, unlike Aliyun
+    # OSS which fails convex's multipart crc32 part-checksum validation.
+    env_file:
+      - .env
+    environment:
+      - INSTANCE_NAME=${INSTANCE_NAME:-}
+      - INSTANCE_SECRET=${INSTANCE_SECRET:-}
+      - CONVEX_CLOUD_ORIGIN=${CONVEX_CLOUD_ORIGIN:-http://127.0.0.1:3210}
+      - CONVEX_SITE_ORIGIN=${CONVEX_SITE_ORIGIN:-http://127.0.0.1:3211}
+      - DISABLE_BEACON=${DISABLE_BEACON:-true}
+      # 本机 colima VM 资源有限，push 时代码分析默认 4s 会超时
+      - ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS=${ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS:-120}
+    healthcheck:
+      test: curl -f http://localhost:3210/version
+      interval: 5s
+      start_period: 10s
+
+  dashboard:
+    image: ghcr.io/get-convex/convex-dashboard:latest
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    ports:
+      - "6791:6791"
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=${NEXT_PUBLIC_DEPLOYMENT_URL:-http://127.0.0.1:3210}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  data:
