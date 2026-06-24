@@ -182,6 +182,48 @@ curl -s "$BASE/packages/@scope/bar/releases/0.2.0/artifact-url" | jq .url
 切换只需替换三个端点里的 url 构造，把 `publicApiOrigin(request)` 改成调 MinIO presigner（带 TTL/签名 query），
 网关 client、契约文档、单测**全部零改动**。所以路线 A 不是"凑合方案"——它是 url 内容可热替换的合规实现。
 
+### 4.4 部署后实测发现：路线 A 在「桌面端只能到网关公网入口」拓扑下断链
+
+**症状**：clawhub 7 条契约改造全部已部署到 ECS（`8.136.147.138:3210`），11 条 JSON 端点通；
+但 download 3 条（#6 / #11 / #12）的链路**端到端不通**，桌面端 302 跳转后访问失败。
+
+**根因**（与 clawhub 实现无关，是设计假设与部署拓扑的错配）：
+
+1. `publicApiOrigin(request)`（[convex/httpApiV1/shared.ts:126](../../convex/httpApiV1/shared.ts:126)）解析顺序：
+   `SITE_URL` env → `x-forwarded-host` 头 → 兜底 `request.url`。
+2. 当前 ECS 部署：`SITE_URL` 在 isolate runtime **未设**；
+   网关 `VG_CLAWHUB_BASE_URL=http://127.0.0.1:3211/api/v1`（docker loopback）→
+   入站请求的 host = `127.0.0.1:3211` → 兜底取到的 url = `http://127.0.0.1:3211/api/v1/download?...`。
+3. 网关 `plugin_handler.go` 收到 `{url}` 后 **302** 桌面端到该 url
+   → 桌面端只能到网关公网入口、到不了 clawhub:3211 → **死链**。
+
+JSON 端点（list/detail/resolve/security/telemetry）不受影响：响应体由网关代理回桌面端，url 字段不出现在链路上。
+
+#### 修复路径（必须双侧协同）
+
+| 路径 | 网关侧改动 | clawhub 侧改动 | 评估 |
+|---|---|---|---|
+| **A-stream**（推荐） | `/skills/{slug}/download` 等 3 条不发 302，改为反向代理 clawhub 流式端点（`/api/v1/download?...` / `/packages/{n}/download` / `/versions/{v}/artifact/download`），bytes 经网关回桌面端 | 无需改动（`download-url` 端点可保留但实际不被网关消费；或废弃） | 网关单侧改；不引入新公开路径；后续切路线 B 时桌面端仍 302 直连 MinIO，迁移无害 |
+| **A-bridge** | 加 passthrough 路由 `/clawhub-proxy/*` → 内网 `http://backend:3211/api/v1/*`（**该路由不带 JWTAuth**，桌面端 302 后无身份） | `SITE_URL=https://<gateway-public>/clawhub-proxy` 后 `download-url` 自然返回桌面可达地址 | 保留 302 设计，与路线 B 的合约更接近；但需新公开路径 + 处理无鉴权透传的安全模型 |
+| **直连**（已被你的拓扑否决） | 无 | `SITE_URL=http://8.136.147.138:3211` | 仅当桌面端能直连 clawhub:3211 时可行；当前部署不满足 |
+
+**强建议走 A-stream**：
+- 网关已是 HTTP 反代框架，加个流式 handler 是最小改动
+- 不引入新公开 path、不动 trust model（网关仍是唯一公网入口）
+- clawhub `download-url` 端点保留，作为「合约入口」存在；网关可选择性消费（用于元数据 / hash 校验），不必拿 url
+- 切路线 B（MinIO 真预签名）时，桌面端可直接 302 到 MinIO 公网地址，迁移无成本
+
+#### 网关侧需要做的事（具体 ask）
+
+1. **`vulture-gateway/internal/clawhub` client** 三处 download/artifact 调用：
+   - 现状：调 `GET /skills/{slug}/download-url` 等 → 拿 `{url}` → 302 桌面端
+   - 改为：直接 GET clawhub 的流式端点（路径见上表），把 response body 透传回桌面端
+   - 头部要透传：`Content-Type`、`Content-Disposition`、`ETag`、`X-ClawHub-Artifact-Sha256` 等
+2. **保留** `download-url` 调用作为可选的「URL 探针」——用于在 302/stream 之前做安全门检查（这正是 clawhub 端点已经做的），或者完全弃用
+3. **不要改 clawhub 现行端点**——它们本来就支持这两种消费模式
+
+> 这一节是部署后实测发现，原 §4.3 末段「`SITE_URL` 切换时网关零改动」的承诺**仍然成立**——前提是网关侧采用 A-stream 模式，那时 url 来源 backend 怎么改（MinIO presigner）都不影响网关的反代行为。
+
 ---
 
 ## 5. 网关侧前置（非本仓改动，留作 checklist）
