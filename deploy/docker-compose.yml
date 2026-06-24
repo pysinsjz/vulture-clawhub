@@ -1,0 +1,120 @@
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: vulture-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+      # MinIO 内置 KES 用单 master key，让 SSE-KMS 直接可用（convex backend
+      # 写 S3 时强制带 SSE-KMS header；不配 KMS 会 NotImplemented 报错）
+      - MINIO_KMS_SECRET_KEY=${MINIO_KMS_SECRET_KEY}
+    # 不暴露 9000 到公网（aliyun 不支持 hairpin、外部客户端也走 convex 3211 proxy）
+    # 9001 console 仅本地，走 SSH 隧道访问
+    ports:
+      - "127.0.0.1:9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  # 一次性建桶。已存在则跳过；幂等。
+  minio-init:
+    image: minio/mc:latest
+    container_name: vulture-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command: |
+      "set -e
+      mc alias set local http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\"
+      for b in vulture-files vulture-modules vulture-search vulture-exports vulture-imports; do
+        mc mb --ignore-existing local/$$b
+      done
+      mc ls local
+      echo OK"
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    restart: "no"
+
+  backend:
+    image: ghcr.nju.edu.cn/get-convex/convex-backend:latest
+    container_name: vulture-convex-backend
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    ports:
+      - "3210:3210"
+      - "3211:3211"
+    volumes:
+      - data:/convex/data
+    env_file:
+      - .env
+    environment:
+      - INSTANCE_NAME=${INSTANCE_NAME:-}
+      - INSTANCE_SECRET=${INSTANCE_SECRET:-}
+      - CONVEX_CLOUD_ORIGIN=${CONVEX_CLOUD_ORIGIN:-http://8.136.147.138:3210}
+      - CONVEX_SITE_ORIGIN=${CONVEX_SITE_ORIGIN:-http://8.136.147.138:3211}
+      - DISABLE_BEACON=${DISABLE_BEACON:-true}
+      - ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS=${ISOLATE_ANALYZE_USER_TIMEOUT_SECONDS:-120}
+      - VULTURE_DEFAULT_SYSTEM_USER=${VULTURE_DEFAULT_SYSTEM_USER:-1}
+      - VULTURE_SKIP_PLUGIN_PUBLISH_VALIDATION=${VULTURE_SKIP_PLUGIN_PUBLISH_VALIDATION:-1}
+    healthcheck:
+      test: curl -f http://localhost:3210/version
+      interval: 5s
+      start_period: 10s
+    depends_on:
+      minio-init:
+        condition: service_completed_successfully
+
+  dashboard:
+    image: ghcr.nju.edu.cn/get-convex/convex-dashboard:latest
+    container_name: vulture-convex-dashboard
+    restart: unless-stopped
+    stop_grace_period: 10s
+    stop_signal: SIGINT
+    ports:
+      - "6791:6791"
+    environment:
+      - NEXT_PUBLIC_DEPLOYMENT_URL=${NEXT_PUBLIC_DEPLOYMENT_URL:-http://8.136.147.138:3210}
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  web:
+    image: node:22-alpine
+    container_name: vulture-web
+    restart: unless-stopped
+    working_dir: /app
+    command: ["node", "./server/index.mjs"]
+    environment:
+      - HOST=0.0.0.0
+      - PORT=80
+      - NITRO_PORT=80
+      # SSR 容器→backend 走 docker 内网，避免回程经过公网/安全组
+      - CONVEX_URL=http://backend:3210
+      - CONVEX_SITE_URL=http://backend:3211
+      - SITE_URL=http://8.136.147.138
+      # SSR 模块对 runtime env 的硬性检查（client 侧 hydration 也用同一组 URL）
+      - VITE_CONVEX_URL=http://8.136.147.138:3210
+      - VITE_CONVEX_SITE_URL=http://8.136.147.138:3211
+      - VITE_SITE_URL=http://8.136.147.138
+      - VITE_DEFAULT_SYSTEM_USER=1
+    ports:
+      - "80:80"
+    volumes:
+      - ./output:/app:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  data:
+  minio_data:
