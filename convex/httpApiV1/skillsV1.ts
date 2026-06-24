@@ -1610,6 +1610,62 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
     }
   }
 
+  // Gateway contract §1.6: GET /api/v1/skills/{slug}/download-url?version=<v>
+  // Returns JSON { url } pointing at the ClawHub streaming download endpoint.
+  // ClawHub is internal-only (gateway is the trust boundary), so the URL is not
+  // pre-signed — the trust model is the same as a presigned URL with TTL=∞ inside
+  // the gateway perimeter. See docs/vulture-trim/GATEWAY-INTEGRATION.md §4.2 (Route A).
+  if (second === "download-url" && segments.length === 2) {
+    if (!slug) return text("Missing slug", 400, rate.headers);
+    const url = new URL(request.url);
+    const versionParam = url.searchParams.get("version")?.trim() || null;
+
+    const skillResult = (await ctx.runQuery(api.skills.getBySlug, { slug })) as GetBySlugResult;
+    if (!skillResult?.skill) return text("Skill not found", 404, rate.headers);
+
+    const moderationBlock = getPublicSkillFileAccessBlock(skillResult.moderationInfo);
+    if (moderationBlock) return text(moderationBlock.message, moderationBlock.status, rate.headers);
+
+    let version: Doc<"skillVersions"> | null = skillResult.skill.latestVersionId
+      ? await ctx.runQuery(internal.skills.getVersionByIdInternal, {
+          versionId: skillResult.skill.latestVersionId,
+        })
+      : null;
+    if (versionParam) {
+      version = await ctx.runQuery(internal.skills.getVersionBySkillAndVersionInternal, {
+        skillId: skillResult.skill._id,
+        version: versionParam,
+      });
+    }
+    if (!version || !isSkillVersionForSkill(version, skillResult.skill._id)) {
+      return text("Version not found", 404, rate.headers);
+    }
+    if (version.softDeletedAt) return text("Version not available", 410, rate.headers);
+
+    const downloadUrl = new URL("/api/v1/download", publicApiOrigin(request));
+    downloadUrl.searchParams.set("slug", slug);
+    downloadUrl.searchParams.set("version", version.version);
+    return json({ url: downloadUrl.toString() }, 200, rate.headers);
+  }
+
+  // Gateway contract §1.5: GET /api/v1/skills/{slug}/resolve?hash=<sha256>
+  // Nested form — slug travels via the path, hash via the query. Internal logic reuses
+  // the same resolveVersionByHash query as the legacy `?slug=&hash=` form above.
+  if (second === "resolve" && segments.length === 2) {
+    if (!slug) return text("Missing slug", 400, rate.headers);
+    const url = new URL(request.url);
+    const hash = url.searchParams.get("hash")?.trim().toLowerCase();
+    if (!hash) return text("Missing hash", 400, rate.headers);
+    if (!/^[a-f0-9]{64}$/.test(hash)) return text("Invalid hash", 400, rate.headers);
+    const resolved = await ctx.runQuery(api.skills.resolveVersionByHash, { slug, hash });
+    if (!resolved) return text("Skill not found", 404, rate.headers);
+    return json(
+      { slug, match: resolved.match, latestVersion: resolved.latestVersion },
+      200,
+      rate.headers,
+    );
+  }
+
   if (segments[0] === "-" && segments[1] === "reports" && segments.length === 2) {
     const auth = await requireApiTokenUserOrResponse(ctx, request, rate.headers);
     if (!auth.ok) return auth.response;

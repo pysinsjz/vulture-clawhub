@@ -2363,7 +2363,7 @@ export async function packagesPostRouterV1Handler(ctx: ActionCtx, request: Reque
   const packageRoute = parsePackagePathSegments(segments);
   if (!packageRoute) return text("Not found", 404);
   const packageName = packageRoute.packageName;
-  const packageSegments = packageRoute.rest;
+  const packageSegments = normalizePackageRouteSegments(packageRoute.rest);
 
   if (packageSegments[0] === "rescan" && packageSegments.length === 1) {
     const rate = await applyRateLimit(ctx, request, "write");
@@ -2753,7 +2753,7 @@ export async function packagesDeleteRouterV1Handler(ctx: ActionCtx, request: Req
   const packageRoute = parsePackagePathSegments(segments);
   if (!packageRoute) return text("Not found", 404);
   const packageName = packageRoute.packageName;
-  const packageSegments = packageRoute.rest;
+  const packageSegments = normalizePackageRouteSegments(packageRoute.rest);
   const rate = await applyRateLimit(ctx, request, "write");
   if (!rate.ok) return rate.response;
   const auth = await requireApiTokenUserOrResponse(ctx, request, rate.headers);
@@ -3203,7 +3203,9 @@ export async function packagesGetRouterV1Handler(ctx: ActionCtx, request: Reques
   const packageRoute = parsePackagePathSegments(segments);
   if (!packageRoute) return text("Not found", 404);
   const packageName = packageRoute.packageName;
-  const packageSegments = packageRoute.rest;
+  // Gateway contract uses `releases/{version}` (see docs/vulture-trim/GATEWAY-CONTRACT.md §2.3/2.6);
+  // legacy callers (CLI, fork's own UI) still use `versions/{version}`. Normalize at entry.
+  const packageSegments = normalizePackageRouteSegments(packageRoute.rest);
 
   if (packageSegments[0] === "moderation" && packageSegments.length === 1) {
     const rate = await applyRateLimit(ctx, request, "read");
@@ -3411,6 +3413,38 @@ export async function packagesGetRouterV1Handler(ctx: ActionCtx, request: Reques
     );
   }
 
+  // Gateway contract §2.5: GET /api/v1/packages/{name}/releases/{version}/artifact-url
+  // (after normalizer the leading `releases` segment becomes `versions`). Returns JSON
+  // { url } pointing at the existing `…/versions/{v}/artifact/download` endpoint, which
+  // streams the npm-pack tarball or 307s to the legacy zip depending on artifactKind.
+  // URL is not pre-signed — see GATEWAY-INTEGRATION.md §4.2 (Route A).
+  if (
+    packageSegments[0] === "versions" &&
+    packageSegments[1] &&
+    packageSegments[2] === "artifact-url" &&
+    packageSegments.length === 3
+  ) {
+    if (skillDetail?.skill) return text("Artifact not found", 404, rate.headers);
+    const result = (await runQueryRef(
+      ctx,
+      internalRefs.packages.getVersionByNameForViewerInternal,
+      {
+        name: packageName,
+        version: packageSegments[1],
+        viewerUserId: viewerUserId ?? undefined,
+      },
+    )) as { package: PublicPackageDocLike; version: ReleaseLike } | null;
+    const release = result?.version ?? null;
+    if (!release) return text("Version not found", 404, rate.headers);
+    const securityBlock = getReleaseSecurityBlock(release);
+    if (securityBlock) return text(securityBlock.message, securityBlock.status, rate.headers);
+    const url = new URL(
+      `/api/v1/packages/${encodePackagePath(publicPackage!.name)}/versions/${encodeURIComponent(release.version)}/artifact/download`,
+      publicApiOrigin(request),
+    );
+    return json({ url: url.toString() }, 200, rate.headers);
+  }
+
   if (
     packageSegments[0] === "versions" &&
     packageSegments[1] &&
@@ -3615,6 +3649,36 @@ export async function packagesGetRouterV1Handler(ctx: ActionCtx, request: Reques
     });
   }
 
+  // Gateway contract §2.4: GET /api/v1/packages/{name}/download-url?version=<v>
+  // Returns JSON { url } pointing at the streaming `/download` endpoint. The URL is
+  // not pre-signed — see docs/vulture-trim/GATEWAY-INTEGRATION.md §4.2 (Route A).
+  // Skill-backed package paths reuse the skill download endpoint.
+  if (packageSegments[0] === "download-url" && packageSegments.length === 1) {
+    const requestUrl = new URL(request.url);
+    const versionParam = requestUrl.searchParams.get("version")?.trim();
+    const tagParam = requestUrl.searchParams.get("tag")?.trim();
+    if (skillDetail?.skill) {
+      const moderationBlock = getPublicSkillFileAccessBlock(skillDetail.moderationInfo);
+      if (moderationBlock)
+        return text(moderationBlock.message, moderationBlock.status, rate.headers);
+      const url = new URL("/api/v1/download", publicApiOrigin(request));
+      url.searchParams.set("slug", skillDetail.skill.slug);
+      if (versionParam) url.searchParams.set("version", versionParam);
+      if (tagParam) url.searchParams.set("tag", tagParam);
+      return json({ url: url.toString() }, 200, rate.headers);
+    }
+    const release = await getReleaseForRequest(ctx, publicPackage!, request);
+    if (!release) return text("Version not found", 404, rate.headers);
+    const securityBlock = getReleaseSecurityBlock(release);
+    if (securityBlock) return text(securityBlock.message, securityBlock.status, rate.headers);
+    const url = new URL(
+      `/api/v1/packages/${encodePackagePath(publicPackage!.name)}/download`,
+      publicApiOrigin(request),
+    );
+    url.searchParams.set("version", release.version);
+    return json({ url: url.toString() }, 200, rate.headers);
+  }
+
   if (packageSegments[0] === "download") {
     if (skillDetail?.skill) {
       const url = new URL("/api/v1/download", request.url);
@@ -3698,6 +3762,14 @@ function decodePackagePathSegment(segment: string) {
     }
   }
   return decoded;
+}
+
+// Gateway contract speaks `releases/{version}`; the legacy CLI/UI surface still uses
+// `versions/{version}`. Rewrite the new name to the legacy one at the edge so every
+// downstream dispatch keeps a single shape.
+function normalizePackageRouteSegments(rest: string[]): string[] {
+  if (rest.length === 0 || rest[0] !== "releases") return rest;
+  return ["versions", ...rest.slice(1)];
 }
 
 function parsePackagePathSegments(segments: string[]) {

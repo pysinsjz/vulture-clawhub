@@ -38,6 +38,7 @@ import {
   soulsPostRouterV1Handler,
 } from "./httpApiV1/soulsV1";
 import { starsDeleteRouterV1Handler, starsPostRouterV1Handler } from "./httpApiV1/starsV1";
+import { telemetryInstallV1Handler } from "./httpApiV1/telemetryV1";
 import { transfersGetRouterV1Handler } from "./httpApiV1/transfersV1";
 import {
   banAppealContextV1Handler,
@@ -87,6 +88,7 @@ export const starsDeleteRouterV1Http = httpAction(starsDeleteRouterV1Handler);
 export const transfersGetRouterV1Http = httpAction(transfersGetRouterV1Handler);
 
 export const whoamiV1Http = httpAction(whoamiV1Handler);
+export const telemetryInstallV1Http = httpAction(telemetryInstallV1Handler);
 export const usersGetRouterV1Http = httpAction(usersGetRouterV1Handler);
 export const usersPostRouterV1Http = httpAction(usersPostRouterV1Handler);
 export const usersListV1Http = httpAction(usersListV1Handler);
@@ -133,4 +135,5 @@ export const __handlers = {
   usersPostRouterV1Handler,
   usersListV1Handler,
   banAppealContextV1Handler,
+  telemetryInstallV1Handler,
 };

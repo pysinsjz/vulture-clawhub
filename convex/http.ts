@@ -40,6 +40,7 @@ import {
   skillsDeleteRouterV1Http,
   skillsGetRouterV1Http,
   skillsPostRouterV1Http,
+  telemetryInstallV1Http,
   transfersGetRouterV1Http,
   banAppealContextV1Http,
   usersGetRouterV1Http,
@@ -236,6 +237,14 @@ http.route({
   path: "/api/v1/users/ban-appeal-context",
   method: "GET",
   handler: banAppealContextV1Http,
+});
+
+// Gateway contract §3.1 — install state snapshot from vulture-gateway.
+// No auth (gateway is the trust boundary); handler resolves the system user internally.
+http.route({
+  path: "/api/v1/telemetry/install",
+  method: "POST",
+  handler: telemetryInstallV1Http,
 });
 
 http.route({

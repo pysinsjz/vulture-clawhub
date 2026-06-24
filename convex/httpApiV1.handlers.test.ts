@@ -12466,4 +12466,324 @@ describe("httpApiV1 handlers", () => {
     expect(response.status).toBe(403);
     expect(await response.text()).toBe(moderationMessage);
   });
+
+  // --- Vulture gateway contract endpoints (see docs/vulture-trim/GATEWAY-INTEGRATION.md) ---
+
+  it("packages router accepts `releases/{v}` as alias of `versions/{v}` (gateway contract §2.3)", async () => {
+    const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
+      if ("name" in args && !("version" in args)) {
+        return {
+          package: {
+            _id: "packages:alias-demo",
+            name: "alias-demo",
+            displayName: "Alias Demo",
+            family: "code-plugin",
+            tags: { latest: "packageReleases:1" },
+            latestReleaseId: "packageReleases:1",
+            channel: "community",
+            isOfficial: false,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+          latestRelease: null,
+          owner: { _id: "publishers:demo", handle: "demo" },
+        };
+      }
+      if ("name" in args && "version" in args) {
+        return {
+          package: {
+            _id: "packages:alias-demo",
+            name: "alias-demo",
+            displayName: "Alias Demo",
+            family: "code-plugin",
+          },
+          version: {
+            _id: "packageReleases:1",
+            packageId: "packages:alias-demo",
+            version: "1.0.0",
+            createdAt: 1,
+            changelog: "init",
+            distTags: ["latest"],
+            files: [],
+            sha256hash: "b".repeat(64),
+          },
+        };
+      }
+      return null;
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+
+    const response = await __handlers.packagesGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/packages/alias-demo/releases/1.0.0"),
+    );
+    if (response.status !== 200) throw new Error(await response.text());
+    await expect(response.json()).resolves.toMatchObject({
+      package: { name: "alias-demo", family: "code-plugin" },
+      version: { version: "1.0.0" },
+    });
+  });
+
+  it("skills router resolves nested `/skills/{slug}/resolve?hash=` (gateway contract §1.5)", async () => {
+    const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
+      if ("slug" in args && "hash" in args) {
+        return {
+          match: { version: "1.0.0" },
+          latestVersion: { version: "1.0.0" },
+        };
+      }
+      return null;
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+
+    const hash = "a".repeat(64);
+    const response = await __handlers.skillsGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request(`https://example.com/api/v1/skills/demo/resolve?hash=${hash}`),
+    );
+    if (response.status !== 200) throw new Error(await response.text());
+    await expect(response.json()).resolves.toEqual({
+      slug: "demo",
+      match: { version: "1.0.0" },
+      latestVersion: { version: "1.0.0" },
+    });
+  });
+
+  it("nested skills resolve rejects invalid hash", async () => {
+    const runQuery = vi.fn();
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+    const response = await __handlers.skillsGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/skills/demo/resolve?hash=notavalidhash"),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe("Invalid hash");
+  });
+
+  it("skills download-url returns JSON {url} pointing at streaming endpoint (gateway contract §1.6)", async () => {
+    const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
+      if ("slug" in args && !("hash" in args)) {
+        return {
+          skill: {
+            _id: "skills:1",
+            slug: "demo",
+            displayName: "Demo",
+            latestVersionId: "skillVersions:1",
+            tags: { latest: "skillVersions:1" },
+          },
+          moderationInfo: null,
+        };
+      }
+      if ("versionId" in args) {
+        return {
+          _id: "skillVersions:1",
+          skillId: "skills:1",
+          version: "1.0.0",
+          files: [],
+          createdAt: 1,
+        };
+      }
+      return null;
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+
+    const response = await __handlers.skillsGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/skills/demo/download-url"),
+    );
+    if (response.status !== 200) throw new Error(await response.text());
+    const body = (await response.json()) as { url: string };
+    expect(body.url).toMatch(/\/api\/v1\/download\?slug=demo&version=1\.0\.0$/);
+  });
+
+  it("skills download-url 404s when skill missing", async () => {
+    const runQuery = vi.fn().mockResolvedValue(null);
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+    const response = await __handlers.skillsGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/skills/ghost/download-url"),
+    );
+    expect(response.status).toBe(404);
+  });
+
+  it("packages download-url returns JSON {url} for legacy-zip package (gateway contract §2.4)", async () => {
+    const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
+      if ("name" in args && !("version" in args)) {
+        return {
+          package: {
+            _id: "packages:demo-plugin",
+            name: "demo-plugin",
+            displayName: "Demo Plugin",
+            family: "code-plugin",
+            tags: { latest: "packageReleases:1" },
+            latestReleaseId: "packageReleases:1",
+            channel: "community",
+            isOfficial: false,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+          latestRelease: {
+            _id: "packageReleases:1",
+            packageId: "packages:demo-plugin",
+            version: "1.0.0",
+            files: [],
+            distTags: ["latest"],
+            createdAt: 1,
+            changelog: "init",
+          },
+          owner: { _id: "publishers:demo", handle: "demo" },
+        };
+      }
+      // getReleaseByPackageAndVersionInternal (called from getReleaseForRequest)
+      if ("packageId" in args && "version" in args) {
+        return {
+          _id: "packageReleases:1",
+          packageId: "packages:demo-plugin",
+          version: "1.0.0",
+          files: [],
+          distTags: ["latest"],
+          createdAt: 1,
+          changelog: "init",
+        };
+      }
+      return null;
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+
+    const response = await __handlers.packagesGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/packages/demo-plugin/download-url?version=1.0.0"),
+    );
+    if (response.status !== 200) throw new Error(await response.text());
+    const body = (await response.json()) as { url: string };
+    expect(body.url).toMatch(/\/api\/v1\/packages\/demo-plugin\/download\?version=1\.0\.0$/);
+  });
+
+  it("packages artifact-url returns JSON {url} pointing at artifact/download (gateway contract §2.5)", async () => {
+    const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
+      if ("name" in args && !("version" in args)) {
+        return {
+          package: {
+            _id: "packages:demo-plugin",
+            name: "demo-plugin",
+            displayName: "Demo Plugin",
+            family: "code-plugin",
+            tags: { latest: "packageReleases:1" },
+            latestReleaseId: "packageReleases:1",
+            channel: "community",
+            isOfficial: false,
+            createdAt: 1,
+            updatedAt: 1,
+          },
+          latestRelease: null,
+          owner: { _id: "publishers:demo", handle: "demo" },
+        };
+      }
+      if ("name" in args && "version" in args) {
+        return {
+          package: {
+            _id: "packages:demo-plugin",
+            name: "demo-plugin",
+            displayName: "Demo Plugin",
+            family: "code-plugin",
+          },
+          version: {
+            _id: "packageReleases:1",
+            packageId: "packages:demo-plugin",
+            version: "0.2.0",
+            files: [],
+            distTags: ["latest"],
+            createdAt: 1,
+            changelog: "init",
+            artifactKind: "npm-pack",
+            clawpackStorageId: "storage:tarball",
+            clawpackSha256: "c".repeat(64),
+            clawpackSize: 1024,
+          },
+        };
+      }
+      return null;
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+
+    const response = await __handlers.packagesGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request(
+        "https://example.com/api/v1/packages/demo-plugin/releases/0.2.0/artifact-url",
+      ),
+    );
+    if (response.status !== 200) throw new Error(await response.text());
+    const body = (await response.json()) as { url: string };
+    expect(body.url).toMatch(
+      /\/api\/v1\/packages\/demo-plugin\/versions\/0\.2\.0\/artifact\/download$/,
+    );
+  });
+
+  it("telemetry/install v1 acks valid body and forwards skills to reportCliSyncInternal (gateway contract §3.1)", async () => {
+    const reportCalls: Array<Record<string, unknown>> = [];
+    const runMutation = vi.fn(async (_q: unknown, args: Record<string, unknown>) => {
+      if (isRateLimitArgs(args)) return okRate();
+      // System user resolver returns a Doc-like with _id.
+      if (!("roots" in args) && !("userId" in args)) {
+        return { _id: "users:system" };
+      }
+      if ("roots" in args && "userId" in args) {
+        reportCalls.push(args);
+        return null;
+      }
+      return null;
+    });
+    const runQuery = vi.fn();
+
+    const body = {
+      roots: [
+        {
+          rootId: "r1",
+          label: "box-a",
+          skills: [{ slug: "Foo", version: "1.0.0" }],
+          plugins: [{ name: "@scope/bar", version: "0.2.0" }],
+        },
+      ],
+    };
+    const response = await __handlers.telemetryInstallV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/telemetry/install", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      }),
+    );
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true });
+    expect(reportCalls).toHaveLength(1);
+    expect(reportCalls[0]).toMatchObject({
+      userId: "users:system",
+      roots: [
+        {
+          rootId: "r1",
+          label: "box-a",
+          skills: [{ slug: "foo", version: "1.0.0" }],
+        },
+      ],
+    });
+    // plugins is ack-only — must NOT be forwarded to the legacy mutation.
+    expect((reportCalls[0]!.roots as Array<Record<string, unknown>>)[0]).not.toHaveProperty(
+      "plugins",
+    );
+  });
+
+  it("telemetry/install v1 rejects missing `roots`", async () => {
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+    const runQuery = vi.fn();
+    const response = await __handlers.telemetryInstallV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/telemetry/install", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({}),
+      }),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe("Missing 'roots' array");
+  });
 });
