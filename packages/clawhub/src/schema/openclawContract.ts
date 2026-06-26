@@ -94,16 +94,10 @@ export function normalizeOpenClawExternalPluginCompatibility(
   return Object.keys(compatibility).length > 0 ? compatibility : undefined;
 }
 
-export function listMissingOpenClawExternalCodePluginFieldPaths(packageJson: unknown): string[] {
-  const { compat, build } = readOpenClawBlock(packageJson);
-  const missing: string[] = [];
-  if (!getTrimmedString(compat?.pluginApi)) {
-    missing.push("openclaw.compat.pluginApi");
-  }
-  if (!getTrimmedString(build?.openclawVersion)) {
-    missing.push("openclaw.build.openclawVersion");
-  }
-  return missing;
+export function listMissingOpenClawExternalCodePluginFieldPaths(_packageJson: unknown): string[] {
+  // 内网精简版：openclaw.compat.pluginApi / openclaw.build.openclawVersion 改为可选，
+  // 不再阻断发布。字段若存在仍由 normalizeOpenClawExternalPluginCompatibility 采集。
+  return [];
 }
 
 export function validateOpenClawExternalCodePluginPackageJson(

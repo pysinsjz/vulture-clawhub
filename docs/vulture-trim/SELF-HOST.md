@@ -107,69 +107,43 @@ VULTURE_DISABLE_TELEMETRY=1                         # 关闭安装遥测上报
 
 ---
 
-## 3. 部署步骤草案
+## 3. 部署落地
 
-### 3.1 docker-compose 骨架
+**实战部署包**已经在 [`/deploy/`](../../deploy/) 目录里就位（落地于阿里云 ECS `8.136.147.138`），含 docker-compose.yml + `.env.example` + 操作手册。本节只列设计层关键决策；具体首次部署 / 升级 / 排错 / 13 条已踩坑约束见 [`deploy/README.md`](../../deploy/README.md)。
 
-```yaml
-services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_USER: convex
-      POSTGRES_PASSWORD: ${PG_PASSWORD}
-      POSTGRES_DB: convex_self_hosted
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+### 3.1 关键决策（区别于上面草案）
 
-  convex-backend:
-    image: ghcr.io/get-convex/convex-backend:latest
-    depends_on: [postgres]
-    environment:
-      # backing store
-      DATABASE_URL: postgres://convex:${PG_PASSWORD}@postgres:5432/convex_self_hosted
-      # S3 兼容 OSS 制品存储（见 STORAGE-SPIKE.md）
-      AWS_REGION: ${AWS_REGION}
-      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
-      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
-      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL}
-      AWS_S3_FORCE_PATH_STYLE: "true"
-      S3_STORAGE_FILES_BUCKET: ${S3_STORAGE_FILES_BUCKET}
-      S3_STORAGE_EXPORTS_BUCKET: ${S3_STORAGE_EXPORTS_BUCKET}
-      S3_STORAGE_SNAPSHOT_IMPORTS_BUCKET: ${S3_STORAGE_SNAPSHOT_IMPORTS_BUCKET}
-      S3_STORAGE_MODULES_BUCKET: ${S3_STORAGE_MODULES_BUCKET}
-      S3_STORAGE_SEARCH_BUCKET: ${S3_STORAGE_SEARCH_BUCKET}
-    ports:
-      - "3210:3210"   # convex API / HTTP Action 站点
+| 决策 | 原因 |
+|------|------|
+| **storage 用同机 MinIO 而非 OSS/R2** | R2 国内 ECS 跨境约 90KB/s 不实用；OSS multipart crc32 校验 convex 不通过；同机 MinIO 零延迟。MinIO 需启 KES（`MINIO_KMS_SECRET_KEY`）因为 convex 写 S3 强制带 SSE-KMS header。 |
+| **backend → MinIO 走 docker DNS `http://minio:9000`** | 阿里云 NAT 不支持 hairpin，host 自己 curl 自己公网 IP 都 timeout。所有同机互访都走 docker network。MinIO 9000 不暴露公网（外部 client 拿到的下载 URL 是 backend `:3211` proxy 而非 S3 直连）。 |
+| **convex backend 不用 Postgres**（去掉草案里的 `postgres` 服务） | self-host convex-backend 自带嵌入式存储就够内网注册中心规模；省一个容器 + 一份运维成本。需要时未来再切外置 PG。 |
+| **前端用 Nitro SSR 容器而非 nginx 静态托管** | 项目是 TanStack Start，构建产物在 `.output/`（带 server bundle），需要 Node runtime 跑。 |
+| **镜像走南大镜像 `ghcr.nju.edu.cn`** | 国内 ECS 直连 `ghcr.io` TLS 握手必失败；daocloud 对小众镜像不缓存。 |
+| **`VULTURE_*` 运行时 env 双写** | docker env（给 Rust backend 守卫）+ `bunx convex env set`（给 JS isolate 运行时）两层都要写，缺一不生效。 |
 
-  # 可选：dashboard
-  convex-dashboard:
-    image: ghcr.io/get-convex/convex-dashboard:latest
-    depends_on: [convex-backend]
-    ports:
-      - "6791:6791"
+### 3.2 部署速记（详见 deploy/README.md §2）
 
-volumes:
-  pgdata:
+```sh
+# 本地构建（env 不能漏，详见 deploy/README.md §4 第 ⑧/⑪/⑬ 条）
+NITRO_V1_PROXY_TARGET=http://backend:3211 \
+VITE_CONVEX_URL=http://8.136.147.138:3210 \
+VITE_CONVEX_SITE_URL=http://8.136.147.138:3211 \
+SITE_URL=http://8.136.147.138 VITE_DEFAULT_SYSTEM_USER=1 \
+bun run build && tar czf deploy/output.tar.gz -C . .output
+
+# 推到服务器
+scp deploy/docker-compose.yml deploy/.env deploy/output.tar.gz root@<ip>:/opt/vulture-clawhub/
+ssh root@<ip> 'cd /opt/vulture-clawhub && tar xzf output.tar.gz -C output --strip 1 && docker compose up -d'
+
+# 推 convex 函数（必经 SSH 隧道，外网偶发 TLS reset）
+ssh -fN -L 13210:127.0.0.1:3210 root@<ip>
+CONVEX_SELF_HOSTED_URL=http://127.0.0.1:13210 \
+CONVEX_SELF_HOSTED_ADMIN_KEY=$(...generate_admin_key.sh) \
+bunx convex deploy --yes
 ```
 
-> OSS bucket 需预先创建并对该 access key 授读写权限。本地/默认不设 `S3_*` 时 backend 用内置本地文件存储；本地 ↔ S3 切换需 `npx convex export` 后 `npx convex import --replace-all` 迁移既有文件。
-
-### 3.2 部署流程
-
-1. **起依赖**：`docker compose up -d postgres convex-backend`（按需加 dashboard）。
-2. **推函数**：配置好 `CONVEX_DEPLOYMENT` 指向自托管 backend，运行
-   ```sh
-   bunx convex deploy        # 切勿加 --typecheck=disable（见 CLAUDE.md）
-   ```
-   将 `convex/` 全量函数 + schema 部署到 backend。
-3. **（可选）建前端**：
-   ```sh
-   VITE_CONVEX_URL=$CONVEX_URL VITE_CONVEX_SITE_URL=$CONVEX_SITE_URL bun run build
-   ```
-   把 `dist/` 托管在网关后的静态服务。
-4. **配 CLI**：客户端机器 `export VULTURE_REGISTRY=https://registry.vulture.local`，即可 `clawhub` CLI 走内网注册中心发布/解析/安装。
-5. **网关前置**：vulture-gateway 在 v1 HTTP API 前做鉴权/身份注入；注册中心信任内网调用（Phase 1 `apiTokenAuth` 内网回退 system 身份）。
+完整 5 步流程、安全组配置、首次 build env、`VULTURE_SKIP_PLUGIN_PUBLISH_VALIDATION` 等运行时 env 设置：见 [`deploy/README.md`](../../deploy/README.md)。
 
 ### 3.3 物理删除（将来）
 

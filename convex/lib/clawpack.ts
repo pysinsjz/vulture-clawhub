@@ -160,9 +160,12 @@ export async function parseClawPack(bytes: Uint8Array): Promise<ParsedClawPack> 
   const entries = parseTarEntries(tarBytes);
   const packageJsonEntry = entries.find((entry) => entry.path === "package.json");
   if (!packageJsonEntry) throw new Error("ClawPack must contain package/package.json");
-  const pluginManifestEntry = entries.find((entry) => entry.path === "openclaw.plugin.json");
+  // 内网精简版：清单文件接受包根目录的 plugin.json（兼容旧的 openclaw.plugin.json）
+  const pluginManifestEntry = entries.find(
+    (entry) => entry.path === "plugin.json" || entry.path === "openclaw.plugin.json",
+  );
   if (!pluginManifestEntry) {
-    throw new Error("ClawPack must contain package/openclaw.plugin.json");
+    throw new Error("ClawPack must contain package/plugin.json");
   }
 
   let packageJson: unknown;
@@ -182,10 +185,10 @@ export async function parseClawPack(bytes: Uint8Array): Promise<ParsedClawPack> 
   try {
     pluginManifest = JSON.parse(textFromBytes(pluginManifestEntry.bytes));
   } catch {
-    throw new Error("ClawPack openclaw.plugin.json is invalid JSON");
+    throw new Error("ClawPack plugin.json is invalid JSON");
   }
   if (!isRecord(pluginManifest)) {
-    throw new Error("ClawPack openclaw.plugin.json must be an object");
+    throw new Error("ClawPack plugin.json must be an object");
   }
 
   return {

@@ -304,20 +304,27 @@ export function extractCodePluginArtifacts(params: {
   packageJson: JsonRecord;
   pluginManifest: JsonRecord;
   source?: SourceInfo;
+  // 内网精简版：为 true 时跳过 code-plugin 的内容校验（source/extensions/id/configSchema）
+  skipValidation?: boolean;
 }) {
-  if (!params.source?.repo?.trim() || !params.source?.commit?.trim()) {
+  if (
+    !params.skipValidation &&
+    (!params.source?.repo?.trim() || !params.source?.commit?.trim())
+  ) {
     throw new ConvexError("Code plugins must include source repo and commit metadata");
   }
 
   const openclaw = isRecord(params.packageJson.openclaw) ? params.packageJson.openclaw : undefined;
   const extensions = normalizeStringList(openclaw?.extensions);
-  if (extensions.length === 0) {
+  if (!params.skipValidation && extensions.length === 0) {
     throw new ConvexError("package.json must declare openclaw.extensions");
   }
 
   const runtimeId =
     typeof params.pluginManifest.id === "string" ? params.pluginManifest.id.trim() : "";
-  if (!runtimeId) throw new ConvexError("openclaw.plugin.json must declare an id");
+  if (!params.skipValidation && !runtimeId) {
+    throw new ConvexError("openclaw.plugin.json must declare an id");
+  }
 
   const compatibility = extractCompatibility(params.packageJson);
   const missingOpenClawFields = listMissingOpenClawExternalCodePluginFieldPaths(params.packageJson);
@@ -359,7 +366,7 @@ export function extractCodePluginArtifacts(params: {
     typeof params.pluginManifest.configSchema === "string" ||
     isRecord(params.pluginManifest.configSchema) ||
     isRecord(openclaw?.configSchema);
-  if (!hasConfigSchema) {
+  if (!params.skipValidation && !hasConfigSchema) {
     throw new ConvexError("Code plugins must declare a config schema");
   }
 

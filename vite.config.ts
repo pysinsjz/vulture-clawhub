@@ -190,6 +190,20 @@ const config = defineConfig({
       rollupConfig: {
         onwarn: handleRollupWarning,
       },
+      // 内网自托管：把 /api/v1/** 反代到 backend 的 HTTP Action 站点（3211）。
+      // 让网关/CLI 也可以通过 web 容器同源访问 v1 HTTP API；前端用 packageApi
+      // 时已用绝对 VITE_CONVEX_SITE_URL，不依赖这条 proxy。
+      // 构建时若环境无 NITRO_V1_PROXY_TARGET 则不注入 routeRules（dev 跑 vite
+      // 时不影响）。在 deploy/docker-compose.yml 的 web 服务里设置该变量。
+      ...(process.env.NITRO_V1_PROXY_TARGET
+        ? {
+            routeRules: {
+              "/api/v1/**": {
+                proxy: `${process.env.NITRO_V1_PROXY_TARGET.replace(/\/$/, "")}/api/v1/**`,
+              },
+            },
+          }
+        : {}),
     }),
     tailwindcss(),
     tanstackStart(),

@@ -1648,7 +1648,13 @@ async function listPackages(
 }
 
 export async function listPackagesV1Handler(ctx: ActionCtx, request: Request) {
-  return await listPackages(ctx, request, undefined, { includeSkills: true });
+  // Gateway contract §2.1: GET /packages is plugin-only (family ∈ code-plugin |
+  // bundle-plugin); skills are served by the separate /skills endpoints. Mirror
+  // listPluginsV1Handler so the unified skill+plugin catalog never leaks here.
+  return await listPackages(ctx, request, undefined, {
+    includeSkills: false,
+    pluginFamilies: ["code-plugin", "bundle-plugin"],
+  });
 }
 
 type PluginsExportPhase =
@@ -3327,6 +3333,16 @@ export async function packagesGetRouterV1Handler(ctx: ActionCtx, request: Reques
           ...publicPackage!,
           tags: await resolvePackageTags(ctx, publicPackage!.tags),
         },
+        // Gateway/desktop install reads response.latestVersion.version per
+        // clawhub-gateway-contract.md §2.2; without it the desktop refuses install
+        // with hub.no_version even when the package has a published release.
+        latestVersion: packageDetail?.latestRelease
+          ? {
+              version: packageDetail.latestRelease.version,
+              createdAt: packageDetail.latestRelease.createdAt,
+              changelog: packageDetail.latestRelease.changelog,
+            }
+          : null,
         owner: packageOwner
           ? {
               handle: packageOwner.handle ?? null,

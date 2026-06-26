@@ -7368,6 +7368,50 @@ describe("httpApiV1 handlers", () => {
     );
   });
 
+  it("packages list excludes skills to honor the plugin-only gateway contract", async () => {
+    // Repro of the gateway/desktop bug: GET /packages (no family) leaked a skill
+    // into the plugin list because the handler forced includeSkills:true and merged
+    // the separate skills catalog. Contract §2.1: /packages is plugin-only.
+    const yuquePlugin = makeCatalogItem("yuque-plugin", {
+      family: "code-plugin",
+      updatedAt: 200,
+    });
+    const diagnosingSkill = makeCatalogItem("diagnosing-bugs", {
+      family: "skill",
+      updatedAt: 300,
+    });
+    const runQuery = vi.fn((_, args: Record<string, unknown>) => {
+      // The skills catalog query omits the viewerUserId key; the packages query
+      // (any branch) always passes it. Use that to identify the skill source.
+      if (!("viewerUserId" in args)) {
+        return { page: [diagnosingSkill], isDone: true, continueCursor: "" };
+      }
+      if (args.family === "code-plugin") {
+        return { page: [yuquePlugin], isDone: true, continueCursor: "" };
+      }
+      if (args.family === "bundle-plugin") {
+        return { page: [], isDone: true, continueCursor: "" };
+      }
+      // Legacy unified-catalog branch queries packages with family undefined.
+      return { page: [yuquePlugin], isDone: true, continueCursor: "" };
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+
+    const response = await __handlers.listPackagesV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/packages?sort=downloads&limit=7"),
+    );
+
+    expect(response.status).toBe(200);
+    const names = (await response.json()).items.map((entry: { name: string }) => entry.name);
+    expect(names).toEqual(["yuque-plugin"]);
+    expect(names).not.toContain("diagnosing-bugs");
+    const families = runQuery.mock.calls
+      .map(([, args]) => (args as { family?: string }).family)
+      .filter(Boolean);
+    expect(families).toEqual(["code-plugin", "bundle-plugin"]);
+  });
+
   it("plugins list defaults to plugin package families", async () => {
     const codePlugin = {
       name: "code-plugin",
@@ -8012,6 +8056,97 @@ describe("httpApiV1 handlers", () => {
         handle: "owner",
       },
     });
+  });
+
+  it("packages detail exposes top-level latestVersion object built from latestRelease", async () => {
+    // Regression: gateway → desktop install flow reads response.latestVersion.version
+    // (clawhub-gateway-contract.md §2.2). Returning only the inline package.latestVersion
+    // string and dropping latestRelease made gateway translate latestVersion: null, which
+    // caused desktop install_plugin._resolve_version to abort with hub.no_version even
+    // though the package had a published release.
+    const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
+      if ("name" in args) {
+        return {
+          package: {
+            _id: "packages:yuque-plugin",
+            name: "yuque-plugin",
+            displayName: "yuque-plugin",
+            family: "code-plugin",
+            tags: {},
+            latestReleaseId: "packageReleases:yuque-1",
+            channel: "community",
+            isOfficial: false,
+            summary: "yuque-plugin",
+            latestVersion: "0.1.0",
+            createdAt: 1,
+            updatedAt: 2,
+          },
+          latestRelease: {
+            _id: "packageReleases:yuque-1",
+            packageId: "packages:yuque-plugin",
+            version: "0.1.0",
+            createdAt: 1782282508283,
+            changelog: "first release",
+            files: [],
+          },
+          owner: { _id: "users:owner", handle: "owner", displayName: "Owner" },
+        };
+      }
+      return null;
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+
+    const response = await __handlers.packagesGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/packages/yuque-plugin"),
+    );
+
+    if (response.status !== 200) throw new Error(await response.text());
+    const body = (await response.json()) as {
+      package: { name: string; latestVersion?: string | null };
+      latestVersion: { version: string; createdAt: number; changelog: string } | null;
+    };
+    expect(body.package.name).toBe("yuque-plugin");
+    expect(body.latestVersion).toEqual({
+      version: "0.1.0",
+      createdAt: 1782282508283,
+      changelog: "first release",
+    });
+  });
+
+  it("packages detail top-level latestVersion is null when there is no published release", async () => {
+    const runQuery = vi.fn(async (_query: unknown, args: Record<string, unknown>) => {
+      if ("name" in args) {
+        return {
+          package: {
+            _id: "packages:empty",
+            name: "empty-plugin",
+            displayName: "Empty",
+            family: "code-plugin",
+            tags: {},
+            channel: "community",
+            isOfficial: false,
+            createdAt: 1,
+            updatedAt: 2,
+          },
+          latestRelease: null,
+          owner: { _id: "users:owner", handle: "owner", displayName: "Owner" },
+        };
+      }
+      return null;
+    });
+    const runMutation = vi.fn().mockResolvedValue(okRate());
+
+    const response = await __handlers.packagesGetRouterV1Handler(
+      makeCtx({ runQuery, runMutation }),
+      new Request("https://example.com/api/v1/packages/empty-plugin"),
+    );
+
+    if (response.status !== 200) throw new Error(await response.text());
+    const body = (await response.json()) as {
+      latestVersion: unknown;
+    };
+    expect(body.latestVersion).toBeNull();
   });
 
   it("packages detail accepts double-encoded scoped package names", async () => {

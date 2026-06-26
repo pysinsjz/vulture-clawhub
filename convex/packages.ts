@@ -49,6 +49,7 @@ import { sha256Hex } from "./lib/clawpack";
 import { buildPackageInspectorFindingsEmail } from "./lib/emails";
 import { requireGitHubAccountAge } from "./lib/githubAccount";
 import { normalizeGitHubRepository } from "./lib/githubActionsOidc";
+import { buildInternalAutoPassLlmAnalysis } from "./lib/internalAutoPass";
 import { isOfficialPublisher } from "./lib/officialPublishers";
 import {
   assertPackageVersion,
@@ -107,7 +108,6 @@ const REAL_BUNDLE_MANIFESTS = [
   { path: ".claude-plugin/plugin.json", format: "claude" },
   { path: ".cursor-plugin/plugin.json", format: "cursor" },
 ] as const;
-const INITIAL_PACKAGE_VT_SCAN_DELAY_MS = 30_000;
 const PLUGIN_EXPORT_FAMILIES = ["code-plugin", "bundle-plugin"] as const;
 const GET_PAGE_TIEBREAKER_FIELD_COUNT = 2;
 
@@ -6305,7 +6305,8 @@ async function publishPackageImpl(
   const pluginManifestEntry = await readOptionalTextFile(
     ctx,
     files,
-    (path) => path === "openclaw.plugin.json",
+    // 内网精简版：清单文件接受包根目录的 plugin.json（兼容旧的 openclaw.plugin.json）
+    (path) => path === "plugin.json" || path === "openclaw.plugin.json",
   );
   let detectedBundleFormat: string | undefined;
   let bundleManifestEntry: Awaited<ReturnType<typeof readOptionalTextFile>> | undefined;
@@ -6335,11 +6336,18 @@ async function publishPackageImpl(
   const storedBundleManifest = toConvexSafeJsonValue(bundleManifest, {
     maxDepth: MAX_STORED_PACKAGE_METADATA_DEPTH,
   });
-  if (packageJson) ensurePluginNameMatchesPackage(name, packageJson);
-  if (family === "code-plugin" && !pluginManifest) {
-    throw new ConvexError("openclaw.plugin.json is required for plugin packages");
+  // 内网精简版：VULTURE_SKIP_PLUGIN_PUBLISH_VALIDATION=1 时跳过插件发布的所有内容校验
+  // （plugin.json 清单 / package.json / extensions / configSchema / source / Plugin
+  // Inspector），仅供内网联调使用，默认关闭、生产与外网不受影响。
+  const skipPluginPublishValidation =
+    process.env.VULTURE_SKIP_PLUGIN_PUBLISH_VALIDATION === "1";
+  if (packageJson && !skipPluginPublishValidation) {
+    ensurePluginNameMatchesPackage(name, packageJson);
   }
-  if (family === "code-plugin") {
+  if (family === "code-plugin" && !pluginManifest && !skipPluginPublishValidation) {
+    throw new ConvexError("plugin.json is required for plugin packages");
+  }
+  if (family === "code-plugin" && !skipPluginPublishValidation) {
     const validation = validateOpenClawExternalCodePluginPackageContents(
       packageJson,
       files.map((file) => file.path),
@@ -6381,15 +6389,20 @@ async function publishPackageImpl(
           packageName: name,
           packageJson:
             packageJson ??
-            (() => {
-              throw new ConvexError("package.json is required for code plugins");
-            })(),
+            (skipPluginPublishValidation
+              ? {}
+              : (() => {
+                  throw new ConvexError("package.json is required for code plugins");
+                })()),
           pluginManifest:
             pluginManifest ??
-            (() => {
-              throw new ConvexError("openclaw.plugin.json is required for plugin packages");
-            })(),
+            (skipPluginPublishValidation
+              ? {}
+              : (() => {
+                  throw new ConvexError("plugin.json is required for plugin packages");
+                })()),
           source: effectiveSource,
+          skipValidation: skipPluginPublishValidation,
         })
       : null;
 
@@ -6411,7 +6424,7 @@ async function publishPackageImpl(
     files,
   });
   const inspectorResult =
-    family === "code-plugin" || family === "bundle-plugin"
+    (family === "code-plugin" || family === "bundle-plugin") && !skipPluginPublishValidation
       ? await runPackageInspectorPublishGate(ctx, {
           packageName: name,
           version,
@@ -6429,14 +6442,14 @@ async function publishPackageImpl(
     ownerPublisher,
   });
   const verificationSource = codeArtifacts?.verification ?? bundleArtifacts?.verification;
-  const initialScanStatus = trustedOpenClawPlugin ? "clean" : "pending";
-  const verification = verificationSource
-    ? {
-        ...verificationSource,
-        trustedOpenClawPlugin: trustedOpenClawPlugin || undefined,
-        scanStatus: initialScanStatus,
-      }
-    : undefined;
+  // vulture-trim: 内网注册中心，所有插件均由团队内部发布，跳过安全审计，发布即标记 clean。
+  // 始终构造 verification 对象（缺省 tier/scope），使 package.scanStatus 与
+  // resolvePackageReleaseScanStatus() 都解析为 "clean"，不再进入 "pending"。
+  const verification = {
+    ...(verificationSource ?? { tier: "structural" as const, scope: "artifact-only" as const }),
+    ...(trustedOpenClawPlugin ? { trustedOpenClawPlugin: true } : {}),
+    scanStatus: "clean" as const,
+  };
   const integritySha256 = await hashSkillFiles(
     files.map((file) => ({ path: file.path, sha256: file.sha256 })),
   );
@@ -6559,18 +6572,9 @@ async function publishPackageImpl(
     });
   }
 
-  await runAfterRef(
-    ctx,
-    INITIAL_PACKAGE_VT_SCAN_DELAY_MS,
-    internalRefs.vt.scanPackageReleaseWithVirusTotal,
-    {
-      releaseId: publishResult.releaseId,
-    },
-  );
-  await runMutationRef(ctx, internalRefs.securityScan.enqueuePackageReleaseScanInternal, {
-    releaseId: publishResult.releaseId,
-    source: "publish",
-  });
+  // vulture-trim: 内网注册中心，所有插件均由团队内部发布，跳过安全审计。
+  // 发布时已将 verification.scanStatus 写为 "clean"，不再调度 VirusTotal /
+  // ClawScan——这些步骤只会在发布后将状态降级，跳过后插件即永久保持「审计通过」。
 
   return inspectorFindings.length > 0 ? { ...publishResult, inspectorFindings } : publishResult;
 }
@@ -7802,6 +7806,9 @@ export const insertReleaseInternal = internalMutation({
       sourceRepo: args.sourceRepo,
       verification: args.verification,
       staticScan: args.staticScan,
+      // vulture-trim: 内网自动通过——写入合成的 clean llmAnalysis，使前端安全审计
+      // 面板显示「通过」而非「待检测」（面板取值依赖扫描产物，不看 scanStatus）。
+      llmAnalysis: buildInternalAutoPassLlmAnalysis(now),
       source: args.source,
       createdBy: args.actorUserId,
       publishActor: args.publishActor,

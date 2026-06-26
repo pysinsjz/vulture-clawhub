@@ -138,38 +138,55 @@ describe("packageRegistry", () => {
   });
 
   it("maps legacy minHostVersion to minGatewayVersion instead of pluginApiRange", () => {
-    expect(() =>
-      extractCodePluginArtifacts({
-        packageName: "@openclaw/matrix",
-        packageJson: {
-          name: "@openclaw/matrix",
-          version: "2026.3.13",
-          openclaw: {
-            extensions: ["./index.ts"],
-            install: {
-              npmSpec: "@openclaw/matrix",
-              localPath: "extensions/matrix",
-              defaultChoice: "npm",
-              minHostVersion: "2026.3.13",
-            },
+    const result = extractCodePluginArtifacts({
+      packageName: "@openclaw/matrix",
+      packageJson: {
+        name: "@openclaw/matrix",
+        version: "2026.3.13",
+        openclaw: {
+          extensions: ["./index.ts"],
+          install: {
+            npmSpec: "@openclaw/matrix",
+            localPath: "extensions/matrix",
+            defaultChoice: "npm",
+            minHostVersion: "2026.3.13",
           },
         },
-        pluginManifest: {
-          id: "matrix",
-          channels: ["matrix"],
-          configSchema: { type: "object" },
-        },
-        source: {
-          kind: "github",
-          url: "https://github.com/openclaw/openclaw",
-          repo: "openclaw/openclaw",
-          ref: "refs/tags/v2026.3.13",
-          commit: "abc123",
-          path: "extensions/matrix",
-          importedAt: Date.now(),
-        },
-      }),
-    ).toThrow("package.json openclaw.compat.pluginApi is required");
+      },
+      pluginManifest: {
+        id: "matrix",
+        channels: ["matrix"],
+        configSchema: { type: "object" },
+      },
+      source: {
+        kind: "github",
+        url: "https://github.com/openclaw/openclaw",
+        repo: "openclaw/openclaw",
+        ref: "refs/tags/v2026.3.13",
+        commit: "abc123",
+        path: "extensions/matrix",
+        importedAt: Date.now(),
+      },
+    });
+
+    // 内网精简版：compat.pluginApi / build.openclawVersion 可选，发布不再被阻断
+    expect(result.compatibility?.pluginApiRange).toBeUndefined();
+    expect(result.compatibility?.minGatewayVersion).toBe("2026.3.13");
+    expect(result.compatibility?.builtWithOpenClawVersion).toBe("2026.3.13");
+  });
+
+  it("skips all code-plugin content validation when skipValidation is set (internal trim)", () => {
+    // 内网精简版：无 source / 无 extensions / 无 id / 无 configSchema 也不抛错
+    const result = extractCodePluginArtifacts({
+      packageName: "demo-plugin",
+      packageJson: {},
+      pluginManifest: {},
+      skipValidation: true,
+    });
+
+    expect(result.runtimeId).toBe("");
+    expect(result.capabilities.executesCode).toBe(true);
+    expect(result.verification.tier).toBe("structural");
   });
 
   it("extracts legacy minHostVersion as minGatewayVersion while preserving build metadata", () => {

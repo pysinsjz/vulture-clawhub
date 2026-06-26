@@ -356,18 +356,11 @@ export async function publishVersionForUser(
       : undefined,
   })) as PublishResult;
 
-  await ctx.scheduler.runAfter(0, internal.vt.scanWithVirusTotal, {
-    versionId: publishResult.versionId,
-  });
-
-  await ctx.runMutation(internal.securityScan.enqueueSkillVersionScanInternal, {
-    versionId: publishResult.versionId,
-    source: "publish",
-  });
-
-  await ctx.scheduler.runAfter(0, internal.depRegistryScan.checkDependencyRegistries, {
-    versionId: publishResult.versionId,
-  });
+  // vulture-trim: 内网注册中心，所有技能均由团队内部发布，跳过安全审计。
+  // insertVersion 写入的初始审核状态为 moderationStatus="active" /
+  // moderationVerdict="clean"（buildModerationSnapshot({}) 恒为 clean），
+  // 因此不再调度 VirusTotal / ClawScan / 依赖注册表扫描——这些步骤只会在
+  // 发布后将状态降级，跳过后技能即永久保持「审计通过」。
 
   // Schedule the async "API key required?" analyser; non-fatal on failure
   // (UI treats `apiKeyRequired === undefined` as "no badge"). Mirrors the

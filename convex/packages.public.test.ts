@@ -6004,10 +6004,10 @@ describe("packages public queries", () => {
           files: [],
         },
       }),
-    ).rejects.toThrow("openclaw.plugin.json is required");
+    ).rejects.toThrow("plugin.json is required");
   });
 
-  it("scans plugin publishes and forwards scan status to insertReleaseInternal", async () => {
+  it("marks plugin publishes clean (internal auto-pass) and skips post-publish security scans", async () => {
     const runMutation = vi.fn(async (_ref: unknown, args: unknown) => args);
     const ctx = {
       runQuery: vi
@@ -6115,15 +6115,17 @@ describe("packages public queries", () => {
     })) as Record<string, unknown>;
 
     expect(runMutation).toHaveBeenCalled();
-    expect(result.verification).toEqual(expect.objectContaining({ scanStatus: "pending" }));
+    // vulture-trim: 内网注册中心——所有插件发布即标记 clean（跳过安全审计）。
+    expect(result.verification).toEqual(expect.objectContaining({ scanStatus: "clean" }));
+    // 静态扫描仍照常运行并记录结果，只是不再用于降级发布状态。
     expect(result.staticScan).toEqual(
       expect.objectContaining({
         status: "suspicious",
         reasonCodes: expect.arrayContaining(["suspicious.dangerous_exec"]),
       }),
     );
-    expect(ctx.scheduler.runAfter).toHaveBeenNthCalledWith(
-      1,
+    // 不再调度发布后的 VirusTotal / ClawScan 安全扫描。
+    expect(ctx.scheduler.runAfter).not.toHaveBeenCalledWith(
       30_000,
       expect.anything(),
       expect.any(Object),
@@ -7266,7 +7268,7 @@ describe("packages public queries", () => {
           files: [],
         },
       }),
-    ).rejects.toThrow("openclaw.plugin.json is required");
+    ).rejects.toThrow("plugin.json is required");
 
     expect(runMutation).toHaveBeenCalledWith(
       expect.anything(),
@@ -7322,7 +7324,7 @@ describe("packages public queries", () => {
           files: [],
         },
       }),
-    ).rejects.toThrow("openclaw.plugin.json is required");
+    ).rejects.toThrow("plugin.json is required");
 
     expect(runMutation).toHaveBeenCalledWith(
       expect.anything(),

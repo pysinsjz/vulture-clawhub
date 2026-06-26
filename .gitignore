@@ -61,3 +61,7 @@ skills/*
 
 # Self-hosted convex-backend: R2 storage credentials — never commit
 self-host/.env
+
+# Deploy artifacts: build产物 + 解压目录 + 凭证（.env*已被全局忽略，再显式标注）
+deploy/output.tar.gz
+deploy/output/

@@ -2080,11 +2080,11 @@ describe("package commands", () => {
     }
   });
 
-  it("rejects code-plugin publish when required OpenClaw compatibility metadata is missing", async () => {
+  it("publishes code plugins without OpenClaw compatibility metadata (internal trim)", async () => {
     const workdir = await makeTmpWorkdir();
     try {
       const folder = join(workdir, "demo-plugin");
-      await mkdir(folder, { recursive: true });
+      await mkdir(join(folder, "dist"), { recursive: true });
       await writeFile(
         join(folder, "package.json"),
         JSON.stringify({
@@ -2102,16 +2102,24 @@ describe("package commands", () => {
         JSON.stringify({ id: "demo.plugin", configSchema: { type: "object" } }),
         "utf8",
       );
+      await writeFile(join(folder, "dist", "index.js"), "export const demo = true;\n", "utf8");
 
-      await expect(
-        cmdPublishPackage(makeOpts(workdir), "demo-plugin", {
-          sourceRepo: "openclaw/demo-plugin",
-          sourceCommit: "abc123",
-        }),
-      ).rejects.toThrow(
-        "openclaw.compat.pluginApi is required for external code plugins published to ClawHub.",
-      );
-      expect(httpMocks.apiRequestForm).not.toHaveBeenCalled();
+      httpMocks.apiRequestForm.mockResolvedValueOnce({
+        ok: true,
+        packageId: "pkg_1",
+        releaseId: "rel_1",
+      });
+
+      await cmdPublishPackage(makeOpts(workdir), "demo-plugin", {
+        sourceRepo: "openclaw/demo-plugin",
+        sourceCommit: "abc123",
+      });
+
+      expect(getPublishPayload()).toMatchObject({
+        name: "demo-plugin",
+        family: "code-plugin",
+        version: "1.0.0",
+      });
     } finally {
       await rm(workdir, { recursive: true, force: true });
     }

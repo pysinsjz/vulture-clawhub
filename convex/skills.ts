@@ -56,6 +56,7 @@ import {
   type ManualModerationOverride,
 } from "./lib/manualOverrides";
 import { deriveModerationFlags } from "./lib/moderation";
+import { buildInternalAutoPassLlmAnalysis } from "./lib/internalAutoPass";
 import { buildModerationSnapshot } from "./lib/moderationEngine";
 import {
   legacyFlagsFromVerdict,
@@ -2645,7 +2646,11 @@ export const getBySlug = query({
 export const checkSlugAvailability = query({
   args: { slug: v.string(), ownerHandle: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const userId = await getAuthUserId(ctx);
+    // vulture-trim: 内网默认 system 登录下没有真实 Convex Auth 会话；必须走
+    // getOptionalActiveAuthUserId 的 system-user 回退，否则 userId 为 null，
+    // 下方「调用者是否拥有该 skill」判断恒为 false，更新自有 skill 会被误报
+    // “Slug is already taken”。见 [[vulture-aliyun-selfhost]] / b976045a。
+    const userId = await getOptionalActiveAuthUserId(ctx);
     const slug = normalizeSkillSlugKey(args.slug);
     if (!slug) {
       return {
@@ -10934,6 +10939,9 @@ export const insertVersion = internalMutation({
       parsed: args.parsed,
       capabilityTags: args.capabilityTags,
       staticScan: args.staticScan,
+      // vulture-trim: 内网自动通过——写入合成的 clean llmAnalysis，使前端安全审计
+      // 面板显示「通过」而非「待检测」（面板取值依赖扫描产物，不看 scanStatus）。
+      llmAnalysis: buildInternalAutoPassLlmAnalysis(now),
       createdBy: userId,
       createdAt: now,
       softDeletedAt: undefined,

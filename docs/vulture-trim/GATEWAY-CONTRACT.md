@@ -3,7 +3,7 @@
 > 本文由 **vulture-gateway** 仓同步而来（源：`docs/flows/clawhub-gateway-contract.md`），是 **vulture-gateway → 内网 ClawHub** 出站调用契约的权威清单，供本仓（ClawHub fork）据此产出对接/实现文档。
 > 契约源头 = 网关 `internal/clawhub` client 的实际调用面（网关仓 `client.go` / `skills.go` / `packages.go` / `security.go`）。
 > 整合背景、桌面端生命周期见网关仓 `docs/flows/clawhub-integration.md`、`docs/flows/skill-plugin-lifecycle.md`。
-> 现状对账与待改造项见本仓 [#1](https://github.com/pysinsjz/vulture-clawhub/issues/1)。
+> 现状对账与待改造项见本仓 [#1](https://github.com/pysinsjz/vulture-clawhub/issues/1)；本仓侧实施记录见 `GATEWAY-INTEGRATION.md`。
 
 ## 0. 通用约定
 
@@ -16,7 +16,8 @@
   - `423` 制品未就绪（安全门未放行、签发未完成）
   - `409` pending（扫描/审核进行中）
   - `403` 被阻断（`decision=fail` / `blockedFromDownload=true`）
-- **下载语义**：`download-url` / `artifact-url` 端点**返回 JSON `{ "url": "<短时效预签名 URL>" }`**，网关据此 `302` 转桌面端，桌面端直连存储取字节、用版本详情里的 `artifact.sha256` 自校验。**不是**流式吐 zip、**不是** 307 内跳。存储后端 = 自托管 MinIO（S3 兼容），见 [convex-selfhost-minio]。
+- **下载语义（interim = 路线 A，网关反代流式端点）**：artifact 字节由 ClawHub **流式端点**直吐；桌面端到不了内网 ClawHub，故网关**直接反向代理这些流式端点**——服务端 GET 后把状态码 + 白名单响应头（`Content-Type`/`Content-Disposition`/`ETag`/`X-ClawHub-Artifact-Sha256` 等）+ 字节透传回桌面端（`internal/handler/download_proxy.go`）。ClawHub 需暴露的就是这三个流式端点（见 §1.6/§2.4/§2.5），**无需 `download-url`/`artifact-url` JSON 端点**。安全门由 ClawHub 在流式端点内强制（→ 403/410/451），网关原样透传。
+  - **目标态（路线 B）**：ClawHub 流式端点改为 `302` 跳短时效预签名存储 URL（自托管 MinIO，S3 兼容），网关原样透传该 302、桌面端直连存储取字节、用 `artifact.sha256` 自校验——迁移对网关透明（仅 ClawHub 端点内部把直吐换成签发 302）。
 
 ---
 
@@ -106,12 +107,11 @@
 }
 ```
 
-### 1.6 `GET /skills/{slug}/download-url?version=<v>` — skill 下载签发
+### 1.6 `GET /download?slug=<slug>&version=<v>` — skill 流式下载（网关反代目标）
 
-**Query**：`version`(可选；空 = latest)。ClawHub 内部强制安全门（`decision=fail → 403`）后再签发。
+网关 `/api/v1/skills/{slug}/download` 反向代理此端点。**Query**：`slug`(必填) · `version`(可选；空 = latest)。
 
-**Response 200**：`{ "url": "<短时效预签名 URL>" }`
-**被阻断/未就绪**：`403` / `423` / `409`（不返 url 体）。
+**Response 200**：制品字节流（`Content-Type` 由 ClawHub 给，如 `application/zip`），随附 `X-ClawHub-Artifact-Sha256` 供客户端校验。安全门由 ClawHub 强制（`decision=fail`/文件访问门 → `403`/`410`/`451`），网关原样透传状态码。路线 B 时此端点改 `302` 跳 MinIO 预签名 URL。
 
 ### 1.7 `POST /skills/-/security-verdicts` — 批量安全裁决
 
@@ -203,13 +203,13 @@
 }
 ```
 
-### 2.4 `GET /packages/{name}/download-url?version=<v>` — plugin（legacy-zip）下载签发
+### 2.4 `GET /packages/{name}/download?version=<v>` — plugin（legacy-zip）流式下载（网关反代目标）
 
-**Response 200**：`{ "url": "<短时效预签名 URL>" }`（被阻断/未就绪 → `403`/`423`/`409`）
+网关 `/api/v1/plugins/{name}/download` 反向代理此端点。**Response 200**：制品字节流 + `X-ClawHub-Artifact-Sha256`；安全门 → `403`/`410`/`451`，网关原样透传。路线 B 时改 `302` 跳 MinIO。
 
-### 2.5 `GET /packages/{name}/releases/{version}/artifact-url` — plugin（npm-pack .tgz）下载签发
+### 2.5 `GET /packages/{name}/versions/{version}/artifact/download` — plugin（npm-pack .tgz）流式下载（网关反代目标）
 
-**Response 200**：`{ "url": "<短时效预签名 URL>" }`
+网关 `/api/v1/plugins/{name}/versions/{version}/artifact/download` 反向代理此端点。**Response 200**：`.tgz` 字节流（npm-pack 可能 `307` 内跳 tarball，网关跟随）。
 
 ### 2.6 `GET /packages/{name}/releases/{version}/security` — plugin 单查安装阻断
 
@@ -261,15 +261,16 @@
 | 2 | `GET /skills/{slug}` | ✅ 一致 | — |
 | 3 | `GET /skills/{slug}/versions` | ✅ 一致 | — |
 | 4 | `GET /skills/{slug}/versions/{version}` | ✅ 一致 | — |
-| 5 | `GET /skills/{slug}/resolve?hash=` | ❌ 仅顶层 `/resolve` | B |
-| 6 | `GET /skills/{slug}/download-url?version=` | ❌ 流式 `/download` | C |
+| 5 | `GET /skills/{slug}/resolve?hash=` | ✅ clawhub 已加嵌套入口（B） | — |
+| 6 | skill 下载 → 反代 `GET /download?slug=&version=` | ✅ 网关反代流式端点（路线 A） | — |
 | 7 | `POST /skills/-/security-verdicts` | ✅ 一致（真机 200） | — |
 | 8 | `GET /packages` | ✅ 一致 | — |
 | 9 | `GET /packages/{name}` | ✅ 一致 | — |
-| 10 | `GET /packages/{name}/releases/{version}` | ❌ 现为 `versions` | A |
-| 11 | `GET /packages/{name}/download-url?version=` | ❌ 流式 `/download` | C |
-| 12 | `GET /packages/{name}/releases/{version}/artifact-url` | ❌ 流式 `artifact` | C |
-| 13 | `GET /packages/{name}/releases/{version}/security` | ❌ 现为 `versions/.../security` | A |
-| 14 | `POST /telemetry/install` | ❌ 仅 legacy `/api/cli/telemetry/install` | B |
+| 10 | `GET /packages/{name}/releases/{version}` | ✅ clawhub 已加 `releases` 别名（A） | — |
+| 11 | plugin 下载 → 反代 `GET /packages/{name}/download?version=` | ✅ 网关反代流式端点（路线 A） | — |
+| 12 | artifact → 反代 `GET /packages/{name}/versions/{v}/artifact/download` | ✅ 网关反代流式端点（路线 A） | — |
+| 13 | `GET /packages/{name}/releases/{version}/security` | ✅ clawhub 已加 `releases` 别名（A） | — |
+| 14 | `POST /telemetry/install` | ✅ clawhub 已注册 v1（B；plugins 持久化待 schema） | — |
 
-> 方向：fork 向本契约对齐（网关契约已固化在 ADR-0011 + 单测）。A=改段名、B=改路径形态、C=改响应契约（封装 MinIO 预签名端点）。
+> 14/14 已对齐（待两侧部署 + 真机验证）。下载走「网关反代流式端点」（路线 A）：clawhub 无需 `download-url`/`artifact-url` JSON 端点；待路线 B（MinIO 真预签名）时 clawhub 流式端点改 302、网关透传，迁移透明。
+> 剩余 follow-up：plugin install 持久化 schema、路线 B 预签名。

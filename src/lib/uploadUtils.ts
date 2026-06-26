@@ -26,11 +26,23 @@ export async function hashFile(file: File) {
     typeof file.arrayBuffer === "function"
       ? await file.arrayBuffer()
       : await new Response(file).arrayBuffer();
-  const hash = await crypto.subtle.digest("SHA-256", new Uint8Array(buffer));
-  const bytes = new Uint8Array(hash);
+  const input = new Uint8Array(buffer);
+  // crypto.subtle 在 HTTP 非 secure context（如内网 http://ip 部署）下是 undefined，
+  // 此时降级到纯 JS 实现，避免发布表单卡在"正在上传文件…"。
+  const bytes = await sha256Bytes(input);
   return Array.from(bytes)
     .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
+}
+
+async function sha256Bytes(input: Uint8Array): Promise<Uint8Array> {
+  const subtle = typeof crypto !== "undefined" ? crypto.subtle : undefined;
+  if (subtle) {
+    const hash = await subtle.digest("SHA-256", input);
+    return new Uint8Array(hash);
+  }
+  const { sha256 } = await import("@noble/hashes/sha2.js");
+  return sha256(input);
 }
 
 export function formatBytes(bytes: number) {

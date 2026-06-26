@@ -57,12 +57,9 @@ crons.interval(
   {},
 );
 
-crons.interval(
-  "package-scan-backfill",
-  { minutes: 30 },
-  internal.packages.backfillPackageReleaseScansInternal,
-  { batchSize: 100 },
-);
+// vulture-trim: 内网注册中心已跳过安全审计（发布即标记 clean），不再周期性
+// 回填 ClawScan/VirusTotal/静态扫描，否则会对内网包重新入队审计并可能降级。
+// 手动入口 backfillPackageReleaseScans / admin 重扫仍保留，按需触发。
 
 crons.interval(
   "skill-scan-request-prune",

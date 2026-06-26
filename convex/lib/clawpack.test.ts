@@ -81,14 +81,24 @@ describe("clawpack", () => {
     ]);
   });
 
-  it("rejects plugin tarballs without openclaw.plugin.json", async () => {
+  it("rejects plugin tarballs without plugin.json", async () => {
     const pack = npmPackFixture({
       "package/package.json": JSON.stringify({ name: "demo", version: "1.0.0" }),
     });
 
     await expect(parseClawPack(pack)).rejects.toThrow(
-      "ClawPack must contain package/openclaw.plugin.json",
+      "ClawPack must contain package/plugin.json",
     );
+  });
+
+  it("accepts plugin tarballs with package/plugin.json", async () => {
+    const pack = npmPackFixture({
+      "package/package.json": JSON.stringify({ name: "demo", version: "1.0.0" }),
+      "package/plugin.json": JSON.stringify({ id: "demo" }),
+    });
+
+    const parsed = await parseClawPack(pack);
+    expect(parsed.packageName).toBe("demo");
   });
 
   it("rejects archives that are not rooted under package/", async () => {
