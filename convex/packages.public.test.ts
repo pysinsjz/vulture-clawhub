@@ -5470,6 +5470,7 @@ describe("packages public queries", () => {
     ).rejects.toThrow("Skill packages must use the skills publish flow");
   });
 
+
   it("keeps raw package publishes behind the per-file size limit", async () => {
     const ctx = {
       runQuery: vi

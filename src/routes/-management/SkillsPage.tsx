@@ -23,6 +23,7 @@ import {
   formatTimestamp,
   resolveOwnerParam,
   SKILL_AUDIT_LOG_LIMIT,
+  type ManagedSkillEntry,
   type ManagementOwnerOption,
   type ManagementUserListResult,
   type SkillBySlugResult,
@@ -31,6 +32,7 @@ import {
 export function SkillsPage({
   admin,
   currentUserId,
+  managedSkills,
   ownerOptions,
   ownerSearch,
   ownerSummary,
@@ -61,6 +63,7 @@ export function SkillsPage({
 }: {
   admin: boolean;
   currentUserId: Id<"users"> | null;
+  managedSkills: ManagedSkillEntry[] | undefined;
   ownerOptions: ManagementOwnerOption[];
   ownerSearch: string;
   ownerSummary: string;
@@ -93,7 +96,7 @@ export function SkillsPage({
     <div className="management-view">
       <h2 className="section-title text-[1.2rem] m-0">Skill 工具</h2>
       <p className="section-subtitle m-0 mt-1">
-        按 slug 查找 Skill，管理审核覆盖并查看其审计历史。
+        浏览全部 Skill，或按 slug 查找以管理审核覆盖并查看其审计历史。
       </p>
       <div className="management-controls">
         <div className="management-control management-search">
@@ -132,9 +135,52 @@ export function SkillsPage({
       ) : null}
       <div className="management-list">
         {!selectedSlug ? (
-          <div className="management-empty">
-            在上方输入 Skill slug，或在其他视图中对某个 Skill 点击「管理」。
-          </div>
+          managedSkills === undefined ? (
+            <div className="management-empty">正在加载 Skill…</div>
+          ) : managedSkills.length === 0 ? (
+            <div className="management-empty">暂无 Skill。</div>
+          ) : (
+            managedSkills.map((entry) => {
+              const { skill, latestVersion, owner } = entry;
+              const ownerParam = resolveOwnerParam(
+                owner?.handle ?? null,
+                owner?._id ?? skill.ownerUserId,
+              );
+              const moderationStatus =
+                skill.moderationStatus ?? (skill.softDeletedAt ? "hidden" : "active");
+              const badges = getSkillBadges(skill);
+              return (
+                <div key={skill._id} className="management-item">
+                  <div className="management-item-main">
+                    <Link to="/$owner/$slug" params={{ owner: ownerParam, slug: skill.slug }}>
+                      {skill.displayName}
+                    </Link>
+                    <div className="section-subtitle m-0">
+                      @{owner?.handle ?? owner?.displayName ?? "user"} · v
+                      {latestVersion?.version ?? "—"} · 更新于 {formatTimestamp(skill.updatedAt)} ·{" "}
+                      {moderationStatus}
+                      {badges.length ? ` · ${badges.join(", ").toLowerCase()}` : ""}
+                    </div>
+                  </div>
+                  <div className="management-actions">
+                    <Button asChild>
+                      <Link
+                        to="/management"
+                        search={{ view: "skills", skill: skill.slug, plugin: undefined }}
+                      >
+                        管理
+                      </Link>
+                    </Button>
+                    <Button asChild>
+                      <Link to="/$owner/$slug" params={{ owner: ownerParam, slug: skill.slug }}>
+                        查看
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )
         ) : selectedSkill === undefined ? (
           <div className="management-empty">正在加载 Skill…</div>
         ) : !selectedSkill?.skill ? (

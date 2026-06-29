@@ -10,6 +10,8 @@ export type ManagementUserListResult = FunctionReturnType<typeof api.users.list>
 export type SkillBySlugResult = FunctionReturnType<typeof api.skills.getBySlugForStaff>;
 export type PluginByNameResult = FunctionReturnType<typeof api.packages.getByNameForStaff>;
 export type RecentVersionEntry = FunctionReturnType<typeof api.skills.listRecentVersions>[number];
+export type ManagedSkillEntry = FunctionReturnType<typeof api.skills.listForManagement>[number];
+export type ManagedPluginEntry = FunctionReturnType<typeof api.packages.listForManagement>[number];
 export type DuplicateCandidateEntry = FunctionReturnType<
   typeof api.skills.listDuplicateCandidates
 >[number];

@@ -2307,7 +2307,9 @@ export const getByNameForStaff = query({
     assertModerator(user);
 
     const pkg = await getPackageByNormalizedName(ctx, normalizePackageName(args.name));
-    if (!pkg || pkg.softDeletedAt || pkg.family === "skill") return null;
+    // Staff (moderators) may open soft-deleted plugins so they can restore or
+    // hard-delete them; only skip skill-family packages and missing rows.
+    if (!pkg || pkg.family === "skill") return null;
 
     const highlighted = await ctx.db
       .query("packageBadges")
@@ -2335,6 +2337,90 @@ export const getByNameForStaff = query({
           }
         : null,
     };
+  },
+});
+
+const PLUGIN_MANAGEMENT_COUNT_CAP = 1000;
+
+export const listForManagement = query({
+  args: {
+    limit: v.optional(v.number()),
+    includeDeleted: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireUser(ctx);
+    assertModerator(user);
+
+    const limit = Math.max(1, Math.min(args.limit ?? 50, MAX_PUBLIC_LIST_PAGE_SIZE));
+    // Pull the freshest rows from each plugin family via the (family, updatedAt)
+    // index, then merge so the combined list stays ordered by updatedAt. Overfetch
+    // per family so dropping soft-deleted rows still leaves a full page.
+    const perFamily = await Promise.all(
+      PLUGIN_EXPORT_FAMILIES.map((family) =>
+        ctx.db
+          .query("packages")
+          .withIndex("by_family_updated", (q) => q.eq("family", family))
+          .order("desc")
+          .take(limit * 2),
+      ),
+    );
+    const filtered = perFamily
+      .flat()
+      .filter((pkg) => (args.includeDeleted ? true : !pkg.softDeletedAt))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, limit);
+
+    return Promise.all(
+      filtered.map(async (pkg) => {
+        const [latestRelease, ownerPublisher, highlighted] = await Promise.all([
+          pkg.latestReleaseId ? ctx.db.get(pkg.latestReleaseId) : null,
+          getOwnerPublisher(ctx, {
+            ownerPublisherId: pkg.ownerPublisherId,
+            ownerUserId: pkg.ownerUserId,
+          }),
+          ctx.db
+            .query("packageBadges")
+            .withIndex("by_package_kind", (q) =>
+              q.eq("packageId", pkg._id).eq("kind", "highlighted"),
+            )
+            .unique(),
+        ]);
+        return {
+          package: pkg,
+          latestRelease:
+            latestRelease && !latestRelease.softDeletedAt
+              ? toPublicPackageRelease(latestRelease)
+              : null,
+          owner: toPublicPublisher(ownerPublisher),
+          highlighted: highlighted
+            ? {
+                byUserId: highlighted.byUserId,
+                at: highlighted.at,
+              }
+            : null,
+        };
+      }),
+    );
+  },
+});
+
+export const countForManagement = query({
+  args: {},
+  handler: async (ctx) => {
+    const { user } = await requireUser(ctx);
+    assertModerator(user);
+
+    let count = 0;
+    let hasMore = false;
+    for (const family of PLUGIN_EXPORT_FAMILIES) {
+      const rows = await ctx.db
+        .query("packages")
+        .withIndex("by_family_updated", (q) => q.eq("family", family))
+        .take(PLUGIN_MANAGEMENT_COUNT_CAP + 1);
+      if (rows.length > PLUGIN_MANAGEMENT_COUNT_CAP) hasMore = true;
+      count += rows.filter((pkg) => !pkg.softDeletedAt).length;
+    }
+    return { count, hasMore };
   },
 });
 
@@ -3709,7 +3795,7 @@ async function hardDeletePackageDoc(
   params: {
     actorUserId: Id<"users">;
     deletedAt: number;
-    source: "account.delete" | "publisher.delete";
+    source: "account.delete" | "publisher.delete" | "moderation";
   },
 ) {
   const releases = await ctx.db
@@ -4715,6 +4801,52 @@ export const softDeletePackage = mutation({
       actorUserId: user._id,
       actorRole: user.role,
       source: "dashboard",
+    });
+  },
+});
+
+export const restorePackage = mutation({
+  args: {
+    packageId: v.id("packages"),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireUser(ctx);
+    const pkg = await ctx.db.get(args.packageId);
+    if (!pkg) throw new ConvexError("Package not found");
+
+    if (user.role === "moderator" || user.role === "admin") {
+      // Moderators can manage packages outside their own publisher memberships.
+    } else {
+      await assertCanManageOwnedResource(ctx, {
+        actor: user,
+        ownerUserId: pkg.ownerUserId,
+        ownerPublisherId: pkg.ownerPublisherId,
+        allowedPublisherRoles: ["admin"],
+      });
+    }
+
+    return await restorePackageDoc(ctx, pkg, {
+      actorUserId: user._id,
+      actorRole: user.role,
+      source: "dashboard",
+    });
+  },
+});
+
+export const hardDelete = mutation({
+  args: {
+    packageId: v.id("packages"),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireUser(ctx);
+    assertAdmin(user);
+    const pkg = await ctx.db.get(args.packageId);
+    if (!pkg) throw new ConvexError("Package not found");
+
+    return await hardDeletePackageDoc(ctx, pkg, {
+      actorUserId: user._id,
+      deletedAt: Date.now(),
+      source: "moderation",
     });
   },
 });

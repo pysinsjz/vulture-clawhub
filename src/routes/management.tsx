@@ -33,6 +33,8 @@ import {
   formatWholeNumber,
   SKILL_AUDIT_LOG_LIMIT,
   type DuplicateCandidateEntry,
+  type ManagedPluginEntry,
+  type ManagedSkillEntry,
   type ManagementOwnerOption,
   type ManagementUserListResult,
   type ManagementView,
@@ -201,12 +203,29 @@ export function Management() {
     api.skills.listDuplicateCandidates,
     staff ? { limit: 20 } : "skip",
   ) as DuplicateCandidateEntry[] | undefined;
+  const managedSkills = useQuery(
+    api.skills.listForManagement,
+    staff && activeView === "skills" && !selectedSlug ? { limit: 100 } : "skip",
+  ) as ManagedSkillEntry[] | undefined;
+  const managedPlugins = useQuery(
+    api.packages.listForManagement,
+    staff && activeView === "plugins" && !selectedPluginName ? { limit: 100 } : "skip",
+  ) as ManagedPluginEntry[] | undefined;
+  const skillCount = useQuery(api.skills.countPublicSkills, staff ? {} : "skip") as
+    | number
+    | undefined;
+  const pluginCount = useQuery(api.packages.countForManagement, staff ? {} : "skip") as
+    | { count: number; hasMore: boolean }
+    | undefined;
 
   const setRole = useMutation(api.users.setRole);
   const banUser = useMutation(api.users.banUser);
   const unbanUser = useMutation(api.users.unbanUser);
   const setBatch = useMutation(api.skills.setBatch);
   const setPackageBatch = useMutation(api.packages.setBatch);
+  const softDeletePackage = useMutation(api.packages.softDeletePackage);
+  const restorePackage = useMutation(api.packages.restorePackage);
+  const hardDeletePackage = useMutation(api.packages.hardDelete);
   const setSoftDeleted = useMutation(api.skills.setSoftDeleted);
   const hardDelete = useMutation(api.skills.hardDelete);
   const changeOwner = useMutation(api.skills.changeOwner);
@@ -432,6 +451,40 @@ export function Management() {
     });
   };
 
+  const requestTogglePluginHidden = (pkg: Doc<"packages">) => {
+    const hide = !pkg.softDeletedAt;
+    setConfirmRequest({
+      title: hide ? `隐藏 ${pkg.displayName}？` : `恢复 ${pkg.displayName}？`,
+      body: hide
+        ? "隐藏后该 Plugin 不再出现在市场与列表中，可随时恢复。"
+        : "恢复后该 Plugin 将重新对外可见。",
+      confirmLabel: hide ? "隐藏 Plugin" : "恢复 Plugin",
+      destructive: hide,
+      onConfirm: () => {
+        const action = hide
+          ? softDeletePackage({ packageId: pkg._id })
+          : restorePackage({ packageId: pkg._id });
+        void action
+          .then(() => toast.success(hide ? "Plugin 已隐藏。" : "Plugin 已恢复。"))
+          .catch((error) => toast.error(formatMutationError(error)));
+      },
+    });
+  };
+
+  const requestHardDeletePlugin = (pkg: Doc<"packages">) => {
+    setConfirmRequest({
+      title: `硬删除 ${pkg.displayName}？`,
+      body: "这将永久删除该 Plugin 及其所有版本、令牌与举报记录，且无法撤销。",
+      confirmLabel: "硬删除",
+      destructive: true,
+      onConfirm: () => {
+        void hardDeletePackage({ packageId: pkg._id })
+          .then(() => toast.success("Plugin 已硬删除。"))
+          .catch((error) => toast.error(formatMutationError(error)));
+      },
+    });
+  };
+
   const requestSetRole = (
     userId: Id<"users">,
     role: "admin" | "moderator" | "user",
@@ -472,7 +525,9 @@ export function Management() {
         activeView={activeView}
         admin={admin}
         duplicateCount={duplicateCandidates?.length}
+        pluginCount={pluginCount}
         recentCount={recentVersions?.length}
+        skillCount={skillCount}
         userCount={userResult ? userTotal : undefined}
       />
       <section className="management-main">
@@ -486,6 +541,7 @@ export function Management() {
           <SkillsPage
             admin={admin}
             currentUserId={me?._id ?? null}
+            managedSkills={managedSkills}
             ownerOptions={ownerOptions}
             ownerSearch={ownerSearch}
             ownerSummary={ownerSummary}
@@ -534,16 +590,23 @@ export function Management() {
 
         {activeView === "plugins" ? (
           <PluginsPage
+            admin={admin}
+            currentUserId={me?._id ?? null}
+            managedPlugins={managedPlugins}
             pluginSearch={pluginSearch}
             selectedPlugin={selectedPlugin}
             selectedPluginName={selectedPluginName}
+            staff={staff}
+            onBanUser={requestBanUser}
             onChangePluginSearch={setPluginSearch}
+            onHardDeletePlugin={requestHardDeletePlugin}
             onManagePlugin={managePlugin}
             onSetPackageBatch={(packageId, batch) => {
               void setPackageBatch({ packageId, batch })
                 .then(() => toast.success(batch ? "已精选。" : "已取消精选。"))
                 .catch((error) => toast.error(formatMutationError(error)));
             }}
+            onTogglePluginHidden={requestTogglePluginHidden}
           />
         ) : null}
 
@@ -628,13 +691,17 @@ function ManagementSidebar({
   activeView,
   admin,
   duplicateCount,
+  pluginCount,
   recentCount,
+  skillCount,
   userCount,
 }: {
   activeView: ManagementView;
   admin: boolean;
   duplicateCount?: number;
+  pluginCount?: { count: number; hasMore: boolean };
   recentCount?: number;
+  skillCount?: number;
   userCount?: number;
 }) {
   return (
@@ -672,12 +739,14 @@ function ManagementSidebar({
           ) : null}
           <ManagementSidebarLink
             active={activeView === "skills"}
+            badge={skillCount === undefined ? undefined : formatWholeNumber(skillCount)}
             icon={<Wrench size={15} />}
             label="Skill"
             view="skills"
           />
           <ManagementSidebarLink
             active={activeView === "plugins"}
+            badge={pluginCount === undefined ? undefined : formatPluginCountBadge(pluginCount)}
             icon={<Plug size={15} />}
             label="Plugin"
             view="plugins"
@@ -744,4 +813,9 @@ function formatManagementViewLabel(view: ManagementView) {
 /** Queue badges only carry signal when there is a backlog; hide 0 and loading. */
 function queueBadge(count: number | undefined) {
   return count ? formatWholeNumber(count) : undefined;
+}
+
+/** Plugin totals are capped server-side; append "+" when the count was truncated. */
+function formatPluginCountBadge({ count, hasMore }: { count: number; hasMore: boolean }) {
+  return hasMore ? `${formatWholeNumber(count)}+` : formatWholeNumber(count);
 }

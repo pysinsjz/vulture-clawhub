@@ -65,3 +65,6 @@ self-host/.env
 # Deploy artifacts: build产物 + 解压目录 + 凭证（.env*已被全局忽略，再显式标注）
 deploy/output.tar.gz
 deploy/output/
+
+# 临时测试 skill 目录
+.tmp-test-skill/
