@@ -213,13 +213,52 @@ export function buildEmbeddingText(params: {
 }
 
 export async function hashSkillFiles(files: Array<{ path: string; sha256: string }>) {
+  return hashFilesWith(files, (a, b) => a.localeCompare(b));
+}
+
+/**
+ * UTF-8 byte-order comparison of two paths (== Unicode code-point order). This is
+ * what `Buffer.compare`/`memcmp` would give, but uses `TextEncoder` so it is
+ * runtime-portable (Convex isolate has no Node `Buffer`). Unlike `localeCompare`
+ * it is case-SENSITIVE and locale-independent, so it agrees byte-for-byte with the
+ * desktop/CLI client (Python `sorted(key=utf-8)`, packages `buildSkillFingerprint`).
+ */
+function comparePathUtf8(a: string, b: string): number {
+  const ba = encoder.encode(a);
+  const bb = encoder.encode(b);
+  const n = Math.min(ba.length, bb.length);
+  for (let i = 0; i < n; i++) {
+    if (ba[i] !== bb[i]) return ba[i] - bb[i];
+  }
+  return ba.length - bb.length;
+}
+
+async function hashFilesWith(
+  files: Array<{ path: string; sha256: string }>,
+  compare: (a: string, b: string) => number,
+) {
   const normalized = files
     .filter((file) => Boolean(file.path) && Boolean(file.sha256))
     .map((file) => ({ path: file.path, sha256: file.sha256 }))
-    .sort((a, b) => a.path.localeCompare(b.path));
+    .sort((a, b) => compare(a.path, b.path));
   const payload = normalized.map((file) => `${file.path}:${file.sha256}`).join("\n");
   const digest = await crypto.subtle.digest("SHA-256", encoder.encode(payload));
   return toHex(new Uint8Array(digest));
+}
+
+/**
+ * The skill SOURCE content fingerprint that `GET /skills/{slug}/resolve?hash=`
+ * matches against (ADR-0052 D10 / desktop issue 11). It MUST sort by UTF-8 byte
+ * order — NOT `localeCompare`, whose case-insensitivity made nearly every skill
+ * (e.g. a mixed-case `SKILL.md`) disagree with the client's byte-order sort, so
+ * `/resolve` returned `match==null` forever and skill update silently never fired.
+ *
+ * Scoped to SKILL fingerprints ONLY: souls + generated bundles keep the original
+ * `hashSkillFiles` (locale) since they have no cross-client resolve requirement and
+ * re-keying their stored fingerprints would need a separate backfill (Option A).
+ */
+export async function hashSkillSourceFiles(files: Array<{ path: string; sha256: string }>) {
+  return hashFilesWith(files, comparePathUtf8);
 }
 
 function truncateCodePoints(text: string, maxChars: number) {
