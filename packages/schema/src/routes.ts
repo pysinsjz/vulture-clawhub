@@ -31,4 +31,11 @@ export const ApiRoutes = {
   users: "/api/v1/users",
   whoami: "/api/v1/whoami",
   skillsExport: "/api/v1/skills/export",
+  // Marketplace category dictionaries — Gateway pulls these as the
+  // authoritative source for the operator-curated list, then aggregates
+  // counts itself (see contracts/marketplace.md + PRD §"Gateway 端"). Public
+  // (active) rows only; archived categories are served via the management
+  // queries, not over REST.
+  pluginCategories: "/api/v1/plugins/categories",
+  skillCategories: "/api/v1/skills/categories",
 } as const;
