@@ -29,16 +29,16 @@ type WrappedHandler<TArgs, TResult> = {
 const backfillHandler = (
   backfillMarketplaceCategoryAssignments as unknown as WrappedHandler<
     {
-      packagesCursor?: string | null;
-      skillsCursor?: string | null;
+      target: "packages" | "skills";
+      cursor?: string | null;
     },
     {
+      target: "packages" | "skills";
       packagesUpdated: number;
       skillsUpdated: number;
       packagesScanned: number;
       skillsScanned: number;
-      nextPackagesCursor: string | null;
-      nextSkillsCursor: string | null;
+      nextCursor: string | null;
       isDone: boolean;
     }
   >
@@ -186,16 +186,16 @@ describe("backfillMarketplaceCategoryAssignments mutation", () => {
   it("rejects non-admin callers", async () => {
     bindUser("moderator");
     const { ctx } = makeCtx();
-    await expect(backfillHandler(ctx, {})).rejects.toThrow();
+    await expect(backfillHandler(ctx, { target: "packages" })).rejects.toThrow();
   });
 
   it("rejects authenticated regular users", async () => {
     bindUser("user");
     const { ctx } = makeCtx();
-    await expect(backfillHandler(ctx, {})).rejects.toThrow();
+    await expect(backfillHandler(ctx, { target: "packages" })).rejects.toThrow();
   });
 
-  it("is idempotent on a second run — no patches, isDone: true", async () => {
+  it("is idempotent on a second run per target — no patches, isDone: true", async () => {
     bindUser("admin");
     const { ctx, fake } = makeCtx({
       packages: [
@@ -203,44 +203,44 @@ describe("backfillMarketplaceCategoryAssignments mutation", () => {
       ],
       skills: [{ _id: "skills:a", slug: "a", skillCategorySlug: "other" }],
     });
-    const first = await backfillHandler(ctx, {});
-    expect(first.packagesUpdated).toBe(0);
-    expect(first.skillsUpdated).toBe(0);
-    expect(first.isDone).toBe(true);
+    const firstP = await backfillHandler(ctx, { target: "packages" });
+    expect(firstP.packagesUpdated).toBe(0);
+    expect(firstP.isDone).toBe(true);
+    const firstS = await backfillHandler(ctx, { target: "skills" });
+    expect(firstS.skillsUpdated).toBe(0);
+    expect(firstS.isDone).toBe(true);
 
-    const second = await backfillHandler(ctx, {});
-    expect(second.packagesUpdated).toBe(0);
-    expect(second.skillsUpdated).toBe(0);
-    // The audit row from the first run + the audit row from the second run are
-    // both expected — `isDone: true` invocations always emit (start/end signal).
-    expect(fake.inserts.filter((i) => i.table === "auditLogs").length).toBe(2);
+    const secondP = await backfillHandler(ctx, { target: "packages" });
+    expect(secondP.packagesUpdated).toBe(0);
+    const secondS = await backfillHandler(ctx, { target: "skills" });
+    expect(secondS.skillsUpdated).toBe(0);
+    // 4 isDone:true invocations always emit (start/end audit signal).
+    expect(fake.inserts.filter((i) => i.table === "auditLogs").length).toBe(4);
   });
 
   it("emits a single audit summary row with cursor metadata when work happened", async () => {
     bindUser("admin", "users:opsadmin");
     const { ctx, fake } = makeCtx({
       packages: [{ _id: "packages:a", name: "a", family: "code-plugin" }],
-      skills: [{ _id: "skills:a", slug: "a" }],
     });
-    const result = await backfillHandler(ctx, {});
+    const result = await backfillHandler(ctx, { target: "packages" });
+    expect(result.target).toBe("packages");
     expect(result.packagesUpdated).toBe(1);
-    expect(result.skillsUpdated).toBe(1);
+    expect(result.skillsUpdated).toBe(0);
     expect(result.isDone).toBe(true);
 
     const auditRows = fake.inserts.filter((i) => i.table === "auditLogs");
     expect(auditRows).toHaveLength(1);
     const metadata = auditRows[0]!.value.metadata as Record<string, unknown>;
+    expect(metadata.target).toBe("packages");
     expect(metadata.packagesUpdated).toBe(1);
-    expect(metadata.skillsUpdated).toBe(1);
     expect(metadata.isDone).toBe(true);
     expect(auditRows[0]!.value.action).toBe("marketplace_categories.backfill");
     expect(auditRows[0]!.value.actorUserId).toBe("users:opsadmin");
   });
 
-  it("supports resumable pagination — caller passes back the returned cursors", async () => {
+  it("supports resumable pagination — caller passes back the returned cursor", async () => {
     bindUser("admin");
-    // Create 3 rows; force a tiny page by relying on __test.BACKFILL_PAGE_SIZE
-    // being 200 (so 3 rows fit in one page). We additionally test with cursor.
     const { ctx } = makeCtx({
       packages: Array.from({ length: 3 }, (_, i) => ({
         _id: `packages:row${i}`,
@@ -248,7 +248,7 @@ describe("backfillMarketplaceCategoryAssignments mutation", () => {
         family: "code-plugin",
       })),
     });
-    const first = await backfillHandler(ctx, {});
+    const first = await backfillHandler(ctx, { target: "packages" });
     // All 3 rows fit in the single 200-row page → done in one shot.
     expect(first.isDone).toBe(true);
     expect(first.packagesUpdated).toBe(3);

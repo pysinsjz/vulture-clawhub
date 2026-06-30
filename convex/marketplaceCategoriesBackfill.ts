@@ -36,12 +36,14 @@ import { OTHER_CATEGORY_SLUG } from "./lib/categoriesDefaults";
 const BACKFILL_PAGE_SIZE = 200;
 
 type BackfillResult = {
+  // Which table this invocation advanced. Caller loops on (target, nextCursor)
+  // until isDone === true, then switches to the other target.
+  target: "packages" | "skills";
   packagesUpdated: number;
   skillsUpdated: number;
   packagesScanned: number;
   skillsScanned: number;
-  nextPackagesCursor: string | null;
-  nextSkillsCursor: string | null;
+  nextCursor: string | null;
   isDone: boolean;
 };
 
@@ -89,41 +91,42 @@ async function backfillSkillsBatch(
 
 export const backfillMarketplaceCategoryAssignments = mutation({
   args: {
-    // Optional cursors so the caller can resume mid-backfill. Pass `null` /
-    // omit on the first call. The returned `nextPackagesCursor` /
-    // `nextSkillsCursor` are passed verbatim to the next call until
-    // `isDone === true`. Two separate cursors so packages and skills advance
-    // independently — one table may finish many batches before the other.
-    packagesCursor: v.optional(v.union(v.string(), v.null())),
-    skillsCursor: v.optional(v.union(v.string(), v.null())),
+    // Convex constraint: a single mutation can only run ONE paginated query
+    // per transaction. So we split the work — caller specifies which table to
+    // advance, and the cursor for THAT table. To do a full backfill the caller
+    // invokes this mutation twice (once with target: "packages", once with
+    // target: "skills"), looping each side until isDone.
+    target: v.union(v.literal("packages"), v.literal("skills")),
+    cursor: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args): Promise<BackfillResult> => {
     const { user } = await requireUser(ctx);
     assertAdmin(user);
 
-    const packagesCursorIn = args.packagesCursor ?? null;
-    const skillsCursorIn = args.skillsCursor ?? null;
+    const cursorIn = args.cursor ?? null;
+    const isPackages = args.target === "packages";
 
-    // `isDone: true` means "no more rows on that side" — short-circuit further
-    // pagination on the table that already finished. The caller still tracks
-    // both cursors but receives `null` for the finished side.
-    const packagesResult =
-      packagesCursorIn === null && (await isPackagesTableEmpty(ctx))
-        ? { updated: 0, scanned: 0, nextCursor: null, isDone: true }
-        : await backfillPackagesBatch(ctx, packagesCursorIn);
-    const skillsResult =
-      skillsCursorIn === null && (await isSkillsTableEmpty(ctx))
-        ? { updated: 0, scanned: 0, nextCursor: null, isDone: true }
-        : await backfillSkillsBatch(ctx, skillsCursorIn);
+    let result: { updated: number; scanned: number; nextCursor: string | null; isDone: boolean };
+    if (isPackages) {
+      result =
+        cursorIn === null && (await isPackagesTableEmpty(ctx))
+          ? { updated: 0, scanned: 0, nextCursor: null, isDone: true }
+          : await backfillPackagesBatch(ctx, cursorIn);
+    } else {
+      result =
+        cursorIn === null && (await isSkillsTableEmpty(ctx))
+          ? { updated: 0, scanned: 0, nextCursor: null, isDone: true }
+          : await backfillSkillsBatch(ctx, cursorIn);
+    }
 
     const summary: BackfillResult = {
-      packagesUpdated: packagesResult.updated,
-      skillsUpdated: skillsResult.updated,
-      packagesScanned: packagesResult.scanned,
-      skillsScanned: skillsResult.scanned,
-      nextPackagesCursor: packagesResult.nextCursor,
-      nextSkillsCursor: skillsResult.nextCursor,
-      isDone: packagesResult.isDone && skillsResult.isDone,
+      target: args.target,
+      packagesUpdated: isPackages ? result.updated : 0,
+      skillsUpdated: isPackages ? 0 : result.updated,
+      packagesScanned: isPackages ? result.scanned : 0,
+      skillsScanned: isPackages ? 0 : result.scanned,
+      nextCursor: result.nextCursor,
+      isDone: result.isDone,
     };
 
     // Single SUMMARY audit row per invocation. metadata carries cursors so the
@@ -140,14 +143,13 @@ export const backfillMarketplaceCategoryAssignments = mutation({
         targetType: "marketplaceCategoryBackfill",
         targetId: "marketplace_categories.backfill",
         metadata: {
+          target: summary.target,
           packagesUpdated: summary.packagesUpdated,
           skillsUpdated: summary.skillsUpdated,
           packagesScanned: summary.packagesScanned,
           skillsScanned: summary.skillsScanned,
-          packagesCursorIn,
-          skillsCursorIn,
-          nextPackagesCursor: summary.nextPackagesCursor,
-          nextSkillsCursor: summary.nextSkillsCursor,
+          cursorIn,
+          nextCursor: summary.nextCursor,
           isDone: summary.isDone,
         },
         createdAt: Date.now(),
