@@ -4,6 +4,7 @@ import {
   getFrontmatterMetadata,
   getFrontmatterValue,
   hashSkillFiles,
+  hashSkillSourceFiles,
   isMacJunkPath,
   isTextFile,
   parseClawdisMetadata,
@@ -245,6 +246,32 @@ describe("skills utils", () => {
       { path: "b.txt", sha256: "b" },
     ]);
     expect(a).toBe(b);
+  });
+
+  it("hashSkillSourceFiles sorts by UTF-8 byte order (matches the client, ADR-0052 D10)", async () => {
+    // Same golden as the CLI buildSkillFingerprint + desktop Python: "SKILL.md"
+    // (0x53) sorts BEFORE "readme.md" (0x72). This is the cross-implementation
+    // contract that makes /resolve match.
+    const fingerprint = await hashSkillSourceFiles([
+      { path: "readme.md", sha256: "b2" },
+      { path: "SKILL.md", sha256: "a1" },
+    ]);
+    expect(fingerprint).toBe(
+      "2635e91a2d6929d7dfc9cea1377da6b39524e2eaa5b9f47aba6b03805fba280d",
+    );
+  });
+
+  it("hashSkillFiles (locale) stays case-insensitive — soul/bundle unchanged (Option A)", async () => {
+    // The shared locale hasher is deliberately LEFT on localeCompare so souls +
+    // generated bundles keep their existing fingerprints (no backfill). For the
+    // case-discriminating vector it MUST differ from the byte-order source hash.
+    const locale = await hashSkillFiles([
+      { path: "readme.md", sha256: "b2" },
+      { path: "SKILL.md", sha256: "a1" },
+    ]);
+    expect(locale).not.toBe(
+      "2635e91a2d6929d7dfc9cea1377da6b39524e2eaa5b9f47aba6b03805fba280d",
+    );
   });
 });
 

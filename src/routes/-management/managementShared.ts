@@ -10,6 +10,8 @@ export type ManagementUserListResult = FunctionReturnType<typeof api.users.list>
 export type SkillBySlugResult = FunctionReturnType<typeof api.skills.getBySlugForStaff>;
 export type PluginByNameResult = FunctionReturnType<typeof api.packages.getByNameForStaff>;
 export type RecentVersionEntry = FunctionReturnType<typeof api.skills.listRecentVersions>[number];
+export type ManagedSkillEntry = FunctionReturnType<typeof api.skills.listForManagement>[number];
+export type ManagedPluginEntry = FunctionReturnType<typeof api.packages.listForManagement>[number];
 export type DuplicateCandidateEntry = FunctionReturnType<
   typeof api.skills.listDuplicateCandidates
 >[number];
@@ -21,6 +23,8 @@ export type ManagementView =
   | "publishers"
   | "skills"
   | "plugins"
+  | "plugin-categories"
+  | "skill-categories"
   | "duplicates"
   | "recent"
   | "audit"
@@ -140,9 +144,7 @@ export function formatAuditMetadataSummary(action: string, metadata?: unknown) {
     if (note) return note;
     const previousVerdict =
       typeof record.previousVerdict === "string" ? record.previousVerdict : null;
-    return previousVerdict
-      ? `先前覆盖判定：${formatVerdictLabel(previousVerdict)}`
-      : null;
+    return previousVerdict ? `先前覆盖判定：${formatVerdictLabel(previousVerdict)}` : null;
   }
 
   if (action === "skill.owner.change") {
@@ -152,9 +154,7 @@ export function formatAuditMetadataSummary(action: string, metadata?: unknown) {
   }
 
   if (action === "skill.duplicate.set") {
-    return typeof record.canonicalSlug === "string"
-      ? `规范 Skill：${record.canonicalSlug}`
-      : null;
+    return typeof record.canonicalSlug === "string" ? `规范 Skill：${record.canonicalSlug}` : null;
   }
 
   if (action === "skill.duplicate.clear") {

@@ -1500,8 +1500,8 @@ describe("maintenance capability tag backfill", () => {
 
 describe("maintenance fingerprint backfill", () => {
   it("backfills fingerprint field and inserts index entry", async () => {
-    const { hashSkillFiles } = await import("./lib/skills");
-    const expected = await hashSkillFiles([{ path: "SKILL.md", sha256: "abc" }]);
+    const { hashSkillSourceFiles } = await import("./lib/skills");
+    const expected = await hashSkillSourceFiles([{ path: "SKILL.md", sha256: "abc" }]);
 
     const runQuery = vi.fn().mockResolvedValue({
       items: [
@@ -1568,8 +1568,8 @@ describe("maintenance fingerprint backfill", () => {
   });
 
   it("patches missing version fingerprint without touching correct entries", async () => {
-    const { hashSkillFiles } = await import("./lib/skills");
-    const expected = await hashSkillFiles([{ path: "SKILL.md", sha256: "abc" }]);
+    const { hashSkillSourceFiles } = await import("./lib/skills");
+    const expected = await hashSkillSourceFiles([{ path: "SKILL.md", sha256: "abc" }]);
 
     const runQuery = vi.fn().mockResolvedValue({
       items: [
@@ -1606,8 +1606,8 @@ describe("maintenance fingerprint backfill", () => {
   });
 
   it("replaces mismatched fingerprint entries", async () => {
-    const { hashSkillFiles } = await import("./lib/skills");
-    const expected = await hashSkillFiles([{ path: "SKILL.md", sha256: "abc" }]);
+    const { hashSkillSourceFiles } = await import("./lib/skills");
+    const expected = await hashSkillSourceFiles([{ path: "SKILL.md", sha256: "abc" }]);
 
     const runQuery = vi.fn().mockResolvedValue({
       items: [
@@ -1642,8 +1642,11 @@ describe("maintenance fingerprint backfill", () => {
   });
 
   it("ignores generated Skill Cards and bundle fingerprints for source backfills", async () => {
-    const { hashSkillFiles } = await import("./lib/skills");
-    const sourceFingerprint = await hashSkillFiles([{ path: "SKILL.md", sha256: "abc" }]);
+    const { hashSkillSourceFiles, hashSkillFiles } = await import("./lib/skills");
+    // Source backfill uses byte-order (issue 11); the existing generated-bundle entry
+    // keeps locale (`hashSkillFiles`) — backfill ignores it, so the value only needs
+    // to be a stable distinct fingerprint.
+    const sourceFingerprint = await hashSkillSourceFiles([{ path: "SKILL.md", sha256: "abc" }]);
     const bundleFingerprint = await hashSkillFiles([
       { path: "SKILL.md", sha256: "abc" },
       { path: "skill-card.md", sha256: "def" },

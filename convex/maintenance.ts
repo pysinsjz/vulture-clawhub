@@ -24,7 +24,7 @@ import {
   getTrustTier,
   type TrustTier,
 } from "./lib/skillQuality";
-import { hashSkillFiles, isTextFile } from "./lib/skills";
+import { hashSkillSourceFiles, isTextFile } from "./lib/skills";
 import { computeIsSuspicious } from "./lib/skillSafety";
 import {
   extractValidatedDigestFields,
@@ -1089,7 +1089,9 @@ export async function backfillSkillFingerprintsInternalHandler(
     for (const item of page.items) {
       totals.versionsScanned++;
 
-      const fingerprint = await hashSkillFiles(
+      // Byte-order canonicalization (skill-scoped) so the backfilled fingerprint
+      // matches a fresh publish + the client's `/resolve` hash (ADR-0052 D10).
+      const fingerprint = await hashSkillSourceFiles(
         item.files.filter(
           (file) => !item.hasGeneratedBundleFingerprint || !isSkillCardPath(file.path),
         ),

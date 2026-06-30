@@ -228,6 +228,20 @@ describe("skills", () => {
     expect(fingerprint).toBe(expected);
   });
 
+  it("sorts by UTF-8 byte order, not case-insensitive locale (ADR-0052 D10)", () => {
+    // "SKILL.md"(0x53) sorts BEFORE "readme.md"(0x72) by byte order; a case-
+    // insensitive localeCompare would put "readme.md" first and yield a different
+    // hash. This golden is shared with the server (hashSkillSourceFiles) and the
+    // desktop (Python sorted(key=utf-8)) — one byte of drift breaks /resolve.
+    const fingerprint = buildSkillFingerprint([
+      { path: "readme.md", sha256: "b2" },
+      { path: "SKILL.md", sha256: "a1" },
+    ]);
+    expect(fingerprint).toBe(
+      "2635e91a2d6929d7dfc9cea1377da6b39524e2eaa5b9f47aba6b03805fba280d",
+    );
+  });
+
   it("returns null for invalid skill origin metadata", async () => {
     const workdir = await mkdtemp(join(tmpdir(), "clawhub-origin-"));
     expect(await readSkillOrigin(workdir)).toBeNull();

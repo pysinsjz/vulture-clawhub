@@ -28,7 +28,7 @@ import {
   buildEmbeddingText,
   getFrontmatterMetadata,
   getFrontmatterValue,
-  hashSkillFiles,
+  hashSkillSourceFiles,
   isMacJunkPath,
   isTextFile,
   parseClawdisMetadata,
@@ -448,7 +448,9 @@ function mergeSourceIntoMetadata(
 }
 
 async function buildPublishSourceFingerprint(files: FingerprintFile[]) {
-  return await hashSkillFiles(files.filter((file) => !isSkillCardPath(file.path)));
+  // Byte-order canonicalization (skill-scoped) so the published fingerprint matches
+  // the desktop/CLI client's `/resolve` hash (ADR-0052 D10 / issue 11).
+  return await hashSkillSourceFiles(files.filter((file) => !isSkillCardPath(file.path)));
 }
 
 export const __test = {

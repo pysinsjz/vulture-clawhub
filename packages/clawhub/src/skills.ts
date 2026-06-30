@@ -103,11 +103,30 @@ export function sha256Hex(bytes: Uint8Array) {
   return createHash("sha256").update(bytes).digest("hex");
 }
 
+const _fingerprintEncoder = new TextEncoder();
+
+/**
+ * UTF-8 byte-order comparison (== Unicode code-point order). Case-SENSITIVE and
+ * locale-independent, so the skill fingerprint agrees byte-for-byte with the server
+ * (`convex/lib/skills.ts` `hashSkillSourceFiles`) and the desktop (Python
+ * `sorted(key=utf-8)`). Replaces the old `localeCompare`, whose case-insensitivity
+ * desynchronized the fingerprint so `/resolve` never matched (ADR-0052 D10).
+ */
+function comparePathUtf8(a: string, b: string): number {
+  const ba = _fingerprintEncoder.encode(a);
+  const bb = _fingerprintEncoder.encode(b);
+  const n = Math.min(ba.length, bb.length);
+  for (let i = 0; i < n; i++) {
+    if (ba[i] !== bb[i]) return ba[i] - bb[i];
+  }
+  return ba.length - bb.length;
+}
+
 export function buildSkillFingerprint(files: Array<{ path: string; sha256: string }>) {
   const normalized = files
     .filter((file) => Boolean(file.path) && Boolean(file.sha256))
     .map((file) => ({ path: file.path, sha256: file.sha256 }))
-    .sort((a, b) => a.path.localeCompare(b.path));
+    .sort((a, b) => comparePathUtf8(a.path, b.path));
   const payload = normalized.map((file) => `${file.path}:${file.sha256}`).join("\n");
   return createHash("sha256").update(payload).digest("hex");
 }
