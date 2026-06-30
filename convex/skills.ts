@@ -8635,6 +8635,7 @@ export const publishVersion: ReturnType<typeof action> = action({
     changelog: v.string(),
     acceptLicenseTerms: v.optional(v.boolean()),
     tags: v.optional(v.array(v.string())),
+    skillCategorySlug: v.optional(v.string()),
     forkOf: v.optional(
       v.object({
         slug: v.string(),
