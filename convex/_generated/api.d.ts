@@ -36,6 +36,7 @@ import type * as http from "../http.js";
 import type * as httpApi from "../httpApi.js";
 import type * as httpApiV1 from "../httpApiV1.js";
 import type * as httpApiV1_docsSessionV1 from "../httpApiV1/docsSessionV1.js";
+import type * as httpApiV1_marketplaceCategoriesV1 from "../httpApiV1/marketplaceCategoriesV1.js";
 import type * as httpApiV1_packagesV1 from "../httpApiV1/packagesV1.js";
 import type * as httpApiV1_publishersV1 from "../httpApiV1/publishersV1.js";
 import type * as httpApiV1_shared from "../httpApiV1/shared.js";
@@ -197,6 +198,7 @@ declare const fullApi: ApiFromModules<{
   httpApi: typeof httpApi;
   httpApiV1: typeof httpApiV1;
   "httpApiV1/docsSessionV1": typeof httpApiV1_docsSessionV1;
+  "httpApiV1/marketplaceCategoriesV1": typeof httpApiV1_marketplaceCategoriesV1;
   "httpApiV1/packagesV1": typeof httpApiV1_packagesV1;
   "httpApiV1/publishersV1": typeof httpApiV1_publishersV1;
   "httpApiV1/shared": typeof httpApiV1_shared;

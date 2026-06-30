@@ -1,6 +1,10 @@
 import { httpAction } from "./functions";
 import { verifyDocsSessionV1Handler } from "./httpApiV1/docsSessionV1";
 import {
+  listPluginCategoriesV1Handler,
+  listSkillCategoriesV1Handler,
+} from "./httpApiV1/marketplaceCategoriesV1";
+import {
   exportPluginsV1Handler,
   listBundlePluginsV1Handler,
   listCodePluginsV1Handler,
@@ -50,6 +54,8 @@ import { whoamiV1Handler } from "./httpApiV1/whoamiV1";
 
 export const listPackagesV1Http = httpAction(listPackagesV1Handler);
 export const listPluginsV1Http = httpAction(listPluginsV1Handler);
+export const listPluginCategoriesV1Http = httpAction(listPluginCategoriesV1Handler);
+export const listSkillCategoriesV1Http = httpAction(listSkillCategoriesV1Handler);
 export const exportPluginsV1Http = httpAction(exportPluginsV1Handler);
 export const packagesGetRouterV1Http = httpAction(packagesGetRouterV1Handler);
 export const packagesPostRouterV1Http = httpAction(packagesPostRouterV1Handler);

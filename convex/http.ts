@@ -20,7 +20,9 @@ import {
   listBundlePluginsV1Http,
   listCodePluginsV1Http,
   listPackagesV1Http,
+  listPluginCategoriesV1Http,
   listPluginsV1Http,
+  listSkillCategoriesV1Http,
   listSkillsV1Http,
   npmMirrorGetHttp,
   packagesDeleteRouterV1Http,
@@ -81,6 +83,24 @@ http.route({
   path: ApiRoutes.skills,
   method: "GET",
   handler: listSkillsV1Http,
+});
+
+// Marketplace category dictionaries. MUST be registered before the
+// `pathPrefix: "${ApiRoutes.skills}/"` and `${ApiRoutes.plugins}/` routers
+// below — Convex `httpRouter` matches in declaration order and a path-prefix
+// match would otherwise swallow `/api/v1/{skills,plugins}/categories` and
+// dispatch it to the per-slug router, returning "Skill not found" /
+// "Package not found" instead of the dictionary.
+http.route({
+  path: ApiRoutes.skillCategories,
+  method: "GET",
+  handler: listSkillCategoriesV1Http,
+});
+
+http.route({
+  path: ApiRoutes.pluginCategories,
+  method: "GET",
+  handler: listPluginCategoriesV1Http,
 });
 
 http.route({
