@@ -5,6 +5,7 @@ import {
   GitBranch,
   PackageSearch,
   Plug,
+  Tags,
   UserRound,
   Wrench,
 } from "lucide-react";
@@ -43,8 +44,10 @@ import {
   type SkillBySlugResult,
   USER_BAN_REASON_MAX_LENGTH,
 } from "./-management/managementShared";
+import { PluginCategoriesPage } from "./-management/PluginCategoriesPage";
 import { PluginsPage } from "./-management/PluginsPage";
 import { RecentPushesPage } from "./-management/RecentPushesPage";
+import { SkillCategoriesPage } from "./-management/SkillCategoriesPage";
 import { SkillsPage } from "./-management/SkillsPage";
 import { UsersPage } from "./-management/UsersPage";
 
@@ -54,6 +57,8 @@ const MANAGEMENT_VIEWS = new Set<string>([
   "publishers",
   "skills",
   "plugins",
+  "plugin-categories",
+  "skill-categories",
   "duplicates",
   "recent",
   "audit",
@@ -610,6 +615,10 @@ export function Management() {
           />
         ) : null}
 
+        {activeView === "plugin-categories" ? <PluginCategoriesPage admin={admin} /> : null}
+
+        {activeView === "skill-categories" ? <SkillCategoriesPage admin={admin} /> : null}
+
         {activeView === "duplicates" ? (
           <DuplicatesPage
             duplicateCandidates={duplicateCandidates}
@@ -637,16 +646,10 @@ export function Management() {
           />
         ) : null}
         {!admin && activeView === "users" ? (
-          <ManagementPlaceholder
-            title="用户"
-            description="用户管理仅管理员可用。"
-          />
+          <ManagementPlaceholder title="用户" description="用户管理仅管理员可用。" />
         ) : null}
         {activeView === "overview" ? (
-          <ManagementPlaceholder
-            title="概览"
-            description="使用侧栏进入专门的管理队列。"
-          />
+          <ManagementPlaceholder title="概览" description="使用侧栏进入专门的管理队列。" />
         ) : null}
         {activeView === "publishers" ? (
           <ManagementPlaceholder
@@ -751,6 +754,18 @@ function ManagementSidebar({
             label="Plugin"
             view="plugins"
           />
+          <ManagementSidebarLink
+            active={activeView === "plugin-categories"}
+            icon={<Tags size={15} />}
+            label="Plugin 分类"
+            view="plugin-categories"
+          />
+          <ManagementSidebarLink
+            active={activeView === "skill-categories"}
+            icon={<Tags size={15} />}
+            label="Skill 分类"
+            view="skill-categories"
+          />
         </div>
       </nav>
     </aside>
@@ -799,6 +814,8 @@ const MANAGEMENT_VIEW_LABELS: Record<ManagementView, string> = {
   publishers: "发布者",
   skills: "Skill",
   plugins: "Plugin",
+  "plugin-categories": "Plugin 分类",
+  "skill-categories": "Skill 分类",
   duplicates: "疑似重复",
   recent: "最近推送",
   audit: "审计日志",

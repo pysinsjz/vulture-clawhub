@@ -2153,6 +2153,32 @@ const auditLogs = defineTable({
   .index("by_target", ["targetType", "targetId"])
   .index("by_target_createdAt", ["targetType", "targetId", "createdAt"]);
 
+// Marketplace category dictionaries — see PRD docs/prd/marketplace-categories.md.
+// slug is the immutable primary handle; mutation layer rejects updates to it.
+const pluginCategories = defineTable({
+  slug: v.string(),
+  label: v.string(),
+  order: v.number(),
+  icon: v.optional(v.string()),
+  archived: v.boolean(),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+  .index("by_slug", ["slug"])
+  .index("by_active_order", ["archived", "order"]);
+
+const skillCategories = defineTable({
+  slug: v.string(),
+  label: v.string(),
+  order: v.number(),
+  icon: v.optional(v.string()),
+  archived: v.boolean(),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+  .index("by_slug", ["slug"])
+  .index("by_active_order", ["archived", "order"]);
+
 const publisherAbuseScoreRuns = defineTable({
   modelVersion: v.string(),
   modelConfig: publisherAbuseModelConfigValidator,
@@ -2574,6 +2600,8 @@ export default defineSchema({
   stars,
   soulStars,
   auditLogs,
+  pluginCategories,
+  skillCategories,
   publisherAbuseScoreRuns,
   publisherAbuseScores,
   publisherAbuseReviewNominations,

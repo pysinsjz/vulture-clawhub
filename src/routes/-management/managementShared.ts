@@ -23,6 +23,8 @@ export type ManagementView =
   | "publishers"
   | "skills"
   | "plugins"
+  | "plugin-categories"
+  | "skill-categories"
   | "duplicates"
   | "recent"
   | "audit"
@@ -142,9 +144,7 @@ export function formatAuditMetadataSummary(action: string, metadata?: unknown) {
     if (note) return note;
     const previousVerdict =
       typeof record.previousVerdict === "string" ? record.previousVerdict : null;
-    return previousVerdict
-      ? `先前覆盖判定：${formatVerdictLabel(previousVerdict)}`
-      : null;
+    return previousVerdict ? `先前覆盖判定：${formatVerdictLabel(previousVerdict)}` : null;
   }
 
   if (action === "skill.owner.change") {
@@ -154,9 +154,7 @@ export function formatAuditMetadataSummary(action: string, metadata?: unknown) {
   }
 
   if (action === "skill.duplicate.set") {
-    return typeof record.canonicalSlug === "string"
-      ? `规范 Skill：${record.canonicalSlug}`
-      : null;
+    return typeof record.canonicalSlug === "string" ? `规范 Skill：${record.canonicalSlug}` : null;
   }
 
   if (action === "skill.duplicate.clear") {
