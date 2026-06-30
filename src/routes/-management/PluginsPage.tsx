@@ -3,6 +3,7 @@ import type { Doc, Id } from "../../../convex/_generated/dataModel";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { familyLabel } from "../../lib/packageLabels";
+import { CategoryAssignmentSection } from "./CategoryAssignmentSection";
 import {
   formatTimestamp,
   type ManagedPluginEntry,
@@ -47,6 +48,7 @@ export function PluginsPage({
       <p className="section-subtitle m-0 mt-1">
         浏览全部 Plugin，或查找 Plugin Package 以打开其审核工具。
       </p>
+      <CategoryAssignmentSection family="plugin" />
       <div className="management-controls">
         <div className="management-control management-search">
           <span className="mono">Package</span>
@@ -206,9 +208,7 @@ export function PluginsPage({
                         className="management-action-btn"
                         type="button"
                         variant="destructive"
-                        disabled={
-                          !plugin.ownerUserId || plugin.ownerUserId === currentUserId
-                        }
+                        disabled={!plugin.ownerUserId || plugin.ownerUserId === currentUserId}
                         onClick={() => {
                           if (!plugin.ownerUserId || plugin.ownerUserId === currentUserId) return;
                           onBanUser(plugin.ownerUserId, `@${owner?.handle ?? "user"}`);

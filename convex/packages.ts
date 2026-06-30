@@ -45,6 +45,7 @@ import {
   readArtifactReportStatus,
   appendPackageModerationEventLog,
 } from "./lib/artifactModeration";
+import { OTHER_CATEGORY_SLUG } from "./lib/categoriesDefaults";
 import { sha256Hex } from "./lib/clawpack";
 import { buildPackageInspectorFindingsEmail } from "./lib/emails";
 import { requireGitHubAccountAge } from "./lib/githubAccount";
@@ -294,6 +295,12 @@ const internalRefs = internal as unknown as {
   };
   vt: {
     scanPackageReleaseWithVirusTotal: unknown;
+  };
+  marketplaceCategories: {
+    listActivePluginCategorySlugsInternal: unknown;
+    listActiveSkillCategorySlugsInternal: unknown;
+    listAllPluginCategorySlugsInternal: unknown;
+    listAllSkillCategorySlugsInternal: unknown;
   };
 };
 
@@ -6471,8 +6478,7 @@ async function publishPackageImpl(
   // 内网精简版：VULTURE_SKIP_PLUGIN_PUBLISH_VALIDATION=1 时跳过插件发布的所有内容校验
   // （plugin.json 清单 / package.json / extensions / configSchema / source / Plugin
   // Inspector），仅供内网联调使用，默认关闭、生产与外网不受影响。
-  const skipPluginPublishValidation =
-    process.env.VULTURE_SKIP_PLUGIN_PUBLISH_VALIDATION === "1";
+  const skipPluginPublishValidation = process.env.VULTURE_SKIP_PLUGIN_PUBLISH_VALIDATION === "1";
   if (packageJson && !skipPluginPublishValidation) {
     ensurePluginNameMatchesPackage(name, packageJson);
   }
@@ -6586,6 +6592,27 @@ async function publishPackageImpl(
     files.map((file) => ({ path: file.path, sha256: file.sha256 })),
   );
 
+  // Resolve marketplace category — payload value wins when it matches an active
+  // dictionary entry. Missing / archived / unknown slugs are coerced to "other"
+  // and trigger a `published_via_legacy_path: true` audit row + response warning
+  // so the operator can spot un-categorized publishes during the 60-day
+  // compatibility window.
+  const activePluginCategorySlugs =
+    (await runQueryRef<string[]>(
+      ctx,
+      internalRefs.marketplaceCategories.listActivePluginCategorySlugsInternal,
+      {},
+    )) ?? [];
+  const activePluginCategorySlugSet = new Set(activePluginCategorySlugs);
+  const requestedPluginCategorySlug = payload.pluginCategorySlug?.trim();
+  const pluginCategoryIsValid = Boolean(
+    requestedPluginCategorySlug && activePluginCategorySlugSet.has(requestedPluginCategorySlug),
+  );
+  const effectivePluginCategorySlug = pluginCategoryIsValid
+    ? (requestedPluginCategorySlug as string)
+    : OTHER_CATEGORY_SLUG;
+  const publishedViaLegacyPath = !pluginCategoryIsValid;
+
   const publishResult = await runMutationRef<{
     ok: true;
     packageId: Id<"packages">;
@@ -6611,6 +6638,7 @@ async function publishPackageImpl(
     staticScan,
     files,
     integritySha256,
+    pluginCategorySlug: effectivePluginCategorySlug,
     artifactKind: payload.artifact?.kind ?? "legacy-zip",
     clawpackStorageId: payload.artifact?.storageId as Id<"_storage"> | undefined,
     clawpackSha256: payload.artifact?.sha256,
@@ -6663,6 +6691,25 @@ async function publishPackageImpl(
     }
   }
 
+  if (publishedViaLegacyPath) {
+    // Audit the legacy-path fallback so management can produce the 60-day report
+    // ("how many publishes are still coming in without a pluginCategorySlug?")
+    // that gates the cleanup PR. metadata.requestedSlug = null distinguishes
+    // "field absent" from "field present but invalid/archived".
+    await runMutationRef(ctx, internalRefs.packages.insertAuditLogInternal, {
+      actorUserId,
+      action: "package.publish.category_legacy_path",
+      targetType: "package",
+      targetId: String(publishResult.packageId),
+      metadata: {
+        version,
+        requestedSlug: requestedPluginCategorySlug ?? null,
+        appliedSlug: effectivePluginCategorySlug,
+        published_via_legacy_path: true,
+      },
+    });
+  }
+
   if (auth.kind === "github-actions") {
     await runMutationRef(ctx, internalRefs.packagePublishTokens.revokeInternal, {
       tokenId: auth.publishToken._id,
@@ -6708,7 +6755,12 @@ async function publishPackageImpl(
   // 发布时已将 verification.scanStatus 写为 "clean"，不再调度 VirusTotal /
   // ClawScan——这些步骤只会在发布后将状态降级，跳过后插件即永久保持「审计通过」。
 
-  return inspectorFindings.length > 0 ? { ...publishResult, inspectorFindings } : publishResult;
+  const categoryWarning = publishedViaLegacyPath
+    ? "pluginCategorySlug was missing, archived, or unknown — defaulted to 'other'. Re-publish with a valid slug from /api/v1/plugins/categories."
+    : undefined;
+  const baseResult =
+    inspectorFindings.length > 0 ? { ...publishResult, inspectorFindings } : publishResult;
+  return categoryWarning ? { ...baseResult, warning: categoryWarning } : baseResult;
 }
 
 function toPackageInspectorPublishResponseFinding(
@@ -7733,6 +7785,11 @@ export const insertReleaseInternal = internalMutation({
     extractedPluginManifest: v.optional(v.any()),
     normalizedBundleManifest: v.optional(v.any()),
     source: v.optional(v.any()),
+    // Optional during the 60-day compat window — publishPackageImpl always
+    // resolves this to either a valid active slug or "other" before calling.
+    // Kept optional in the validator so direct internal callers (tests, dev
+    // seeds) that do not care about category assignment keep working.
+    pluginCategorySlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -7863,6 +7920,7 @@ export const insertReleaseInternal = internalMutation({
         isOfficial: nextIsOfficial,
         runtimeId: args.runtimeId,
         sourceRepo: args.sourceRepo,
+        pluginCategorySlug: args.pluginCategorySlug,
         tags: {},
         capabilityTags: nextCapabilityTags,
         executesCode: nextCapabilities?.executesCode,
@@ -7970,6 +8028,10 @@ export const insertReleaseInternal = internalMutation({
       runtimeId: shouldPromoteLatest ? args.runtimeId : pkg.runtimeId,
       channel: nextChannel,
       isOfficial: nextIsOfficial,
+      // Preserve the existing operator-curated assignment unless the publish
+      // payload explicitly carries one — re-publishing a version should not
+      // silently re-default a moderator-corrected category back to "other".
+      pluginCategorySlug: args.pluginCategorySlug ?? pkg.pluginCategorySlug,
       latestReleaseId: shouldPromoteLatest ? releaseId : pkg.latestReleaseId,
       latestVersionSummary: shouldPromoteLatest
         ? {

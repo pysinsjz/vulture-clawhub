@@ -131,6 +131,8 @@ import type * as llmEval from "../llmEval.js";
 import type * as maintenance from "../maintenance.js";
 import type * as managementDevSeed from "../managementDevSeed.js";
 import type * as marketplaceCategories from "../marketplaceCategories.js";
+import type * as marketplaceCategoriesAssignment from "../marketplaceCategoriesAssignment.js";
+import type * as marketplaceCategoriesBackfill from "../marketplaceCategoriesBackfill.js";
 import type * as packageInspectorHttp from "../packageInspectorHttp.js";
 import type * as packageInspectorNode from "../packageInspectorNode.js";
 import type * as packagePublishTokens from "../packagePublishTokens.js";
@@ -292,6 +294,8 @@ declare const fullApi: ApiFromModules<{
   maintenance: typeof maintenance;
   managementDevSeed: typeof managementDevSeed;
   marketplaceCategories: typeof marketplaceCategories;
+  marketplaceCategoriesAssignment: typeof marketplaceCategoriesAssignment;
+  marketplaceCategoriesBackfill: typeof marketplaceCategoriesBackfill;
   packageInspectorHttp: typeof packageInspectorHttp;
   packageInspectorNode: typeof packageInspectorNode;
   packagePublishTokens: typeof packagePublishTokens;

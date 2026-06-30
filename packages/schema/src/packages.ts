@@ -345,6 +345,12 @@ const PackagePublishMetadataFields = {
   tags: "string[]?",
   source: PublishSourceSchema.optional(),
   bundle: BundlePublishMetadataSchema.optional(),
+  // Marketplace category — single-select required at the form layer, but tolerated
+  // as optional here during the 60-day compatibility window so legacy CLIs / older
+  // GitHub Actions runners still publish successfully. Missing / archived / unknown
+  // slugs are coerced to "other" at the server with `published_via_legacy_path: true`
+  // audit metadata. Required-mode lands in the 60-day cleanup PR.
+  pluginCategorySlug: "string?",
 } as const;
 
 export const PackagePublishMetadataSchema = type({

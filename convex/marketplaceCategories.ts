@@ -13,7 +13,7 @@
 import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
-import { internalMutation, mutation, query } from "./functions";
+import { internalMutation, internalQuery, mutation, query } from "./functions";
 import { assertAdmin, assertModerator, requireUser } from "./lib/access";
 import {
   DEFAULT_PLUGIN_CATEGORIES,
@@ -403,6 +403,53 @@ export const seedDefaultSkillCategoriesInternal = internalMutation({
   handler: (ctx) => seedDefaultCategories(ctx, SKILL, DEFAULT_SKILL_CATEGORIES),
 });
 
+// ---- internal slug-validation helpers ---------------------------------------
+//
+// Used by publish flows (packages.ts / skillPublish.ts) and management
+// re-assignment mutations to validate a caller-supplied slug against the
+// authoritative dictionary. Two scopes are exposed:
+//   * "active" → archived rows excluded (publish path falls back to "other")
+//   * "all"    → archived rows included (management re-categorization tooling
+//     legitimately needs to assign to archived slugs while curating)
+// Returned as a string[] (small dictionaries, ~10-20 rows). The caller wraps
+// it in a Set if hot-path lookups matter.
+
+async function listCategorySlugs(
+  ctx: QueryCtx,
+  binding: FamilyBinding,
+  scope: "active" | "all",
+): Promise<string[]> {
+  if (scope === "active") {
+    const docs = await ctx.db
+      .query(binding.table)
+      .withIndex("by_active_order", (q) => q.eq("archived", false))
+      .collect();
+    return docs.map((doc) => doc.slug);
+  }
+  const docs = await ctx.db.query(binding.table).collect();
+  return docs.map((doc) => doc.slug);
+}
+
+export const listActivePluginCategorySlugsInternal = internalQuery({
+  args: {},
+  handler: (ctx) => listCategorySlugs(ctx, PLUGIN, "active"),
+});
+
+export const listActiveSkillCategorySlugsInternal = internalQuery({
+  args: {},
+  handler: (ctx) => listCategorySlugs(ctx, SKILL, "active"),
+});
+
+export const listAllPluginCategorySlugsInternal = internalQuery({
+  args: {},
+  handler: (ctx) => listCategorySlugs(ctx, PLUGIN, "all"),
+});
+
+export const listAllSkillCategorySlugsInternal = internalQuery({
+  args: {},
+  handler: (ctx) => listCategorySlugs(ctx, SKILL, "all"),
+});
+
 // Re-export for tests / dev seeds.
-export type { CategoryFamily };
-export { DEFAULT_PLUGIN_CATEGORIES, DEFAULT_SKILL_CATEGORIES };
+export type { CategoryFamily, FamilyBinding };
+export { DEFAULT_PLUGIN_CATEGORIES, DEFAULT_SKILL_CATEGORIES, PLUGIN, SKILL, listCategorySlugs };

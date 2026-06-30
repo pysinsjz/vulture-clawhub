@@ -269,6 +269,7 @@ export declare const PackagePublishMetadataSchema: import("arktype/internal/vari
         format?: string | undefined;
         hostTargets?: string[] | undefined;
     } | undefined;
+    pluginCategorySlug?: string | undefined;
 }, {}>;
 export type PackagePublishMetadata = (typeof PackagePublishMetadataSchema)[inferred];
 export declare const ServerPackagePublishRequestSchema: import("arktype/internal/variants/object.ts").ObjectType<{
@@ -314,6 +315,7 @@ export declare const ServerPackagePublishRequestSchema: import("arktype/internal
         format?: string | undefined;
         hostTargets?: string[] | undefined;
     } | undefined;
+    pluginCategorySlug?: string | undefined;
 }, {}>;
 export type ServerPackagePublishRequest = (typeof ServerPackagePublishRequestSchema)[inferred];
 export declare const PackageListItemSchema: import("arktype/internal/variants/object.ts").ObjectType<{

@@ -30,6 +30,13 @@ import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../components/ui/select";
 import { Textarea } from "../../components/ui/textarea";
 import { UploadDropzoneDecor } from "../../components/UploadDropzoneDecor";
 import { VersionInput } from "../../components/VersionInput";
@@ -70,10 +77,7 @@ export function Upload() {
   const generateUploadUrl = useMutation(api.uploads.generateUploadUrl);
   const publishVersion = useAction(api.skills.publishVersion);
   const generateChangelogPreview = useAction(api.skills.generateChangelogPreview);
-  const existing = useQuery(
-    api.skills.getBySlug,
-    updateSlug ? { slug: updateSlug } : "skip",
-  ) as
+  const existing = useQuery(api.skills.getBySlug, updateSlug ? { slug: updateSlug } : "skip") as
     | {
         skill?: { slug: string; displayName: string; icon?: string | null };
         latestVersion?: { version: string };
@@ -99,6 +103,14 @@ export function Upload() {
   const [iconName, setIconName] = useState<string | null>(null);
   const [version, setVersion] = useState("1.0.0");
   const [tags, setTags] = useState("latest");
+  const [skillCategorySlug, setSkillCategorySlug] = useState("");
+  // Loaded from the public active-only dictionary; archived rows are not
+  // selectable in the publish form (operator path is the only place to assign
+  // a row to an archived slug). Reactive useQuery is acceptable here — the
+  // form is a one-off interaction and the dictionary is tiny.
+  const skillCategories = useQuery(api.marketplaceCategories.listSkillCategoriesDictionary, {}) as
+    | Array<{ slug: string; label: string; order: number; icon: string | null }>
+    | undefined;
   const [changelog, setChangelog] = useState("");
   const [changelogStatus, setChangelogStatus] = useState<"idle" | "loading" | "ready" | "error">(
     "idle",
@@ -397,6 +409,9 @@ export function Upload() {
     if (parsedTags.length === 0) {
       issues.push("至少需要一个标签。");
     }
+    if (!skillCategorySlug.trim()) {
+      issues.push("请选择 Skill 归类。");
+    }
     if (files.length === 0) {
       issues.push("至少添加一个文件。");
     }
@@ -404,9 +419,7 @@ export function Upload() {
       issues.push(`${requiredFileLabel} 不能为空。`);
     }
     if (isOwnerMigration && !confirmMigrateOwner) {
-      issues.push(
-        `请确认将所有权从 @${existingOwnerHandle} 转移到 @${ownerHandle} 后再发布。`,
-      );
+      issues.push(`请确认将所有权从 @${existingOwnerHandle} 转移到 @${ownerHandle} 后再发布。`);
     }
     if (unsupportedFileEntries.length > 0) {
       issues.push(
@@ -446,6 +459,7 @@ export function Upload() {
     confirmMigrateOwner,
     existingOwnerHandle,
     ownerHandle,
+    skillCategorySlug,
   ]);
   const shouldShowSlugIssue = hasAttempted || dirtyFields.slug || Boolean(trimmedSlug);
   const shouldShowDisplayNameIssue = hasAttempted || dirtyFields.displayName;
@@ -681,6 +695,7 @@ export function Upload() {
         // removed, so accept implicitly to satisfy the backend's required gate.
         acceptLicenseTerms: true,
         tags: parsedTags,
+        skillCategorySlug: skillCategorySlug.trim() || undefined,
         files: uploaded,
       });
       setStatus(null);
@@ -708,12 +723,8 @@ export function Upload() {
       <Container size="narrow">
         <header className="flex flex-col gap-3 mb-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="font-display text-2xl font-bold text-[color:var(--ink)]">
-              发布 Skill
-            </h1>
-            <p className="text-sm text-[color:var(--ink-soft)]">
-              拖入或选择 Skill 文件夹
-            </p>
+            <h1 className="font-display text-2xl font-bold text-[color:var(--ink)]">发布 Skill</h1>
+            <p className="text-sm text-[color:var(--ink-soft)]">拖入或选择 Skill 文件夹</p>
           </div>
           <Button asChild variant="outline" size="sm" className="w-fit">
             <a href={publishingGuideUrl} target="_blank" rel="noreferrer">
@@ -837,9 +848,7 @@ export function Upload() {
                         ) : null}
                         {isConfirmingRemoval ? (
                           <div className="flex shrink-0 items-center gap-1">
-                            <span className="text-xs font-medium text-status-error-fg">
-                              移除？
-                            </span>
+                            <span className="text-xs font-medium text-status-error-fg">移除？</span>
                             <Button
                               aria-label={`取消移除 ${path}`}
                               title={`取消移除 ${path}`}
@@ -1039,35 +1048,35 @@ export function Upload() {
 
               <div className="flex flex-col gap-2">
                 <Label htmlFor="ownerHandle">所有者</Label>
-                  <PublisherOwnerSelect
-                    id="ownerHandle"
-                    value={ownerHandle}
-                    memberships={publisherMemberships}
-                    onValueChange={(nextOwnerHandle) => {
-                      ownerTouchedRef.current = true;
-                      setOwnerHandle(nextOwnerHandle);
-                      // Reset the migration confirmation any time the Owner
-                      // selector changes; the user must re-acknowledge the move
-                      // after picking a different target to avoid a stale tick
-                      // turning into a silent transfer.
-                      setConfirmMigrateOwner(false);
-                    }}
-                  />
-                  {isOwnerMigration ? (
-                    <label className="flex items-start gap-2 text-sm cursor-pointer mt-2">
-                      <input
-                        type="checkbox"
-                        className="mt-0.5"
-                        checked={confirmMigrateOwner}
-                        onChange={(event) => setConfirmMigrateOwner(event.target.checked)}
-                      />
-                      <span>
-                        将 <strong>{trimmedSlug || "此 Skill"}</strong> 的所有权从{" "}
-                        <strong>@{existingOwnerHandle}</strong> 转移到 <strong>@{ownerHandle}</strong>。
-                        版本、标签、统计、评论和星标都会保留；旧 URL 会跳转到新地址。
-                      </span>
-                    </label>
-                  ) : null}
+                <PublisherOwnerSelect
+                  id="ownerHandle"
+                  value={ownerHandle}
+                  memberships={publisherMemberships}
+                  onValueChange={(nextOwnerHandle) => {
+                    ownerTouchedRef.current = true;
+                    setOwnerHandle(nextOwnerHandle);
+                    // Reset the migration confirmation any time the Owner
+                    // selector changes; the user must re-acknowledge the move
+                    // after picking a different target to avoid a stale tick
+                    // turning into a silent transfer.
+                    setConfirmMigrateOwner(false);
+                  }}
+                />
+                {isOwnerMigration ? (
+                  <label className="flex items-start gap-2 text-sm cursor-pointer mt-2">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={confirmMigrateOwner}
+                      onChange={(event) => setConfirmMigrateOwner(event.target.checked)}
+                    />
+                    <span>
+                      将 <strong>{trimmedSlug || "此 Skill"}</strong> 的所有权从{" "}
+                      <strong>@{existingOwnerHandle}</strong> 转移到 <strong>@{ownerHandle}</strong>
+                      。 版本、标签、统计、评论和星标都会保留；旧 URL 会跳转到新地址。
+                    </span>
+                  </label>
+                ) : null}
                 <InlineValidationMessage id="owner-validation-error" message={ownerIssue} />
               </div>
 
@@ -1100,6 +1109,33 @@ export function Upload() {
                 />
               </div>
 
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="skillCategorySlug">归类</Label>
+                <Select
+                  value={skillCategorySlug}
+                  disabled={skillCategories === undefined}
+                  onValueChange={setSkillCategorySlug}
+                >
+                  <SelectTrigger id="skillCategorySlug" className="min-h-[44px] w-full">
+                    <SelectValue
+                      placeholder={
+                        skillCategories === undefined ? "正在加载分类…" : "选择 Skill 归类"
+                      }
+                    />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(skillCategories ?? [])
+                      .slice()
+                      .sort((a, b) => a.order - b.order)
+                      .map((entry) => (
+                        <SelectItem key={entry.slug} value={entry.slug}>
+                          {entry.label}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               {visibleMetadataIssues.length > 0 ? (
                 <ul className="flex flex-col gap-1 list-disc pl-5 text-sm text-[color:var(--ink-soft)]">
                   {visibleMetadataIssues.map((issue) => (
@@ -1115,9 +1151,7 @@ export function Upload() {
               <CardContent>
                 <div>
                   <CardTitle>更新日志</CardTitle>
-                  <p className="text-sm text-[color:var(--ink-soft)]">
-                    概述此版本的变更。
-                  </p>
+                  <p className="text-sm text-[color:var(--ink-soft)]">概述此版本的变更。</p>
                 </div>
                 <Label htmlFor="changelog" className="sr-only">
                   更新日志
@@ -1137,9 +1171,7 @@ export function Upload() {
                   <div className="text-sm text-[color:var(--ink-soft)]">正在生成更新日志…</div>
                 ) : null}
                 {changelogStatus === "error" ? (
-                  <div className="text-sm text-[color:var(--ink-soft)]">
-                    无法自动生成更新日志。
-                  </div>
+                  <div className="text-sm text-[color:var(--ink-soft)]">无法自动生成更新日志。</div>
                 ) : null}
                 {changelogSource === "auto" && changelog ? (
                   <div className="text-sm text-[color:var(--ink-soft)]">
@@ -1214,6 +1246,7 @@ function missingPublishLabel(issue: string, requiredFileLabel: string) {
   if (issue === "至少需要一个标签。") return ["标签"];
   if (issue === "至少添加一个文件。") return ["文件"];
   if (issue === `${requiredFileLabel} 不能为空。`) return [requiredFileLabel];
+  if (issue === "请选择 Skill 归类。") return ["归类"];
   return [];
 }
 

@@ -5470,7 +5470,6 @@ describe("packages public queries", () => {
     ).rejects.toThrow("Skill packages must use the skills publish flow");
   });
 
-
   it("keeps raw package publishes behind the per-file size limit", async () => {
     const ctx = {
       runQuery: vi
@@ -5631,7 +5630,16 @@ describe("packages public queries", () => {
           },
         },
       }),
-    ).resolves.toEqual({ ok: true, packageId: "packages:demo", releaseId: "releases:demo-1" });
+    ).resolves.toEqual({
+      ok: true,
+      packageId: "packages:demo",
+      releaseId: "releases:demo-1",
+      // payload omits pluginCategorySlug → server defaults to "other" and
+      // surfaces a compat-window warning on the action result. Removed when
+      // the 60-day cleanup PR makes the field required.
+      warning:
+        "pluginCategorySlug was missing, archived, or unknown — defaulted to 'other'. Re-publish with a valid slug from /api/v1/plugins/categories.",
+    });
 
     expect(runMutation).toHaveBeenCalledWith(
       expect.anything(),

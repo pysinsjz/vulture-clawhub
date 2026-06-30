@@ -46,6 +46,7 @@ import {
   isPublicSkillDoc,
   readGlobalPublicSkillsCount,
 } from "./lib/globalStats";
+import { buildInternalAutoPassLlmAnalysis } from "./lib/internalAutoPass";
 import {
   TRENDING_LEADERBOARD_KIND,
   TRENDING_NON_SUSPICIOUS_LEADERBOARD_KIND,
@@ -56,7 +57,6 @@ import {
   type ManualModerationOverride,
 } from "./lib/manualOverrides";
 import { deriveModerationFlags } from "./lib/moderation";
-import { buildInternalAutoPassLlmAnalysis } from "./lib/internalAutoPass";
 import { buildModerationSnapshot } from "./lib/moderationEngine";
 import {
   legacyFlagsFromVerdict,
@@ -10500,6 +10500,16 @@ export const insertVersion = internalMutation({
       checkedAt: v.number(),
     }),
     embedding: v.array(v.number()),
+    // Marketplace category — already resolved by publishVersionForUser against
+    // the active dictionary, or "other" when the publish payload + SKILL.md
+    // frontmatter both came up empty/invalid. The mutation just persists +
+    // audits; it does not re-validate, so direct test callers can pass
+    // anything (still type-checked by the schema). Optional so legacy fixtures
+    // / dev seeds that bypass publishVersionForUser keep working.
+    skillCategorySlug: v.optional(v.string()),
+    skillCategoryPublishedViaLegacyPath: v.optional(v.boolean()),
+    skillCategoryRequestedFromPayload: v.optional(v.union(v.string(), v.null())),
+    skillCategoryRequestedFromFrontmatter: v.optional(v.union(v.string(), v.null())),
   },
   handler: async (ctx, args) => {
     const userId = args.userId;
@@ -10854,6 +10864,7 @@ export const insertVersion = internalMutation({
         displayName: args.displayName,
         summary: summaryValue,
         icon: normalizeSkillIconValue(args.icon),
+        skillCategorySlug: args.skillCategorySlug,
         ownerUserId: userId,
         ownerPublisherId,
         canonicalSkillId,
@@ -11014,6 +11025,13 @@ export const insertVersion = internalMutation({
       displayName: nextDisplayName,
       summary: nextSummary ?? undefined,
       icon: nextIcon,
+      // Same "preserve operator-curated assignment" rule as the package side:
+      // re-publishing must NOT downgrade a moderator-corrected slug back to
+      // "other" when the new payload lacks one. Publisher-supplied valid slugs
+      // (already resolved by publishVersionForUser) DO win — that lets a
+      // publisher fix a wrong category by re-publishing with the right slug.
+      skillCategorySlug:
+        args.skillCategorySlug !== undefined ? args.skillCategorySlug : skill.skillCategorySlug,
       ownerPublisherId: skill.ownerPublisherId ?? ownerPublisherId,
       latestVersionId: isNewLatest ? versionId : skill.latestVersionId,
       latestVersionSummary: isNewLatest
@@ -11109,6 +11127,28 @@ export const insertVersion = internalMutation({
       kind: "source",
       createdAt: now,
     });
+
+    if (args.skillCategoryPublishedViaLegacyPath === true) {
+      // Same compat-window audit pattern as the plugin side (packages.ts
+      // `package.publish.category_legacy_path`). metadata distinguishes the
+      // two upstream sources (payload vs frontmatter) so management reports
+      // can break down "old CLIs still publishing without a slug" vs
+      // "GitHub sync sourcing skills with broken frontmatter".
+      await ctx.db.insert("auditLogs", {
+        actorUserId: userId,
+        action: "skill.publish.category_legacy_path",
+        targetType: "skill",
+        targetId: skill._id,
+        metadata: {
+          version: args.version,
+          requestedFromPayload: args.skillCategoryRequestedFromPayload ?? null,
+          requestedFromFrontmatter: args.skillCategoryRequestedFromFrontmatter ?? null,
+          appliedSlug: args.skillCategorySlug ?? null,
+          published_via_legacy_path: true,
+        },
+        createdAt: now,
+      });
+    }
 
     return { skillId: skill._id, versionId, embeddingId };
   },

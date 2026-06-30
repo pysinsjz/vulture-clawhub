@@ -507,6 +507,11 @@ export function parsePublishBody(body: unknown) {
           version: parsed.forkOf.version ?? undefined,
         }
       : undefined,
+    // Pass through verbatim so publishVersionForUser can apply the dictionary
+    // lookup + frontmatter fallback. Empty strings collapse to undefined so the
+    // server treats them the same as a missing field (legacy CLIs that send
+    // `skillCategorySlug: ""` should fall through to the frontmatter branch).
+    skillCategorySlug: parsed.skillCategorySlug?.trim() || undefined,
     files: parsed.files.map((file) => ({
       ...file,
       storageId: file.storageId as Id<"_storage">,

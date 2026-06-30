@@ -610,6 +610,11 @@ const skills = defineTable({
   summary: v.optional(v.string()),
   icon: v.optional(v.string()),
   resourceId: v.optional(v.string()),
+  // Authoritative marketplace category slug (kebab-case, single-select).
+  // Optional during the 60-day compat window; back-filled to "other" for existing
+  // rows and falls back to "other" at write-time when missing/archived/invalid.
+  // Becomes required in the 60-day cleanup PR.
+  skillCategorySlug: v.optional(v.string()),
   ownerUserId: v.id("users"),
   ownerPublisherId: v.optional(v.id("publishers")),
   canonicalSkillId: v.optional(v.id("skills")),
@@ -760,7 +765,11 @@ const skills = defineTable({
     "isSuspicious",
     "statsInstallsAllTime",
     "updatedAt",
-  ]);
+  ])
+  // Management filter: list skills by category (incl. "other" / archived slugs).
+  // Used by marketplaceCategoriesAssignment.listSkillsByCategoryForManagement
+  // to surface skills the moderator needs to re-categorize.
+  .index("by_categorySlug_updated", ["skillCategorySlug", "updatedAt"]);
 
 const skillSlugAliases = defineTable({
   slug: v.string(),
@@ -1160,6 +1169,9 @@ const packages = defineTable({
   isOfficial: v.boolean(),
   runtimeId: v.optional(v.string()),
   sourceRepo: v.optional(v.string()),
+  // Authoritative marketplace category slug — see skills.skillCategorySlug for the
+  // same compat-window contract. Becomes required in the 60-day cleanup PR.
+  pluginCategorySlug: v.optional(v.string()),
   latestReleaseId: v.optional(v.id("packageReleases")),
   latestVersionSummary: v.optional(
     v.object({
@@ -1218,7 +1230,11 @@ const packages = defineTable({
   .index("by_family_official_updated", ["family", "isOfficial", "updatedAt"])
   .index("by_runtime_id", ["runtimeId"])
   .index("by_active_updated", ["softDeletedAt", "updatedAt"])
-  .index("by_active_downloads", ["softDeletedAt", "stats.downloads", "updatedAt"]);
+  .index("by_active_downloads", ["softDeletedAt", "stats.downloads", "updatedAt"])
+  // Management filter: list packages by category (including the "other" bucket and
+  // archived slugs). Used by setPluginCategoryAssignment / bulk re-categorization
+  // tools to surface uncategorized / mis-categorized packages.
+  .index("by_categorySlug_updated", ["pluginCategorySlug", "updatedAt"]);
 
 const packageReleases = defineTable({
   packageId: v.id("packages"),
@@ -1538,7 +1554,12 @@ const packageSearchDigest = defineTable({
   latestVersion: v.optional(v.string()),
   runtimeId: v.optional(v.string()),
   capabilityTags: v.optional(v.array(v.string())),
+  // Legacy keyword-derived category tags — kept in lockstep with the authoritative
+  // pluginCategorySlug field below so Gateway can read either path during the
+  // 60-day cutover. Dropped in the cleanup PR alongside derivePluginCategoryTags.
   pluginCategoryTags: v.optional(v.array(v.string())),
+  // Authoritative single-select category slug mirrored from packages.pluginCategorySlug.
+  pluginCategorySlug: v.optional(v.string()),
   executesCode: v.optional(v.boolean()),
   verificationTier: v.optional(packageVerificationTierValidator),
   stats: v.optional(packageStatsValidator),
@@ -1738,8 +1759,14 @@ const packagePluginCategorySearchDigest = defineTable({
   latestVersion: v.optional(v.string()),
   runtimeId: v.optional(v.string()),
   capabilityTags: v.optional(v.array(v.string())),
+  // Legacy keyword-derived tags — fan-out path. When the package has an
+  // authoritative pluginCategorySlug, sync collapses to a single row with
+  // pluginCategory = slug. When the slug is undefined (pre-backfill rows or
+  // legacy publishes), the old fan-out (one row per derived tag) is preserved
+  // so existing Gateway readers keep working until the cleanup PR.
   pluginCategoryTags: v.optional(v.array(v.string())),
   pluginCategory: v.string(),
+  pluginCategorySlug: v.optional(v.string()),
   executesCode: v.optional(v.boolean()),
   verificationTier: v.optional(packageVerificationTierValidator),
   stats: v.optional(packageStatsValidator),

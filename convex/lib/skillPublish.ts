@@ -5,6 +5,7 @@ import { api, internal } from "../_generated/api";
 import type { Doc, Id } from "../_generated/dataModel";
 import type { ActionCtx, MutationCtx } from "../_generated/server";
 import { getSkillBadgeMap, isSkillHighlighted } from "./badges";
+import { OTHER_CATEGORY_SLUG } from "./categoriesDefaults";
 import { generateChangelogForPublish } from "./changelog";
 import { generateEmbedding } from "./embeddings";
 import { requireGitHubAccountAge } from "./githubAccount";
@@ -51,6 +52,10 @@ export type PublishResult = {
   skillId: Id<"skills">;
   versionId: Id<"skillVersions">;
   embeddingId: Id<"skillEmbeddings">;
+  // Present when the publish payload + SKILL.md frontmatter both failed to
+  // supply a valid active skillCategorySlug, so the server defaulted to
+  // "other" and recorded a `published_via_legacy_path: true` audit row.
+  warning?: string;
 };
 
 export type PublishVersionArgs = {
@@ -71,6 +76,17 @@ export type PublishVersionArgs = {
     path: string;
     importedAt: number;
   };
+  /**
+   * Marketplace category slug. Resolution order, first non-null wins:
+   *   1. This payload field (web form / CLI / API).
+   *   2. `category` field in SKILL.md frontmatter (GitHub sync path).
+   *   3. Server-side `"other"` fallback + audit `published_via_legacy_path: true`.
+   * Invalid / archived / non-active slugs are treated as "missing" and fall
+   * through to the next step. parseFrontmatter is not modified — we just look
+   * up `category` on the existing return value, so the 14 other callers of
+   * parseFrontmatter (publishSoulV1, devSeed, githubImport, …) keep working.
+   */
+  skillCategorySlug?: string;
   files: Array<{
     path: string;
     size: number;
@@ -310,6 +326,33 @@ export async function publishVersionForUser(
     }),
   ]);
 
+  // Resolve marketplace category slug. Order matters: explicit payload value
+  // (web form, CLI, API) wins over passively-extracted SKILL.md frontmatter so
+  // a publisher can override the file's declared category from the form. Both
+  // are validated against the *active* dictionary — archived slugs and unknown
+  // slugs fall through to "other". GitHub sync MUST NOT reject a publish on a
+  // bad frontmatter category; it just falls through silently.
+  const activeSkillCategorySlugs = (await ctx.runQuery(
+    internal.marketplaceCategories.listActiveSkillCategorySlugsInternal,
+    {},
+  )) as string[];
+  const activeSkillCategorySlugSet = new Set(activeSkillCategorySlugs);
+  const payloadSkillCategorySlug = args.skillCategorySlug?.trim() || undefined;
+  const frontmatterCategoryRaw = getFrontmatterValue(frontmatter, "category");
+  const frontmatterSkillCategorySlug = frontmatterCategoryRaw?.trim() || undefined;
+  const payloadIsValid = Boolean(
+    payloadSkillCategorySlug && activeSkillCategorySlugSet.has(payloadSkillCategorySlug),
+  );
+  const frontmatterIsValid = Boolean(
+    frontmatterSkillCategorySlug && activeSkillCategorySlugSet.has(frontmatterSkillCategorySlug),
+  );
+  const effectiveSkillCategorySlug = payloadIsValid
+    ? (payloadSkillCategorySlug as string)
+    : frontmatterIsValid
+      ? (frontmatterSkillCategorySlug as string)
+      : OTHER_CATEGORY_SLUG;
+  const publishedSkillViaLegacyPath = !payloadIsValid && !frontmatterIsValid;
+
   const publishResult = (await ctx.runMutation(internal.skills.insertVersion, {
     userId,
     ownerPublisherId: options.ownerPublisherId,
@@ -344,6 +387,10 @@ export async function publishVersionForUser(
     summary,
     staticScan,
     embedding,
+    skillCategorySlug: effectiveSkillCategorySlug,
+    skillCategoryPublishedViaLegacyPath: publishedSkillViaLegacyPath,
+    skillCategoryRequestedFromPayload: payloadSkillCategorySlug ?? null,
+    skillCategoryRequestedFromFrontmatter: frontmatterSkillCategorySlug ?? null,
     qualityAssessment: qualityAssessment
       ? {
           decision: qualityAssessment.decision,
@@ -405,6 +452,14 @@ export async function publishVersionForUser(
       version,
       displayName,
     });
+  }
+
+  if (publishedSkillViaLegacyPath) {
+    return {
+      ...publishResult,
+      warning:
+        "skillCategorySlug was missing, archived, or unknown in both the publish payload and SKILL.md frontmatter — defaulted to 'other'. Re-publish with a slug from /api/v1/skills/categories or update the frontmatter `category:` field.",
+    };
   }
 
   return publishResult;

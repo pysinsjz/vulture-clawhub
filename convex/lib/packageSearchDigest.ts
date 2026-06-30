@@ -26,6 +26,7 @@ const SHARED_KEYS = [
   "softDeletedAt",
   "createdAt",
   "updatedAt",
+  "pluginCategorySlug",
 ] as const satisfies readonly SharedPackageKey[];
 
 const CAPABILITY_SHARED_KEYS = [
@@ -70,6 +71,7 @@ const PLUGIN_CATEGORY_SHARED_KEYS = [
   "runtimeId",
   "capabilityTags",
   "pluginCategoryTags",
+  "pluginCategorySlug",
   "executesCode",
   "verificationTier",
   "stats",
@@ -87,6 +89,10 @@ export type PackageSearchDigestFields = Pick<Doc<"packages">, (typeof SHARED_KEY
   verificationTier?: Doc<"packageSearchDigest">["verificationTier"];
   pluginCategoryTags?: string[];
 };
+
+// Single-row pluginCategory value written when an authoritative slug is set.
+// Falls back to the legacy fan-out (one row per derived tag) when the package
+// still has no operator-assigned slug — see syncPackagePluginCategorySearchDigests.
 
 type PackageCapabilitySearchDigestFields = Pick<
   PackageSearchDigestFields,
@@ -182,7 +188,15 @@ async function syncPackagePluginCategorySearchDigests(
     .query("packagePluginCategorySearchDigest")
     .withIndex("by_package", (q) => q.eq("packageId", fields.packageId))
     .collect();
-  const categories = [...new Set((fields.pluginCategoryTags ?? []).filter(Boolean))];
+  // Single-source (post issue#3) vs legacy fan-out: when packages.pluginCategorySlug
+  // is set, write a single digest row keyed by that slug. When undefined (pre-
+  // backfill rows or legacy publishes still missing the slug), fall back to the
+  // historical fan-out over derived keyword tags so existing Gateway readers
+  // keep working until the 60-day cleanup PR.
+  const authoritativeSlug = fields.pluginCategorySlug?.trim();
+  const categories: string[] = authoritativeSlug
+    ? [authoritativeSlug]
+    : [...new Set((fields.pluginCategoryTags ?? []).filter(Boolean))];
   const nextByCategory = new Map<string, PackagePluginCategorySearchDigestFields>();
   for (const pluginCategory of categories) {
     nextByCategory.set(pluginCategory, {

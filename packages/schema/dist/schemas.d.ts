@@ -98,6 +98,7 @@ export declare const CliPublishRequestSchema: import("arktype/internal/variants/
         slug: string;
         version?: string | undefined;
     } | undefined;
+    skillCategorySlug?: string | undefined;
 }, {}>;
 export type CliPublishRequest = (typeof CliPublishRequestSchema)[inferred];
 export declare const ApiCliPublishResponseSchema: import("arktype/internal/variants/object.ts").ObjectType<{

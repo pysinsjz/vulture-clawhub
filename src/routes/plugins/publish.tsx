@@ -158,6 +158,15 @@ export function PublishPluginRoute() {
   const [changelog, setChangelog] = useState("");
   const [bundleFormat, setBundleFormat] = useState("");
   const [hostTargets, setHostTargets] = useState("");
+  // Marketplace category — operator-curated dictionary (active rows only) loaded
+  // from the public query. Required at the form layer so publishers cannot
+  // silently slip into the "other" bucket; the server still accepts payloads
+  // without a slug during the 60-day compat window and warns on the response.
+  const [pluginCategorySlug, setPluginCategorySlug] = useState("");
+  const pluginCategories = useQuery(
+    api.marketplaceCategories.listPluginCategoriesDictionary,
+    {},
+  ) as Array<{ slug: string; label: string; order: number; icon: string | null }> | undefined;
   const [files, setFiles] = useState<File[]>([]);
   const [packageSourceKind, setPackageSourceKind] = useState<PackagePickSource | null>(null);
   const [ignoredPaths, setIgnoredPaths] = useState<string[]>([]);
@@ -201,8 +210,9 @@ export function PublishPluginRoute() {
     const blockers: string[] = [];
     if (!name.trim()) blockers.push("Plugin 名称不能为空。");
     if (!version.trim()) blockers.push("版本号不能为空。");
+    if (!pluginCategorySlug.trim()) blockers.push("请选择 Plugin 归类。");
     return blockers;
-  }, [isMetadataLocked, name, version]);
+  }, [isMetadataLocked, name, version, pluginCategorySlug]);
   const hasPackageBlocker =
     Boolean(validationError) ||
     Boolean(ownerScopeError) ||
@@ -444,6 +454,32 @@ export function PublishPluginRoute() {
                     onValueChange={setVersion}
                   />
                 </div>
+                <div className="flex flex-col gap-2 md:col-span-2">
+                  <Label htmlFor="pluginCategorySlug">归类</Label>
+                  <Select
+                    value={pluginCategorySlug}
+                    disabled={metadataDisabled || pluginCategories === undefined}
+                    onValueChange={setPluginCategorySlug}
+                  >
+                    <SelectTrigger id="pluginCategorySlug" className="min-h-[44px] w-full">
+                      <SelectValue
+                        placeholder={
+                          pluginCategories === undefined ? "正在加载分类…" : "选择 Plugin 归类"
+                        }
+                      />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {(pluginCategories ?? [])
+                        .slice()
+                        .sort((a, b) => a.order - b.order)
+                        .map((entry) => (
+                          <SelectItem key={entry.slug} value={entry.slug}>
+                            {entry.label}
+                          </SelectItem>
+                        ))}
+                    </SelectContent>
+                  </Select>
+                </div>
                 {family === "bundle-plugin" ? (
                   <>
                     <div className="flex flex-col gap-2">
@@ -481,9 +517,7 @@ export function PublishPluginRoute() {
                 <h2 className="font-display text-lg font-bold leading-tight text-[color:var(--ink)]">
                   更新日志
                 </h2>
-                <p className="mt-1 text-sm text-[color:var(--ink-soft)]">
-                  概述此版本的变更。
-                </p>
+                <p className="mt-1 text-sm text-[color:var(--ink-soft)]">概述此版本的变更。</p>
               </div>
               <Label htmlFor="pluginChangelog" className="sr-only">
                 更新日志
@@ -555,6 +589,7 @@ export function PublishPluginRoute() {
                           family,
                           version: version.trim(),
                           changelog: changelog.trim(),
+                          pluginCategorySlug: pluginCategorySlug.trim() || undefined,
                           ...(family === "bundle-plugin"
                             ? {
                                 bundle: {
@@ -569,9 +604,7 @@ export function PublishPluginRoute() {
                           files: uploaded,
                         },
                       });
-                      setStatus(
-                        "已发布。等待安全检查与验证后才会公开列出。",
-                      );
+                      setStatus("已发布。等待安全检查与验证后才会公开列出。");
                     } catch (publishError) {
                       const message = formatPublishError(publishError);
                       setError(message);
@@ -619,5 +652,6 @@ function missingPluginPublishLabel(issue: string) {
   if (issue === "版本号不能为空。") return ["版本"];
   if (issue === "GitHub 仓库不能为空。") return ["GitHub 仓库"];
   if (issue === "Commit SHA 不能为空。") return ["commit SHA"];
+  if (issue === "请选择 Plugin 归类。") return ["归类"];
   return [];
 }

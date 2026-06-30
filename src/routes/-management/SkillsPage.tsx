@@ -15,6 +15,7 @@ import {
   isSkillHighlighted,
   isSkillOfficial,
 } from "../../lib/badges";
+import { CategoryAssignmentSection } from "./CategoryAssignmentSection";
 import {
   formatAuditActionLabel,
   formatAuditMetadataSummary,
@@ -98,6 +99,7 @@ export function SkillsPage({
       <p className="section-subtitle m-0 mt-1">
         浏览全部 Skill，或按 slug 查找以管理审核覆盖并查看其审计历史。
       </p>
+      <CategoryAssignmentSection family="skill" />
       <div className="management-controls">
         <div className="management-control management-search">
           <span className="mono">Skill</span>

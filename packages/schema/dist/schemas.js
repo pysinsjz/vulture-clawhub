@@ -80,6 +80,11 @@ export const CliPublishRequestSchema = type({
         slug: "string",
         version: "string?",
     }).optional(),
+    // Marketplace category — tolerated as optional during the 60-day compat window.
+    // Server-side falls back to "other" + `published_via_legacy_path: true` audit
+    // when missing / archived / unknown; SKILL.md frontmatter `category` field is a
+    // secondary source consulted only when this payload field is absent.
+    skillCategorySlug: "string?",
     files: CliPublishFileSchema.array(),
 });
 export const ApiCliPublishResponseSchema = type({
