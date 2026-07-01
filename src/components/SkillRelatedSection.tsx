@@ -1,4 +1,4 @@
-import { buildSkillCategoryBrowseHref, type SkillCategory } from "../lib/categories";
+import { buildSkillCategoryBrowseHref, type CategoryRef } from "../lib/categories";
 import type { PublicPublisher, PublicSkill } from "../lib/publicUser";
 import { buildSkillHref } from "./skillDetailUtils";
 
@@ -9,7 +9,7 @@ export type RelatedSkillEntry = {
 };
 
 type SkillRelatedSectionProps = {
-  category: SkillCategory | null;
+  category: CategoryRef | null;
   relatedSkills: RelatedSkillEntry[];
   isLoading: boolean;
 };

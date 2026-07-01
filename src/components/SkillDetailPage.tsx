@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { api } from "../../convex/_generated/api";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
-import { getSkillCategoryForSkill } from "../lib/categories";
 import { getUserFacingConvexError } from "../lib/convexError";
 import { isModerator } from "../lib/roles";
 import { skillCardLoadKey } from "../lib/skillCards";
@@ -174,17 +173,26 @@ export function SkillDetailPage({
   const skill = result?.skill;
   const owner = result?.owner ?? null;
   const latestVersion = (result?.latestVersion ?? null) as SkillDetailVersion | null;
-  const relatedCategory = useMemo(() => (skill ? getSkillCategoryForSkill(skill) : null), [skill]);
-  const shouldLoadRelatedSkills = Boolean(
-    skill && relatedCategory && relatedCategory.keywords.length > 0,
-  );
+  // Dictionary (issue #44): resolve the skill's authoritative category slug to
+  // its 中文 label. The "other" catch-all never renders a chip or drives
+  // related-skill recommendations — same behavior as the pre-dictionary
+  // keyword system, which had no keywords for its Other bucket.
+  const skillCategories = useQuery(api.marketplaceCategories.listSkillCategoriesDictionary) as
+    | Array<{ slug: string; label: string }>
+    | undefined;
+  const relatedCategory = useMemo(() => {
+    if (!skill || !skillCategories) return null;
+    const categorySlug = skill.skillCategorySlug ?? "other";
+    if (categorySlug === "other") return null;
+    return skillCategories.find((category) => category.slug === categorySlug) ?? null;
+  }, [skill, skillCategories]);
+  const shouldLoadRelatedSkills = Boolean(skill && relatedCategory);
   const relatedSkillsResult = useQuery(
     api.skills.listRelatedByCategory,
     shouldLoadRelatedSkills && skill && relatedCategory
       ? {
           skillId: skill._id,
           categorySlug: relatedCategory.slug,
-          keywords: relatedCategory.keywords,
           limit: 5,
         }
       : "skip",

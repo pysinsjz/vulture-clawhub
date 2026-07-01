@@ -378,16 +378,33 @@ describe("SkillsIndex", () => {
     expect(titles[1]).toBe("Newer Low Score");
   });
 
-  it("filters category browse results to the inferred skill category", async () => {
+  it("filters category browse results to the dictionary category slug", async () => {
     searchMock = { category: "dev-tools" };
+    // Convex's `anyApi` proxy builds a fresh object on every `.foo.bar` access
+    // (no stable identity, and coercing it to a string throws), so the
+    // function reference can't be used to distinguish this call from the
+    // sibling `countPublicSkills` no-arg query — both call `useQuery(fn)`
+    // with no args object. SkillsIndex only reads `countPublicSkills` behind
+    // a `typeof totalSkills === "number"` guard, so returning the category
+    // dictionary array for BOTH calls is harmless (the count badge just
+    // stays hidden) and avoids a brittle call-order-based mock.
+    convexReactMocks.useQuery.mockImplementation((_fn: unknown, args: unknown) => {
+      if (args !== undefined) return null;
+      return [
+        { slug: "dev-tools", label: "Dev Tools", order: 1, icon: null },
+        { slug: "other", label: "其他", order: 999, icon: null },
+      ];
+    });
     convexHttpMock.query.mockResolvedValue({
       page: [
         makeListResult("web3-dev", "Blockscout for Web3 Dev", {
           summary:
             "Build web3 applications that need blockchain data via the Blockscout PRO API over HTTP.",
+          skillCategorySlug: "data",
         }),
         makeListResult("developer-utils", "Developer Utils", {
           summary: "Utilities for build and debug workflows.",
+          skillCategorySlug: "dev-tools",
         }),
       ],
       hasMore: false,
@@ -398,13 +415,9 @@ describe("SkillsIndex", () => {
     await act(async () => {});
 
     const args = getLastListPageArgs();
-    expect(args).toEqual(
-      expect.objectContaining({
-        categorySlug: "dev-tools",
-        categoryKeywords: expect.arrayContaining(["dev"]),
-        excludeCategoryKeywords: undefined,
-      }),
-    );
+    expect(args).toEqual(expect.objectContaining({ categorySlug: "dev-tools" }));
+    expect(args).not.toHaveProperty("categoryKeywords");
+    expect(args).not.toHaveProperty("excludeCategoryKeywords");
     expect(screen.queryByText("Blockscout for Web3 Dev")).toBeNull();
     expect(screen.getByText("Developer Utils")).toBeTruthy();
   });
@@ -519,7 +532,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function makeListResult(
   slug: string,
   displayName: string,
-  options: { isSuspicious?: boolean; summary?: string } = {},
+  options: { isSuspicious?: boolean; summary?: string; skillCategorySlug?: string } = {},
 ) {
   return {
     skill: {
@@ -537,6 +550,7 @@ function makeListResult(
         comments: 0,
       },
       isSuspicious: options.isSuspicious,
+      skillCategorySlug: options.skillCategorySlug,
       createdAt: 0,
       updatedAt: 0,
     },

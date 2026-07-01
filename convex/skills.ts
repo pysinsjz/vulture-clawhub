@@ -33,6 +33,7 @@ import {
 } from "./lib/artifactModeration";
 import { getSkillBadgeMap, getSkillBadgeMaps, isSkillHighlighted } from "./lib/badges";
 import { scheduleNextBatchIfNeeded } from "./lib/batching";
+import { OTHER_CATEGORY_SLUG } from "./lib/categoriesDefaults";
 import { generateChangelogPreview as buildChangelogPreview } from "./lib/changelog";
 import { mergeDepRegistryFinding } from "./lib/depRegistryScan";
 import { embeddingVisibilityFor } from "./lib/embeddingVisibility";
@@ -4999,17 +5000,11 @@ export const listPublicPageV4 = query({
     nonSuspiciousOnly: v.optional(v.boolean()),
     capabilityTag: v.optional(v.string()),
     categorySlug: v.optional(v.string()),
-    categoryKeywords: v.optional(v.array(v.string())),
-    excludeCategoryKeywords: v.optional(v.array(v.string())),
   },
   handler: async (ctx, args) => {
     if (args.capabilityTag && !isKnownSkillCapabilityTag(args.capabilityTag)) {
       return { page: [], hasMore: false, nextCursor: null };
     }
-    const categoryKeywords = normalizeRelatedCategoryKeywords(args.categoryKeywords ?? []);
-    const excludeCategoryKeywords = normalizeRelatedCategoryKeywords(
-      args.excludeCategoryKeywords ?? [],
-    );
     const categorySlug = normalizeRelatedCategorySlug(args.categorySlug);
     const requestedSort = normalizePublicListSort(args.sort);
     const dir = resolvePublicListDir(requestedSort, args.dir);
@@ -5046,8 +5041,6 @@ export const listPublicPageV4 = query({
         numItems,
         capabilityTag: args.capabilityTag,
         categorySlug,
-        categoryKeywords,
-        excludeCategoryKeywords,
         nonSuspiciousOnly: args.nonSuspiciousOnly ?? false,
       });
     }
@@ -5078,11 +5071,7 @@ export const listPublicPageV4 = query({
     const isFirstPage = !decodedCursor;
     const startIndexKey: IndexKey = decodedCursor ?? eqPrefix;
 
-    const hasDigestFilters =
-      Boolean(args.capabilityTag) ||
-      Boolean(categorySlug) ||
-      categoryKeywords.length > 0 ||
-      excludeCategoryKeywords.length > 0;
+    const hasDigestFilters = Boolean(args.capabilityTag) || Boolean(categorySlug);
 
     if (!hasDigestFilters) {
       const result = await getPage(ctx, {
@@ -5148,8 +5137,6 @@ export const listPublicPageV4 = query({
           digestPassesPublicListFilters(digest, {
             capabilityTag: args.capabilityTag,
             categorySlug,
-            categoryKeywords,
-            excludeCategoryKeywords,
           })
         ) {
           const item = await buildPublicSkillEntryFromDigest(ctx, digest);
@@ -5178,143 +5165,30 @@ export const listPublicPageV4 = query({
   },
 });
 
-const SERVER_SKILL_CATEGORIES = [
-  { slug: "mcp-tools", keywords: ["mcp", "tool", "server"] },
-  { slug: "prompts", keywords: ["prompt", "template", "system"] },
-  { slug: "workflows", keywords: ["workflow", "pipeline", "chain"] },
-  { slug: "dev-tools", keywords: ["dev", "debug", "lint", "test", "build"] },
-  { slug: "data", keywords: ["api", "data", "fetch", "http", "rest", "graphql"] },
-  { slug: "security", keywords: ["security", "scan", "auth", "encrypt"] },
-  { slug: "automation", keywords: ["auto", "cron", "schedule", "bot"] },
-] as const;
-
-const SERVER_SKILL_CATEGORY_SLUGS = new Set<string>([
-  ...SERVER_SKILL_CATEGORIES.map((category) => category.slug),
-  "other",
-]);
-
-type ServerSkillCategorySlug = (typeof SERVER_SKILL_CATEGORIES)[number]["slug"] | "other";
+// Authoritative operator category slug for a digest row (issue #44 dictionary).
+// Rows written before the dictionary migration (or explicitly uncategorized)
+// have `skillCategorySlug === undefined`, which reads as the "other" bucket —
+// mirrors the same fallback the publish path and Gateway aggregation use.
+function digestCategorySlug(digest: Pick<Doc<"skillSearchDigest">, "skillCategorySlug">): string {
+  return digest.skillCategorySlug ?? OTHER_CATEGORY_SLUG;
+}
 
 function normalizeRelatedCategorySlug(categorySlug: string | undefined) {
   const value = categorySlug?.trim().toLowerCase();
-  return value && SERVER_SKILL_CATEGORY_SLUGS.has(value)
-    ? (value as ServerSkillCategorySlug)
-    : null;
-}
-
-function normalizeRelatedCategoryKeywords(keywords: string[]) {
-  const seen = new Set<string>();
-  const normalized: string[] = [];
-
-  for (const keyword of keywords) {
-    const value = keyword.trim().toLowerCase();
-    if (!value || value.length > 40 || seen.has(value)) continue;
-    seen.add(value);
-    normalized.push(value);
-    if (normalized.length >= 12) break;
-  }
-
-  return normalized;
-}
-
-function stripGeneratedRelatedSlugPrefixTokens(tokens: string[]) {
-  if (tokens[0] !== "dev") return tokens;
-  const maybeGeneratedId = tokens[1];
-  if (!maybeGeneratedId || maybeGeneratedId.length < 7 || !/\d/.test(maybeGeneratedId)) {
-    return tokens;
-  }
-  return tokens.slice(2);
-}
-
-function relatedTokenMatchesKeyword(token: string, keyword: string) {
-  if (token === keyword) return true;
-  if (keyword === "dev") {
-    return token === "developer" || token === "development" || token === "devops";
-  }
-  if (keyword === "api") {
-    return token === "apis";
-  }
-  return keyword.length >= 4 && token.includes(keyword);
-}
-
-function digestMatchesRelatedCategory(
-  digest: Pick<Doc<"skillSearchDigest">, "slug" | "displayName" | "summary" | "capabilityTags">,
-  keywords: string[],
-) {
-  const primaryTokens = tokenize(
-    [digest.displayName, digest.summary ?? "", ...(digest.capabilityTags ?? [])].join(" "),
-  );
-  const slugTokens = stripGeneratedRelatedSlugPrefixTokens(tokenize(digest.slug));
-
-  return keywords.some(
-    (keyword) =>
-      primaryTokens.some((token) => relatedTokenMatchesKeyword(token, keyword)) ||
-      slugTokens.some((token) => relatedTokenMatchesKeyword(token, keyword)),
-  );
-}
-
-function scoreDigestSkillCategory(
-  primaryTokens: string[],
-  slugTokens: string[],
-  category: (typeof SERVER_SKILL_CATEGORIES)[number],
-) {
-  return category.keywords.reduce((score, keyword) => {
-    const primaryScore = primaryTokens.some((token) => relatedTokenMatchesKeyword(token, keyword))
-      ? 2
-      : 0;
-    const slugScore = slugTokens.some((token) => relatedTokenMatchesKeyword(token, keyword))
-      ? 1
-      : 0;
-    return score + primaryScore + slugScore;
-  }, 0);
-}
-
-function inferDigestSkillCategorySlug(
-  digest: Pick<Doc<"skillSearchDigest">, "slug" | "displayName" | "summary" | "capabilityTags">,
-): ServerSkillCategorySlug {
-  const primaryTokens = tokenize(
-    [digest.displayName, digest.summary ?? "", ...(digest.capabilityTags ?? [])].join(" "),
-  );
-  const slugTokens = stripGeneratedRelatedSlugPrefixTokens(tokenize(digest.slug));
-  let bestSlug: ServerSkillCategorySlug = "other";
-  let bestScore = 0;
-
-  for (const category of SERVER_SKILL_CATEGORIES) {
-    const score = scoreDigestSkillCategory(primaryTokens, slugTokens, category);
-    if (score > bestScore) {
-      bestSlug = category.slug;
-      bestScore = score;
-    }
-  }
-
-  return bestSlug;
+  return value || null;
 }
 
 function digestPassesPublicListFilters(
   digest: Doc<"skillSearchDigest">,
   opts: {
     capabilityTag?: string;
-    categorySlug: ServerSkillCategorySlug | null;
-    categoryKeywords: string[];
-    excludeCategoryKeywords: string[];
+    categorySlug: string | null;
   },
 ) {
   if (opts.capabilityTag && !(digest.capabilityTags ?? []).includes(opts.capabilityTag)) {
     return false;
   }
-  if (opts.categorySlug && inferDigestSkillCategorySlug(digest) !== opts.categorySlug) {
-    return false;
-  }
-  if (
-    opts.categoryKeywords.length > 0 &&
-    !digestMatchesRelatedCategory(digest, opts.categoryKeywords)
-  ) {
-    return false;
-  }
-  if (
-    opts.excludeCategoryKeywords.length > 0 &&
-    digestMatchesRelatedCategory(digest, opts.excludeCategoryKeywords)
-  ) {
+  if (opts.categorySlug && digestCategorySlug(digest) !== opts.categorySlug) {
     return false;
   }
   return true;
@@ -5324,13 +5198,15 @@ export const listRelatedByCategory = query({
   args: {
     skillId: v.id("skills"),
     categorySlug: v.optional(v.string()),
-    keywords: v.array(v.string()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const keywords = normalizeRelatedCategoryKeywords(args.keywords);
     const categorySlug = normalizeRelatedCategorySlug(args.categorySlug);
-    if (keywords.length === 0) return { items: [] };
+    // The "other" bucket is the uncategorized catch-all — nothing meaningful
+    // to recommend as "related" within it (mirrors the pre-dictionary
+    // behavior where the Other category had no keywords, so this branch
+    // always short-circuited).
+    if (!categorySlug || categorySlug === OTHER_CATEGORY_SLUG) return { items: [] };
 
     const limit = clampInt(
       args.limit ?? DEFAULT_RELATED_CATEGORY_SKILL_LIMIT,
@@ -5350,8 +5226,7 @@ export const listRelatedByCategory = query({
       if (digest.skillId === args.skillId) continue;
       const hydratable = digestToHydratableSkill(digest);
       if (isSkillSuspicious(hydratable)) continue;
-      if (categorySlug && inferDigestSkillCategorySlug(digest) !== categorySlug) continue;
-      if (!digestMatchesRelatedCategory(digest, keywords)) continue;
+      if (digestCategorySlug(digest) !== categorySlug) continue;
       const item = await buildPublicSkillEntryFromDigest(ctx, digest);
       if (!item) continue;
       items.push(item);
@@ -6134,9 +6009,7 @@ async function fetchHighlightedPage(
     dir: "asc" | "desc";
     numItems: number;
     capabilityTag?: string;
-    categorySlug: ServerSkillCategorySlug | null;
-    categoryKeywords: string[];
-    excludeCategoryKeywords: string[];
+    categorySlug: string | null;
     nonSuspiciousOnly: boolean;
   },
 ) {
@@ -6160,8 +6033,6 @@ async function fetchHighlightedPage(
       !digestPassesPublicListFilters(digest, {
         capabilityTag: opts.capabilityTag,
         categorySlug: opts.categorySlug,
-        categoryKeywords: opts.categoryKeywords,
-        excludeCategoryKeywords: opts.excludeCategoryKeywords,
       })
     ) {
       continue;

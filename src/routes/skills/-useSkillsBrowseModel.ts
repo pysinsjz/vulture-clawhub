@@ -2,14 +2,12 @@ import { useAction } from "convex/react";
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import { api } from "../../../convex/_generated/api";
 import { convexHttp } from "../../convex/client";
-import {
-  ALL_CATEGORY_KEYWORDS,
-  getSkillCategoryByKeyword,
-  getSkillCategoryBySlug,
-  getSkillCategoryForSkill,
-} from "../../lib/categories";
+import type { CategoryRef } from "../../lib/categories";
 import { parseDir, parseSort, toListSort, type SortDir, type SortKey } from "./-params";
 import type { SkillListEntry, SkillSearchEntry } from "./-types";
+
+/** Uncategorized bucket slug — mirrors the server dictionary's reserved "other" catch-all. */
+const OTHER_CATEGORY_SLUG = "other";
 
 const pageSize = 25;
 
@@ -64,10 +62,13 @@ export function useSkillsBrowseModel({
   search,
   navigate,
   searchInputRef,
+  categories,
 }: {
   search: SkillsSearchState;
   navigate: SkillsNavigate;
   searchInputRef: RefObject<HTMLInputElement | null>;
+  /** Operator category dictionary (issue #44) — drives category filtering/resolution. */
+  categories: CategoryRef[];
 }) {
   const [query, setQuery] = useState(search.q ?? "");
   const [searchResults, setSearchResults] = useState<Array<SkillSearchEntry>>([]);
@@ -84,17 +85,11 @@ export function useSkillsBrowseModel({
   const searchSkills = useAction(api.search.searchSkills);
 
   const trimmedQuery = useMemo(() => query.trim(), [query]);
-  const legacyQueryCategory = useMemo(() => {
-    if (query === "__other__") return getSkillCategoryBySlug("other");
-    return getSkillCategoryByKeyword(trimmedQuery);
-  }, [query, trimmedQuery]);
-  const urlCategory = useMemo(() => getSkillCategoryBySlug(search.category), [search.category]);
-  const activeCategory = urlCategory ?? legacyQueryCategory;
-  const categoryKeywords =
-    activeCategory && activeCategory.slug !== "other" ? activeCategory.keywords : undefined;
-  const excludeCategoryKeywords =
-    activeCategory?.slug === "other" ? ALL_CATEGORY_KEYWORDS : undefined;
-  const hasQuery = trimmedQuery.length > 0 && (Boolean(urlCategory) || !legacyQueryCategory);
+  const activeCategory = useMemo(
+    () => categories.find((category) => category.slug === search.category) ?? null,
+    [categories, search.category],
+  );
+  const hasQuery = trimmedQuery.length > 0;
   const requestedSort = search.sort === "default" ? "recommended" : search.sort;
   const sort: SortKey =
     requestedSort === "relevance" && !hasQuery
@@ -125,8 +120,6 @@ export function useSkillsBrowseModel({
           highlightedOnly: featuredOnly,
           capabilityTag,
           categorySlug: activeCategory?.slug,
-          categoryKeywords,
-          excludeCategoryKeywords,
         });
         if (generation !== fetchGeneration.current) return;
         setListResults((prev) => (cursor ? [...prev, ...result.page] : result.page));
@@ -142,15 +135,7 @@ export function useSkillsBrowseModel({
         setListStatus(cursor ? "idle" : "done");
       }
     },
-    [
-      activeCategory?.slug,
-      capabilityTag,
-      categoryKeywords,
-      dir,
-      excludeCategoryKeywords,
-      featuredOnly,
-      listSort,
-    ],
+    [activeCategory?.slug, capabilityTag, dir, featuredOnly, listSort],
   );
 
   // Reset and fetch first page when sort/dir/filters change
@@ -261,9 +246,12 @@ export function useSkillsBrowseModel({
   }, [hasQuery, listResults, searchResults]);
 
   const sorted = useMemo(() => {
+    // Search results are fetched without a server-side category filter (the
+    // search action has no categorySlug param), so apply it client-side here
+    // against the authoritative skillCategorySlug field.
     const categoryItems = activeCategory
       ? baseItems.filter(
-          (entry) => getSkillCategoryForSkill(entry.skill)?.slug === activeCategory.slug,
+          (entry) => (entry.skill.skillCategorySlug ?? OTHER_CATEGORY_SLUG) === activeCategory.slug,
         )
       : baseItems;
     if (!hasQuery) {

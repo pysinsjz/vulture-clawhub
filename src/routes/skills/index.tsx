@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "convex/react";
 import { Search } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { api } from "../../../convex/_generated/api";
 import { BrowseSidebar } from "../../components/BrowseSidebar";
-import { SKILL_CATEGORIES } from "../../lib/categories";
 import { formatCompactStat } from "../../lib/numberFormat";
 import { parseDir, parseSort } from "./-params";
 import { SkillsResults } from "./-SkillsResults";
@@ -33,10 +32,12 @@ const SEARCH_SORT_OPTIONS = [
   { value: "name", label: "名称" },
 ];
 
-const SKILL_CATEGORY_SLUGS = new Set(SKILL_CATEGORIES.map((category) => category.slug));
-
+// Any non-empty slug is accepted here; resolution against the operator
+// dictionary (issue #44) happens reactively in useSkillsBrowseModel once the
+// dictionary loads. An unknown/stale slug (e.g. an old bookmarked URL) simply
+// resolves to no active category rather than failing route validation.
 function parseSkillCategorySlug(value: unknown) {
-  return typeof value === "string" && SKILL_CATEGORY_SLUGS.has(value) ? value : undefined;
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
 }
 
 export const Route = createFileRoute("/skills/")({
@@ -69,10 +70,26 @@ export function SkillsIndex() {
   const totalSkillsText = typeof totalSkills === "number" ? formatCompactStat(totalSkills) : null;
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  // Operator category dictionary (issue #44) — already in operator-defined
+  // order (archived excluded, "other" sorted last), so it can be passed
+  // straight through to the sidebar with no client-side reordering.
+  const categoryDictionary =
+    useQuery(api.marketplaceCategories.listSkillCategoriesDictionary) ?? [];
+  const sidebarCategories = useMemo(
+    () =>
+      categoryDictionary.map((category) => ({
+        slug: category.slug,
+        label: category.label,
+        icon: category.icon ?? "package",
+      })),
+    [categoryDictionary],
+  );
+
   const model = useSkillsBrowseModel({
     navigate,
     search,
     searchInputRef,
+    categories: sidebarCategories,
   });
 
   const sortOptionsWithRelevance = model.hasQuery
@@ -164,7 +181,7 @@ export function SkillsIndex() {
       </div>
       <div className={`browse-layout${sidebarOpen ? " sidebar-open" : ""}`}>
         <BrowseSidebar
-          categories={SKILL_CATEGORIES}
+          categories={sidebarCategories}
           activeCategory={model.activeCategory}
           onCategoryChange={handleCategoryChange}
           sortOptions={[{ value: "featured", label: "精选" }, ...sortOptionsWithRelevance]}

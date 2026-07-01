@@ -47,8 +47,6 @@ type PublicListArgs = {
   nonSuspiciousOnly?: boolean;
   capabilityTag?: string;
   categorySlug?: string;
-  categoryKeywords?: string[];
-  excludeCategoryKeywords?: string[];
 };
 
 type PublicListResult = {
@@ -71,7 +69,7 @@ const listPublicApiPageV1Handler = (
 )._handler;
 const listRelatedByCategoryHandler = (
   listRelatedByCategory as unknown as WrappedHandler<
-    { skillId: string; categorySlug?: string; keywords: string[]; limit?: number },
+    { skillId: string; categorySlug?: string; limit?: number },
     { items: Array<{ skill: { slug: string }; ownerHandle: string | null }> }
   >
 )._handler;
@@ -348,7 +346,7 @@ describe("public skill list deterministic cursors", () => {
     });
   });
 
-  it("applies token-based category filters while scanning public list pages", async () => {
+  it("applies the authoritative skillCategorySlug filter while scanning public list pages", async () => {
     getPageMock.mockResolvedValueOnce({
       page: [
         makeDigest({
@@ -356,12 +354,14 @@ describe("public skill list deterministic cursors", () => {
           displayName: "Navigation Without Screens",
           summary: "Physical navigation skills without digital devices.",
           statsDownloads: 22,
+          skillCategorySlug: "other",
         }),
         makeDigest({
           slug: "developer-utils",
           displayName: "Developer Utils",
           summary: "Utilities for build and debug workflows.",
           statsDownloads: 21,
+          skillCategorySlug: "dev-tools",
         }),
       ],
       hasMore: false,
@@ -374,7 +374,6 @@ describe("public skill list deterministic cursors", () => {
     const result = await listPublicPageV4Handler(
       {} as never,
       {
-        categoryKeywords: ["dev", "debug", "lint", "test", "build"],
         categorySlug: "dev-tools",
         nonSuspiciousOnly: false,
         numItems: 10,
@@ -394,6 +393,35 @@ describe("public skill list deterministic cursors", () => {
     ).toEqual(["developer-utils"]);
   });
 
+  it("treats a missing skillCategorySlug as the 'other' bucket for filtering purposes", async () => {
+    getPageMock.mockResolvedValueOnce({
+      page: [
+        makeDigest({
+          slug: "uncategorized-skill",
+          displayName: "Uncategorized Skill",
+          summary: "No category assigned yet.",
+          statsDownloads: 5,
+        }),
+      ],
+      hasMore: false,
+      indexKeys: [[undefined, 5, 1]],
+    });
+
+    const result = await listPublicPageV4Handler(
+      {} as never,
+      {
+        categorySlug: "other",
+        nonSuspiciousOnly: false,
+        numItems: 10,
+        sort: "downloads",
+      } as PublicListArgs,
+    );
+
+    expect(
+      (result.page as Array<{ skill: { slug: string } }>).map((entry) => entry.skill.slug),
+    ).toEqual(["uncategorized-skill"]);
+  });
+
   it("continues filtered public list pagination across empty scan windows", async () => {
     const emptySecurityWindow = (downloads: number) => ({
       page: [
@@ -402,6 +430,7 @@ describe("public skill list deterministic cursors", () => {
           displayName: "Weather Helper",
           summary: "Get current forecasts.",
           statsDownloads: downloads,
+          skillCategorySlug: "other",
         }),
       ],
       hasMore: true,
@@ -414,7 +443,6 @@ describe("public skill list deterministic cursors", () => {
       .mockResolvedValueOnce(emptySecurityWindow(27));
 
     const result = await listPublicPageV4Handler({} as never, {
-      categoryKeywords: ["security", "scan", "auth", "encrypt"],
       categorySlug: "security",
       nonSuspiciousOnly: false,
       numItems: 10,
@@ -676,18 +704,21 @@ describe("skills.listRelatedByCategory", () => {
         slug: "workflow-runner",
         displayName: "Workflow Runner",
         summary: "Build workflow pipelines.",
+        skillCategorySlug: "workflows",
       }),
       makeDigest({
         slug: "pipeline-builder",
         displayName: "Pipeline Builder",
         summary: "Compose workflow automations.",
         statsDownloads: 20,
+        skillCategorySlug: "workflows",
       }),
       makeDigest({
         slug: "calendar",
         displayName: "Calendar",
         summary: "Track meetings.",
         statsDownloads: 18,
+        skillCategorySlug: "productivity",
       }),
       makeDigest({
         slug: "hidden-workflow",
@@ -695,6 +726,7 @@ describe("skills.listRelatedByCategory", () => {
         summary: "Workflow helper.",
         moderationStatus: "hidden",
         statsDownloads: 16,
+        skillCategorySlug: "workflows",
       }),
       makeDigest({
         slug: "suspicious-workflow",
@@ -703,12 +735,14 @@ describe("skills.listRelatedByCategory", () => {
         moderationFlags: ["flagged.suspicious"],
         isSuspicious: true,
         statsDownloads: 14,
+        skillCategorySlug: "workflows",
       }),
       makeDigest({
         slug: "workflow-audit",
         displayName: "Workflow Audit",
         summary: "Review workflow runs.",
         statsDownloads: 12,
+        skillCategorySlug: "workflows",
       }),
     ];
     const take = vi.fn().mockResolvedValue(digests);
@@ -725,7 +759,7 @@ describe("skills.listRelatedByCategory", () => {
 
     const result = await listRelatedByCategoryHandler({ db: { query } } as never, {
       skillId: "skills:current",
-      keywords: ["workflow"],
+      categorySlug: "workflows",
       limit: 2,
     });
 
@@ -740,25 +774,48 @@ describe("skills.listRelatedByCategory", () => {
     expect(result.items[0]?.ownerHandle).toBe("owner");
   });
 
-  it("does not match generated dev slug prefixes as Dev Tools suggestions", async () => {
+  it("returns no results when categorySlug is absent or the 'other' catch-all bucket", async () => {
+    const query = vi.fn(() => {
+      throw new Error("should short-circuit before querying the digest table");
+    });
+
+    const withoutSlug = await listRelatedByCategoryHandler({ db: { query } } as never, {
+      skillId: "skills:current",
+      limit: 2,
+    });
+    expect(withoutSlug.items).toEqual([]);
+
+    const otherBucket = await listRelatedByCategoryHandler({ db: { query } } as never, {
+      skillId: "skills:current",
+      categorySlug: "other",
+      limit: 2,
+    });
+    expect(otherBucket.items).toEqual([]);
+    expect(query).not.toHaveBeenCalled();
+  });
+
+  it("matches skills purely on the authoritative skillCategorySlug field", async () => {
     const digests = [
       makeDigest({
         skillId: "skills:current",
         slug: "debug-helper",
         displayName: "Debug Helper",
         summary: "Debug build failures.",
+        skillCategorySlug: "dev-tools",
       }),
       makeDigest({
         slug: "navigation-without-screens",
         displayName: "Navigation Without Screens",
         summary: "Physical navigation skills without digital devices.",
         statsDownloads: 22,
+        skillCategorySlug: "other",
       }),
       makeDigest({
         slug: "developer-utils",
         displayName: "Developer Utils",
         summary: "Utilities for build and debug workflows.",
         statsDownloads: 21,
+        skillCategorySlug: "dev-tools",
       }),
       makeDigest({
         slug: "web3-dev",
@@ -766,18 +823,21 @@ describe("skills.listRelatedByCategory", () => {
         summary:
           "Build web3 applications that need blockchain data via the Blockscout PRO API over HTTP.",
         statsDownloads: 19,
+        skillCategorySlug: "data",
       }),
       makeDigest({
         slug: "dev-jh86ceyb-weather-helper",
         displayName: "Weather Helper",
         summary: "Get current forecasts.",
         statsDownloads: 20,
+        skillCategorySlug: "other",
       }),
       makeDigest({
         slug: "build-runner",
         displayName: "Build Runner",
         summary: "Run build checks.",
         statsDownloads: 18,
+        skillCategorySlug: "dev-tools",
       }),
     ];
     const take = vi.fn().mockResolvedValue(digests);
@@ -795,7 +855,6 @@ describe("skills.listRelatedByCategory", () => {
     const result = await listRelatedByCategoryHandler({ db: { query } } as never, {
       skillId: "skills:current",
       categorySlug: "dev-tools",
-      keywords: ["dev", "debug", "lint", "test", "build"],
       limit: 3,
     });
 

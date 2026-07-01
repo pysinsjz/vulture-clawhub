@@ -5,7 +5,7 @@ import { Download, Settings, ShieldCheck, Upload } from "lucide-react";
 import type { ReactNode } from "react";
 import type { Doc, Id } from "../../convex/_generated/dataModel";
 import { getSkillBadges } from "../lib/badges";
-import { buildSkillCategoryBrowseHref, type SkillCategory } from "../lib/categories";
+import { buildSkillCategoryBrowseHref, type CategoryRef } from "../lib/categories";
 import { formatSkillStatsTriplet } from "../lib/numberFormat";
 import type { PublicPublisher, PublicSkill } from "../lib/publicUser";
 import { getRuntimeEnv } from "../lib/runtimeEnv";
@@ -99,7 +99,7 @@ type SkillHeaderProps = {
   configRequirements: ClawdisSkillMetadata["config"] | undefined;
   cliHelp: string | undefined;
   clawdis: ClawdisSkillMetadata | undefined;
-  category?: SkillCategory | null;
+  category?: CategoryRef | null;
   priorityContent?: ReactNode;
   postInstallContent?: ReactNode;
   securityAuditSummary?: ReactNode;

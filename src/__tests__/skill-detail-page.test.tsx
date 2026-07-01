@@ -613,14 +613,21 @@ describe("SkillDetailPage", () => {
     expect(await screen.findByText("Generated from worker.")).toBeTruthy();
   });
 
-  it("renders related skills from the inferred category with a browse link", async () => {
+  it("renders related skills from the dictionary category with a browse link", async () => {
     useQueryMock.mockImplementation((_fn: unknown, args: unknown) => {
       if (args === "skip") return undefined;
+      // listSkillCategoriesDictionary is the only useQuery call with no args object.
+      if (args === undefined) {
+        return [
+          { slug: "workflows", label: "Workflows", order: 1, icon: null },
+          { slug: "other", label: "其他", order: 999, icon: null },
+        ];
+      }
       if (
         args &&
         typeof args === "object" &&
-        "keywords" in args &&
-        Array.isArray((args as { keywords?: unknown }).keywords)
+        "categorySlug" in args &&
+        (args as { categorySlug?: unknown }).categorySlug === "workflows"
       ) {
         return {
           items: [
@@ -671,6 +678,7 @@ describe("SkillDetailPage", () => {
               ownerPublisherId,
               tags: {},
               badges: {},
+              skillCategorySlug: "workflows",
               stats: {
                 stars: 12,
                 downloads: 34,
