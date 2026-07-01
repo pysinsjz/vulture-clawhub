@@ -1069,6 +1069,7 @@ const skillSearchDigest = defineTable({
   ),
   tags: v.record(v.string(), v.id("skillVersions")),
   capabilityTags: v.optional(v.array(v.string())),
+  skillCategorySlug: v.optional(v.string()),
   badges: badgesValidator,
   stats: statsValidator,
   statsDownloads: v.optional(v.number()),

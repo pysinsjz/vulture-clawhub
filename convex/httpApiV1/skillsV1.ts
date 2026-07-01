@@ -100,6 +100,7 @@ type ListSkillsResult = {
       createdAt: number;
       updatedAt: number;
       latestVersionId?: Id<"skillVersions">;
+      skillCategorySlug?: string;
     };
     latestVersion: {
       _id: Id<"skillVersions">;
@@ -182,6 +183,7 @@ type GetBySlugResult = {
     createdAt: number;
     updatedAt: number;
     latestVersionId?: Id<"skillVersions">;
+    skillCategorySlug?: string;
   } | null;
   latestVersion: PublicSkillVersionResponse | null;
   owner: { _id: Id<"users">; handle?: string; displayName?: string; image?: string } | null;
@@ -1437,6 +1439,7 @@ export async function listSkillsV1Handler(ctx: ActionCtx, request: Request) {
     stats: item.skill.stats,
     createdAt: item.skill.createdAt,
     updatedAt: item.skill.updatedAt,
+    skillCategorySlug: item.skill.skillCategorySlug ?? null,
     latestVersion: item.latestVersion
       ? {
           version: item.latestVersion.version,
@@ -1778,6 +1781,7 @@ export async function skillsGetRouterV1Handler(ctx: ActionCtx, request: Request)
           stats: result.skill.stats,
           createdAt: result.skill.createdAt,
           updatedAt: result.skill.updatedAt,
+          skillCategorySlug: result.skill.skillCategorySlug ?? null,
         },
         latestVersion: result.latestVersion
           ? {

@@ -5539,6 +5539,7 @@ async function buildPublicSkillApiListEntryFromDigest(
       createdAt: publicSkill.createdAt,
       updatedAt: publicSkill.updatedAt,
       latestVersionId: publicSkill.latestVersionId,
+      skillCategorySlug: publicSkill.skillCategorySlug,
     },
     latestVersion,
   };

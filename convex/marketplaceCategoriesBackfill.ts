@@ -28,6 +28,7 @@ import type { MutationCtx } from "./_generated/server";
 import { mutation } from "./functions";
 import { assertAdmin, requireUser } from "./lib/access";
 import { OTHER_CATEGORY_SLUG } from "./lib/categoriesDefaults";
+import { syncSkillSearchDigestForSkill } from "./lib/skillSearchDigest";
 
 // Conservative page size — large enough to make progress, small enough that
 // trigger-driven digest writes for the whole batch fit under Convex's
@@ -157,6 +158,68 @@ export const backfillMarketplaceCategoryAssignments = mutation({
     }
 
     return summary;
+  },
+});
+
+// 存量 skill 的 skillSearchDigest 行是在 skillCategorySlug 字段引入之前建的，
+// 缺该字段。桌面端 list/detail API 走 digest 派生，读不到就落"其他"。
+// 这个 mutation 遍历所有 skill 触发一次 digest 重同步，让 SHARED_KEYS 里
+// 新加的 skillCategorySlug 补进 digest。幂等：`upsertSkillSearchDigest`
+// 内部有 hasDigestChanged 判断，字段一致时不写。
+async function resyncSkillDigestsBatch(
+  ctx: MutationCtx,
+  cursor: string | null,
+): Promise<{ updated: number; scanned: number; nextCursor: string | null; isDone: boolean }> {
+  const page = await ctx.db.query("skills").paginate({ cursor, numItems: BACKFILL_PAGE_SIZE });
+  let updated = 0;
+  for (const row of page.page as Doc<"skills">[]) {
+    const existing = await ctx.db
+      .query("skillSearchDigest")
+      .withIndex("by_skill", (q) => q.eq("skillId", row._id))
+      .unique();
+    const digestSlug = (existing as Doc<"skillSearchDigest"> & { skillCategorySlug?: string } | null)
+      ?.skillCategorySlug;
+    if (digestSlug === row.skillCategorySlug) continue;
+    await syncSkillSearchDigestForSkill(ctx, row);
+    updated += 1;
+  }
+  return {
+    updated,
+    scanned: page.page.length,
+    nextCursor: page.isDone ? null : page.continueCursor,
+    isDone: page.isDone,
+  };
+}
+
+export const resyncSkillSearchDigests = mutation({
+  args: {
+    cursor: v.optional(v.union(v.string(), v.null())),
+  },
+  handler: async (ctx, args) => {
+    const { user } = await requireUser(ctx);
+    assertAdmin(user);
+    const cursorIn = args.cursor ?? null;
+    const result =
+      cursorIn === null && (await isSkillsTableEmpty(ctx))
+        ? { updated: 0, scanned: 0, nextCursor: null, isDone: true }
+        : await resyncSkillDigestsBatch(ctx, cursorIn);
+    if (result.updated > 0 || result.isDone) {
+      await ctx.db.insert("auditLogs", {
+        actorUserId: user._id,
+        action: "marketplace_categories.digest_resync",
+        targetType: "marketplaceCategoryDigestResync",
+        targetId: "marketplace_categories.digest_resync",
+        metadata: {
+          updated: result.updated,
+          scanned: result.scanned,
+          cursorIn,
+          nextCursor: result.nextCursor,
+          isDone: result.isDone,
+        },
+        createdAt: Date.now(),
+      });
+    }
+    return result;
   },
 });
 

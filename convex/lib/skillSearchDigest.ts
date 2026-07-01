@@ -33,6 +33,7 @@ const SHARED_KEYS = [
   "latestVersionSummary",
   "tags",
   "capabilityTags",
+  "skillCategorySlug",
   "badges",
   "stats",
   "statsDownloads",
