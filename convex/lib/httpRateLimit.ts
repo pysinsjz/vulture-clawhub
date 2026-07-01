@@ -26,6 +26,19 @@ export async function applyRateLimit(
   request: Request,
   kind: keyof typeof RATE_LIMITS,
 ): Promise<{ ok: true; headers: HeadersInit } | { ok: false; response: Response }> {
+  // "read" bucket bypassed: read-path rate limiting is moving to the Vulture
+  // gateway (the intended sole caller), and paying two extra sequential Convex
+  // round trips per read request (~250-300ms measured) here is redundant once
+  // that lands. KNOWN GAP until then: this instance's :3210/3211 currently
+  // resolve on 0.0.0.0 (reachable from the public internet, not gateway-only)
+  // and the gateway does not yet rate-limit reads either — so read endpoints
+  // are unthrottled until both the network exposure is closed and gateway-side
+  // limiting ships. Mutating kinds (write/export/trustedPublish/download) keep
+  // full enforcement below, unaffected by this bypass.
+  if (kind === "read") {
+    return { ok: true, headers: corsHeaders() };
+  }
+
   const auth = await getOptionalApiTokenUser(ctx, request);
   const ip = getClientIp(request) ?? "unknown";
   const ipSource = getClientIpSource(request);

@@ -144,6 +144,19 @@ describe("applyRateLimit headers", () => {
     vi.restoreAllMocks();
   });
 
+  it("bypasses all checks for the read bucket (no Convex round trips)", async () => {
+    const runQuery = vi.fn();
+    const runMutation = vi.fn();
+    const ctx = { runQuery, runMutation } as unknown as Parameters<typeof applyRateLimit>[0];
+    const request = new Request("https://example.com/api/v1/skills");
+
+    const result = await applyRateLimit(ctx, request, "read");
+
+    expect(result.ok).toBe(true);
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(runMutation).not.toHaveBeenCalled();
+  });
+
   it("returns delay-seconds Retry-After on 429 (not epoch)", async () => {
     vi.spyOn(Date, "now").mockReturnValue(1_000_000);
     const runMutation = vi.fn();
@@ -394,11 +407,11 @@ describe("applyRateLimit headers", () => {
 
   it("scopes known-ip anonymous buckets by rate limit kind", async () => {
     vi.spyOn(Date, "now").mockReturnValue(4_550_000);
-    const readCtx = makeRateLimitCtx({
+    const writeCtx = makeRateLimitCtx({
       ip: {
         allowed: true,
         remaining: 19,
-        limit: RATE_LIMITS.read.ip,
+        limit: RATE_LIMITS.write.ip,
         resetAt: 4_580_000,
       },
     });
@@ -414,15 +427,15 @@ describe("applyRateLimit headers", () => {
       headers: { "cf-connecting-ip": "203.0.113.1" },
     });
 
-    await applyRateLimit(readCtx, request, "read");
+    await applyRateLimit(writeCtx, request, "write");
     await applyRateLimit(downloadCtx, request, "download");
 
-    const readMutation = (readCtx as unknown as { runMutation: ReturnType<typeof vi.fn> })
+    const writeMutation = (writeCtx as unknown as { runMutation: ReturnType<typeof vi.fn> })
       .runMutation;
     const downloadMutation = (downloadCtx as unknown as { runMutation: ReturnType<typeof vi.fn> })
       .runMutation;
-    expect(readMutation.mock.calls.map(([, args]) => String(args.key))).toContain(
-      "ip:203.0.113.1:read",
+    expect(writeMutation.mock.calls.map(([, args]) => String(args.key))).toContain(
+      "ip:203.0.113.1:write",
     );
     expect(downloadMutation.mock.calls.map(([, args]) => String(args.key))).toContain(
       "ip:203.0.113.1:download",
@@ -473,12 +486,12 @@ describe("applyRateLimit headers", () => {
     });
     const request = new Request("https://example.com/api/v1/search?q=demo");
 
-    const result = await applyRateLimit(ctx, request, "read");
+    const result = await applyRateLimit(ctx, request, "write");
 
     expect(result.ok).toBe(true);
     const runMutation = (ctx as unknown as { runMutation: ReturnType<typeof vi.fn> }).runMutation;
     const consumedKeys = runMutation.mock.calls.map(([, args]) => String(args.key));
-    expect(consumedKeys).toContain("ip:unknown:read");
+    expect(consumedKeys).toContain("ip:unknown:write");
   });
 
   it("falls back to ip enforcement when bearer token is invalid", async () => {
