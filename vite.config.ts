@@ -187,6 +187,16 @@ const config = defineConfig({
     devtools(),
     nitro({
       serverDir: "server",
+      // Pinned explicitly: with no preset configured, Nitro auto-detects the
+      // target from whichever JS runtime happens to execute `vite build`
+      // (`globalThis.Bun` present → "bun" preset, requiring `Bun.serve`).
+      // The self-host deploy container runs `node:22-alpine`
+      // (deploy/docker-compose.yml), so a build produced under `bun run
+      // build` / `bunx vite build` silently ships a Bun-only server bundle
+      // that crashes on boot with `ReferenceError: Bun is not defined`.
+      // Pinning makes the build output deterministic regardless of which
+      // runtime built it.
+      preset: "node-server",
       rollupConfig: {
         onwarn: handleRollupWarning,
       },
